@@ -107,13 +107,9 @@ export const AskSheet = forwardRef(function AskSheet({ open, onClose, recs, onAs
     try {
       const r = await onAsk(ask);
       reply = { text: r.say || r.reply || 'Done.', options: (Array.isArray(r.options) ? r.options : []).filter((o) => o && o.text).slice(0, 3), still: /^Still working on it/.test(r.reply || '') };
-      if (c === chat.current) {
-        tick();
-        // A plain "done it" with nothing to choose closes by itself, as before; the answer stays as a toast.
-        if ((r.actions || []).some((a) => a.ok) && !reply.options.length && !reply.still) {
-          closeT.current = setTimeout(() => { if (c === chat.current) { onDone?.(reply.text); onClose(); } }, 2600);
-        }
-      }
+      // The chat never closes by itself (it used to close after a plain "done it" answer). It closes
+      // only on the X, the scrim, Escape or Back; the answer stays in the thread.
+      if (c === chat.current) tick();
     } catch (e) {
       reply = { text: friendly(e.message), err: true, options: [{ label: 'Try again', text: ask }] };
     }
