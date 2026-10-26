@@ -1,0 +1,396 @@
+/* TV home, tvOS style. Designed at 1920x1080; 1rem = 16px at that width, so it scales with the
+   TV's real CSS viewport (this TV's WebView reports 960x540 at 2x).
+   Apple's tvOS numbers: safe area 60 top and bottom, 80 at the sides; 40 between tiles;
+   text 29 by default and never under 23. */
+
+@font-face {
+  font-family: "Inter"; font-weight: 100 900; font-display: block;
+  src: url(fonts/inter-latin-wght-normal.woff2) format("woff2");
+}
+
+:root {
+  --bg: #0b0b0e;
+  --bg-2: #060608;
+  --text: #f5f5f7;
+  --text-2: rgba(245, 245, 247, 0.62);
+  --text-3: rgba(245, 245, 247, 0.42);
+  --tile: #1c1c21;
+  --warn: #ff9f8a;
+
+  --safe-x: 5rem;        /* 80 */
+  --safe-y: 3.75rem;     /* 60 */
+  --gap: 2.5rem;         /* 40 */
+
+  --shelf-w: 20rem;      /* 320: Apple's five-column width */
+  --shelf-h: 11.25rem;   /* 16:9 */
+  --app-w: 11.5rem;      /* 184: Apple's eight-column width */
+  --app-h: 6.5rem;       /* 16:9, the shape of an Android TV banner */
+  --app-row-gap: 3.5rem;
+
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+* { box-sizing: border-box; margin: 0; }
+html { font-size: calc(100vw / 120); background: var(--bg); color: var(--text); }
+body {
+  width: 100vw; height: 100vh; overflow: hidden;
+  background: var(--bg);
+  font-family: "Inter", system-ui, sans-serif; font-weight: 450;
+  -webkit-font-smoothing: antialiased; letter-spacing: -0.005em;
+  cursor: none; user-select: none; -webkit-user-select: none;
+}
+
+/* ---------- the photo: full screen, drifting slowly, one place at a time ---------- */
+.bg { position: fixed; inset: 0; overflow: hidden; background: var(--bg); }
+.bg img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  opacity: 0; transition: opacity 1600ms ease-in-out;
+}
+.bg img.on { opacity: 1; animation: drift 70s ease-in-out infinite alternate; }
+.bg img.show { animation: none; }
+@keyframes drift { from { transform: scale(1.02) translate(0, 0); } to { transform: scale(1.1) translate(-1.5%, -1%); } }
+.night .bg img { filter: brightness(0.72); }
+/* darker at the top for the clock, much darker at the bottom for the apps */
+.scrim {
+  position: fixed; inset: 0; pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0) 26%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0) 32%, rgba(0, 0, 0, 0.5) 55%, rgba(0, 0, 0, 0.86) 100%);
+}
+
+/* ---------- clock, and the focused show's title ---------- */
+.top {
+  position: fixed; top: var(--safe-y); left: var(--safe-x); right: var(--safe-x); z-index: 2;
+  display: flex; justify-content: space-between; align-items: flex-start;
+  text-shadow: 0 0.125rem 1.5rem rgba(0, 0, 0, 0.35);
+}
+.clock { text-align: right; }
+.time { font-size: 7rem; line-height: 7rem; font-weight: 250; letter-spacing: -0.035em; font-variant-numeric: tabular-nums; }
+.time small { font-size: 2.25rem; font-weight: 400; letter-spacing: 0; margin-left: 0.5rem; }
+.date { margin-top: 0.75rem; font-size: 1.875rem; line-height: 2.25rem; font-weight: 550; }
+.place { margin-top: 0.625rem; font-size: 1.4375rem; line-height: 1.875rem; color: rgba(255, 255, 255, 0.66); }
+/* quick buttons under the clock, like Apple TV's Control Centre */
+.quick { position: relative; display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.25rem; text-shadow: none; }
+.qbtns { display: flex; gap: 0.75rem; justify-content: flex-end; }
+.quick.none { display: none; }
+.qbtn {
+  display: flex; align-items: center; gap: 0.625rem; padding: 0.5rem 1.25rem 0.5rem 1rem; border-radius: 2rem;
+  font-size: 1.4375rem; line-height: 2rem; font-weight: 600; color: #fff;
+  background: rgba(16, 16, 20, 0.46); -webkit-backdrop-filter: blur(1.25rem); backdrop-filter: blur(1.25rem);
+  transition: background 200ms var(--ease), color 200ms var(--ease), transform 200ms var(--ease);
+}
+.qbtn svg { width: 1.5rem; height: 1.5rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+.qbtn svg .fill { fill: currentColor; stroke: none; }
+.qbtn.set { background: rgba(16, 16, 20, 0.66); box-shadow: inset 0 0 0 0.125rem rgba(255, 255, 255, 0.5); }
+.qbtn.off { color: rgba(255, 255, 255, 0.55); }
+.qbtn.focus { background: #fff; color: #111; transform: scale(1.08); box-shadow: 0 0.5rem 1.25rem rgba(0, 0, 0, 0.35); }
+.sleep-menu {
+  display: none; position: absolute; right: 0; top: calc(100% + 0.75rem); gap: 0.5rem; padding: 0.5rem;
+  border-radius: 2rem; background: rgba(28, 28, 32, 0.72); -webkit-backdrop-filter: blur(1.5rem); backdrop-filter: blur(1.5rem);
+  box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.45); text-shadow: none;
+}
+.sleep-menu.on { display: flex; }
+.sleep-menu .opt { white-space: nowrap; padding: 0 1.25rem; border-radius: 1.5rem; font-size: 1.4375rem; line-height: 2.75rem; font-weight: 600; color: rgba(255, 255, 255, 0.85); transition: transform 200ms var(--ease); }
+.sleep-menu .opt.focus { background: #fff; color: #111; transform: scale(1.08); }
+.quick-note { margin-top: 0.5rem; font-size: 1.4375rem; color: var(--warn); min-height: 1.875rem; }
+
+.hero { max-width: 62rem; opacity: 0; transform: translateY(0.5rem); transition: opacity 400ms var(--ease), transform 400ms var(--ease); }
+.hero.on { opacity: 1; transform: none; }
+.hero h1 { font-size: 3.75rem; line-height: 4.25rem; font-weight: 700; letter-spacing: -0.025em; }
+.hero p { margin-top: 0.75rem; font-size: 1.8125rem; line-height: 2.25rem; color: rgba(255, 255, 255, 0.8); }
+
+.home { position: relative; z-index: 1; height: 100vh; }
+
+/* ---------- Keep watching ---------- */
+.shelf-head { display: flex; align-items: baseline; justify-content: space-between; height: 2.25rem; margin-bottom: 1.25rem; }
+.shelf-head h2 { font-size: 1.875rem; line-height: 2.25rem; font-weight: 620; color: rgba(255, 255, 255, 0.82); letter-spacing: -0.01em; text-shadow: 0 0.125rem 1rem rgba(0, 0, 0, 0.4); }
+.status { font-size: 1.4375rem; color: var(--warn); }
+/* whose shows: one tab per person, like Apple TV's tab bar */
+.shelf-head { justify-content: flex-start; gap: 1.5rem; align-items: center; height: 3rem; }
+/* top left, the show title sits under it */
+.top-left { display: flex; flex-direction: column; align-items: flex-start; gap: 1.5rem; }
+.people.empty, .people.none { display: none; }
+.people { display: flex; width: max-content; text-shadow: none; gap: 0.5rem; padding: 0.375rem; border-radius: 2rem; background: rgba(255, 255, 255, 0.12); }
+.person {
+  font-size: 1.4375rem; line-height: 2.25rem; font-weight: 600; padding: 0 1.25rem; border-radius: 1.5rem;
+  color: rgba(255, 255, 255, 0.78); transition: background 200ms var(--ease), color 200ms var(--ease), transform 200ms var(--ease);
+}
+.person.on { background: #fff; color: #111; }
+.person.focus { transform: scale(1.08); box-shadow: 0 0 0 0.1875rem #fff, 0 0.5rem 1.25rem rgba(0, 0, 0, 0.35); }
+.person.focus:not(.on) { background: rgba(255, 255, 255, 0.16); color: #fff; }
+.shelf-none { font-size: 1.8125rem; line-height: var(--shelf-h); color: rgba(255, 255, 255, 0.7); text-shadow: 0 0.125rem 1rem rgba(0, 0, 0, 0.4); }
+.shelf-head .status { margin-left: auto; padding-right: var(--safe-x); }
+
+.shelf { position: absolute; left: var(--safe-x); right: 0; top: 19.25rem; }
+.shelf.empty { display: none; }
+.shelf-head { padding-right: var(--safe-x); }
+.shelf-track { display: flex; gap: var(--gap); transition: transform 280ms var(--ease); }
+.shelf-empty {
+  max-width: 44rem; padding-top: 0.5rem;
+  font-size: 1.8125rem; line-height: 2.5rem; color: var(--text-3); font-weight: 450;
+}
+
+/* ---------- tiles and the tvOS focus effect ---------- */
+.tile { position: relative; flex: none; transition: transform 240ms var(--ease); }
+.face {
+  position: relative; width: 100%; height: 100%; overflow: hidden; background: var(--tile);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.35);
+  transition: box-shadow 240ms var(--ease);
+}
+.face img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* the light that slides across a focused tile */
+.face::after {
+  content: ""; position: absolute; inset: 0; opacity: 0; pointer-events: none;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0) 35%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0) 65%);
+  background-size: 250% 100%; background-position: 100% 0;
+  transition: opacity 240ms var(--ease);
+}
+.tile.focus { z-index: 2; }
+.tile.focus .face {
+  box-shadow: 0 1.75rem 3rem rgba(0, 0, 0, 0.6), 0 0 0 0.0625rem rgba(255, 255, 255, 0.12);
+  animation: sway 6s ease-in-out infinite alternate;
+}
+.tile.focus .face::after { opacity: 1; animation: glint 6s ease-in-out infinite alternate; }
+@keyframes sway {
+  from { transform: perspective(60rem) rotateX(1.2deg) rotateY(-1.8deg); }
+  to { transform: perspective(60rem) rotateX(-1.2deg) rotateY(1.8deg); }
+}
+@keyframes glint { from { background-position: 100% 0; } to { background-position: 0% 0; } }
+
+/* Keep watching tile */
+.show { width: var(--shelf-w); height: var(--shelf-h); }
+.show .face { border-radius: 0.875rem; }
+.show.focus { transform: scale(1.07); }
+.show .badge {
+  position: absolute; left: 1rem; bottom: 1.25rem; width: 3rem; height: 3rem; border-radius: 0.75rem;
+  overflow: hidden; box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.45);
+}
+.show .badge img { width: 100%; height: 100%; object-fit: cover; }
+.show .bar { position: absolute; left: 0; right: 0; bottom: 0; height: 0.375rem; background: rgba(0, 0, 0, 0.45); }
+.show .bar i { display: block; height: 100%; background: var(--text); }
+.show .no-art {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 1.5rem;
+  font-size: 2.25rem; font-weight: 650; text-align: center; color: var(--text-2);
+}
+.caption {
+  position: absolute; left: 0; right: 0; top: calc(100% + 1.25rem); opacity: 0;
+  transition: opacity 200ms var(--ease); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* the focused show's title is shown large at the top instead */
+.show .caption { display: none; }
+.caption b { display: block; font-size: 1.8125rem; line-height: 2.25rem; font-weight: 620; color: var(--text); overflow: hidden; text-overflow: ellipsis; }
+.caption span { display: block; font-size: 1.4375rem; line-height: 1.875rem; color: var(--text-2); }
+
+/* ---------- apps ---------- */
+.apps { position: absolute; left: var(--safe-x); right: var(--safe-x); top: 37.5rem; }
+.grid {
+  display: grid; grid-template-columns: repeat(8, var(--app-w)); grid-auto-rows: var(--app-h);
+  column-gap: var(--gap); row-gap: var(--app-row-gap);
+}
+.app { width: var(--app-w); height: var(--app-h); }
+.app .face { border-radius: 0.625rem; }
+.app.focus { transform: scale(1.16); }
+.app .label {
+  position: absolute; left: -2rem; right: -2rem; top: calc(100% + 0.625rem); text-align: center;
+  font-size: 1.25rem; line-height: 1.5rem; font-weight: 600; color: var(--text); opacity: 0;
+  transition: opacity 200ms var(--ease); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.app.focus .label { opacity: 1; }
+/* apps without a TV banner: their icon on a soft tile */
+.app .face.icon { display: flex; align-items: center; justify-content: center; }
+.app .face.icon img { width: 3.75rem; height: 3.75rem; border-radius: 0.875rem; object-fit: cover; }
+.app .face.word { display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 650; color: #fff; padding: 0 1rem; text-align: center; }
+/* the house's own tiles: computer screen, settings */
+.app .face.tool {
+  background: linear-gradient(160deg, #2c2c33 0%, #1a1a1f 100%);
+  display: flex; align-items: center; justify-content: center;
+}
+.app .face.tool svg { width: 2.75rem; height: 2.75rem; stroke: var(--text); stroke-width: 1.6; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.app.busy .face { animation: none; opacity: 0.6; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tile.focus .face, .tile.focus .face::after { animation: none; }
+  .tile, .shelf-track, .bg img, .hero { transition: none; }
+  .bg img.on { animation: none; }
+}
+
+/* ================= Night: the living room's lock screen look =================
+   Only applies with html.theme-night. 
+   Layers: photo, glass clock, the peak cut out of the photo, scrim, then everything else. */
+@font-face {
+  font-family: "Antonio"; font-weight: 300; font-display: block;
+  src: url(fonts/antonio-latin-300.woff2) format("woff2");
+}
+/* Five scenes take turns every 20 s. Each scene is its own photo, glass
+   clock and cut-out; only the one showing and the one coming next are drawn (.ready), to save memory. */
+.scenes { display: none; }
+.theme-night .scenes { display: block; position: fixed; inset: 0; pointer-events: none; }
+.theme-night .bg { display: none; }
+.scene { position: absolute; inset: 0; display: none; opacity: 0; transition: opacity 1600ms ease-in-out; }
+.scene.ready { display: block; }
+.scene.on { opacity: 1; }
+.scene .sbg, .scene .fg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.scene .shade { position: absolute; inset: 0; }
+.gclock {
+  position: absolute; left: 0; right: 0; top: 9.375rem; text-align: center; white-space: nowrap;
+  font-family: "Antonio", "Arial Narrow", sans-serif; font-weight: 300; font-size: 25rem; line-height: 0.82; letter-spacing: -0.02em;
+  filter: drop-shadow(0 0.375rem 1.75rem rgba(0, 0, 0, 0.16));
+}
+.gclock .fill {
+  display: block; padding: 0.2em 0; margin: -0.2em 0; color: transparent;
+  -webkit-background-clip: text; background-clip: text; background-size: 100vw 100vh; background-repeat: no-repeat;
+}
+.gclock .rim { position: absolute; inset: 0; color: rgba(255, 255, 255, 0.1); -webkit-text-stroke: 0.09rem rgba(255, 255, 255, 0.55); }
+.gclock .sheen {
+  position: absolute; inset: 0; color: transparent; -webkit-background-clip: text; background-clip: text;
+  background-image: linear-gradient(160deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 38%, rgba(255, 255, 255, 0) 70%, rgba(255, 255, 255, 0.22) 100%);
+}
+/* after 9 pm everything dims a little */
+.night .scene .sbg, .night .scene .fg, .night .scene .gclock { filter: brightness(0.72); }
+.theme-night .scrim { background: linear-gradient(180deg, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.5) 100%); }
+
+/* 4 Night: the clock behind the peak, pink glass */
+.s-night .sbg, .s-night .fg { filter: brightness(0.86); }
+.s-night .gclock .fill { filter: brightness(1.15) saturate(1.2); opacity: 0.9; }
+.s-night .gclock .rim { color: rgba(255, 200, 215, 0.06); -webkit-text-stroke-color: rgba(255, 215, 225, 0.5); }
+/* 1 Golden hour: higher and a little smaller, behind the volcano */
+.s-golden .gclock { top: 6.5rem; font-size: 24.375rem; }
+/* 2 Waterline: the clock sits on the water; the half under it is blurred like a reflection */
+.s-water .shade { background: linear-gradient(180deg, rgba(0, 12, 24, 0.42) 0%, rgba(0, 12, 24, 0.12) 40%, rgba(0, 0, 0, 0) 52%, rgba(0, 20, 40, 0.5) 100%); }
+.s-water .gclock { top: 14.875rem; font-size: 26.25rem; filter: drop-shadow(0 0.5rem 1.875rem rgba(0, 20, 40, 0.35)); }
+.s-water .gclock.under { filter: blur(0.1375rem); opacity: 0.78; transform: translateX(0.3125rem); }
+.s-water .gclock.under .fill { filter: hue-rotate(-8deg) saturate(1.4); }
+.s-water .gclock.under .rim { -webkit-text-stroke-color: rgba(170, 240, 255, 0.5); }
+/* 3 Fog: a big dark clock on the left, inside the mist */
+.s-fog .gclock { left: 6rem; right: auto; top: 12.25rem; font-size: 29.375rem; text-align: left; filter: none; }
+.s-fog .gclock .fill { filter: brightness(0.46) saturate(0.8) contrast(1.1); opacity: 0.8; }
+.s-fog .gclock .rim { color: transparent; -webkit-text-stroke-color: rgba(255, 255, 255, 0.6); }
+.s-fog .gclock .sheen { display: none; }
+/* 5 Rainforest dawn: warm light at the top */
+.s-dawn .shade { background: linear-gradient(180deg, rgba(50, 28, 12, 0.42) 0%, rgba(50, 28, 12, 0) 55%); }
+.s-dawn .gclock { filter: drop-shadow(0 0.5rem 2.125rem rgba(60, 30, 10, 0.3)); }
+
+/* glass, as on the lock screen */
+.theme-night .people, .theme-night .qbtn, .theme-night .grid, .theme-night .ncard {
+  background: rgba(30, 20, 28, 0.32); -webkit-backdrop-filter: blur(1.75rem) saturate(170%); backdrop-filter: blur(1.75rem) saturate(170%);
+  box-shadow: inset 0 0 0 0.0625rem rgba(255, 210, 220, 0.16), inset 0 0.0625rem 0 rgba(255, 220, 230, 0.14), 0 1.5rem 3.75rem rgba(0, 0, 0, 0.28);
+}
+.theme-night .hero, .theme-night .time, .theme-night .place { display: none; }
+.theme-night .date {
+  position: fixed; left: 0; right: 0; top: 6rem; margin: 0; text-align: center;
+  font-size: 2.125rem; line-height: 2.5rem; font-weight: 500; color: #fff;
+  text-shadow: 0 0.125rem 1.125rem rgba(0, 0, 0, 0.25); transition: opacity 600ms ease-in-out;
+}
+.theme-night .date .wx { color: rgba(255, 255, 255, 0.78); font-weight: 400; }
+/* the date sits just above each scene's clock; it fades out while the scenes swap */
+.theme-night .date.swap { opacity: 0; }
+.scene-night .date { color: rgba(255, 232, 238, 0.92); }
+.scene-night .date .wx { color: rgba(255, 232, 238, 0.78); }
+.scene-golden .date { top: 3.625rem; }
+.scene-water .date { top: 11.625rem; }
+.scene-fog .date { left: 6.5rem; right: auto; top: 8.75rem; text-align: left; color: #16201d; text-shadow: none; }
+.scene-fog .date .wx { color: rgba(22, 32, 29, 0.72); }
+.theme-night .date svg { width: 1.875rem; height: 1.875rem; vertical-align: -0.3rem; margin: 0 0.4rem 0 1rem;
+  fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.theme-night .quick { margin-top: 0; }
+/* the saved copy, computer off: app.js leaves out the quick buttons that need the bridge */
+/* sleep timer: a round glass button; its label shows only while a timer runs */
+.theme-night .qbtn { min-width: 5.5rem; height: 5.5rem; justify-content: center; padding: 0 1.75rem; border-radius: 2.75rem; }
+.theme-night .qbtn svg { width: 2.25rem; height: 2.25rem; }
+.theme-night .qbtn span { display: none; }
+.theme-night .qbtn.set span { display: inline; }
+/* the picture button always says which mode the TV is in */
+.theme-night #q-picture span { display: inline; }
+.theme-night .qbtn.focus { background: #fff; color: #111; }
+
+/* Keep watching: three glass cards */
+.theme-night .shelf { top: 40rem; left: var(--safe-x); right: var(--safe-x); }
+.theme-night .shelf-head { height: 2.25rem; margin-bottom: 1rem; }
+.theme-night .shelf-head h2 { font-size: 1.5625rem; font-weight: 600; color: rgba(255, 255, 255, 0.78); }
+.theme-night .shelf-track { gap: 1.375rem; }
+.ncard { display: flex; align-items: center; gap: 1.25rem; width: 32.5rem; padding: 1rem; border-radius: 1.875rem; transition: transform 240ms var(--ease), box-shadow 240ms var(--ease); }
+.ncard .thumb { width: 10.5rem; height: 5.9375rem; flex: none; border-radius: 1rem; object-fit: cover; background: rgba(255, 255, 255, 0.08); }
+.ncard .t { min-width: 0; flex: 1; }
+.ncard .nap { display: flex; align-items: center; gap: 0.625rem; font-size: 1.1875rem; line-height: 1.5rem; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255, 255, 255, 0.58); white-space: nowrap; overflow: hidden; }
+.ncard .nap img { width: 1.625rem; height: 1.625rem; border-radius: 0.4375rem; object-fit: cover; }
+.ncard b { display: block; margin-top: 0.375rem; font-size: 1.8125rem; line-height: 2.25rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ncard i { display: block; font-style: normal; font-size: 1.3125rem; line-height: 1.75rem; color: rgba(255, 255, 255, 0.78); }
+.ncard .nbar { display: block; height: 0.3125rem; margin-top: 0.625rem; border-radius: 0.2rem; background: rgba(255, 255, 255, 0.25); overflow: hidden; }
+.ncard .nbar i { height: 100%; background: #fff; }
+.ncard.focus { transform: scale(1.05); box-shadow: 0 0 0 0.1875rem #fff, 0 1.25rem 2.5rem rgba(0, 0, 0, 0.45); }
+
+/* the dock */
+.theme-night .apps { top: auto; bottom: 2.875rem; left: 50%; right: auto; transform: translateX(-50%); }
+.theme-night .grid {
+  grid-template-columns: repeat(12, 7rem); grid-auto-rows: 7rem; column-gap: 1.625rem; row-gap: 3rem;
+  padding: 1.375rem 1.75rem; border-radius: 2.875rem;
+}
+.theme-night .app { width: 7rem; height: 7rem; }
+.theme-night .app .face { border-radius: 1.625rem; }
+.theme-night .app:not(.focus) .face img { filter: brightness(0.82); }
+.theme-night .app.focus { transform: scale(1.16) translateY(-0.625rem); }
+.theme-night .app.focus .face { box-shadow: 0 0 0 0.25rem #fff, 0 1.125rem 2.5rem rgba(0, 0, 0, 0.4); }
+.theme-night .app .face.tool { background: rgba(255, 255, 255, 0.14); }
+.theme-night .app .face.word { font-size: 1.125rem; padding: 0 0.5rem; background: #2a2a30; }
+.theme-night .app .label { top: calc(100% + 0.75rem); }
+/* More apps: the dock grows into a full list and the cards step aside */
+.theme-night.expanded .shelf { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ncard { transition: none; }
+}
+
+/* ================= people: a head icon and its list, for three or more ================= */
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.people-wrap { position: relative; }
+.avatar {
+  display: flex; align-items: center; justify-content: center; flex: none; width: 2.25rem; height: 2.25rem; border-radius: 50%;
+  font-size: 1.25rem; line-height: 1; font-weight: 700; color: #fff; text-shadow: 0 0.0625rem 0.25rem rgba(0, 0, 0, 0.25);
+  box-shadow: inset 0 0 0 0.0625rem rgba(255, 255, 255, 0.28);
+}
+.people.head { padding: 0.375rem; border-radius: 50%; transition: transform 200ms var(--ease), box-shadow 200ms var(--ease); }
+.people.head .avatar { width: 4.75rem; height: 4.75rem; font-size: 2.125rem; }
+.theme-night .people.head.focus, .people.head.focus { transform: scale(1.08); box-shadow: 0 0 0 0.1875rem #fff, 0 0.75rem 1.75rem rgba(0, 0, 0, 0.4); }
+.people-pop {
+  display: none; position: absolute; left: 0; top: calc(100% + 1rem); z-index: 5; min-width: 24rem; padding: 0.625rem;
+  border-radius: 2rem; background: rgba(28, 24, 30, 0.62); -webkit-backdrop-filter: blur(1.75rem) saturate(170%); backdrop-filter: blur(1.75rem) saturate(170%);
+  box-shadow: inset 0 0 0 0.0625rem rgba(255, 220, 230, 0.16), 0 1.5rem 3.75rem rgba(0, 0, 0, 0.45); text-shadow: none;
+}
+.people-pop.on { display: block; }
+.plist { display: flex; flex-direction: column; gap: 0.25rem; }
+.prow {
+  display: flex; align-items: center; gap: 1rem; padding: 0.5rem 1.25rem 0.5rem 0.5rem; border-radius: 1.5rem;
+  font-size: 1.6875rem; line-height: 2.25rem; color: rgba(255, 255, 255, 0.88);
+  transition: transform 200ms var(--ease), background 200ms var(--ease), box-shadow 200ms var(--ease);
+}
+.prow .avatar { width: 3rem; height: 3rem; font-size: 1.375rem; }
+.prow b { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pmark { display: flex; font-style: normal; }
+.pmark svg { width: 1.75rem; height: 1.75rem; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.prow.focus { background: #fff; color: #111; transform: scale(1.04); }
+.prow.lifted { transform: scale(1.07) translateX(0.5rem); box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.4); animation: wiggle 0.32s ease-in-out infinite alternate; }
+.phint { margin: 0.625rem 0.75rem 0.25rem; font-size: 1.1875rem; line-height: 1.5rem; font-weight: 500; color: rgba(255, 255, 255, 0.62); }
+
+/* ================= moving apps with the TV remote, and new apps ================= */
+@keyframes wiggle { from { rotate: -2deg; } to { rotate: 2deg; } }
+.app .dot {
+  position: absolute; top: -0.375rem; right: -0.375rem; z-index: 2; width: 1.125rem; height: 1.125rem; border-radius: 50%;
+  background: #0a84ff; box-shadow: 0 0 0 0.1875rem rgba(0, 0, 0, 0.3);
+}
+.theme-night .app.lifted, .theme-night .app.lifted.focus { z-index: 3; transform: scale(1.2) translateY(-1.5rem); }
+.theme-night .app.lifted .face { animation: wiggle 0.32s ease-in-out infinite alternate; box-shadow: 0 0 0 0.25rem #fff, 0 1.75rem 3rem rgba(0, 0, 0, 0.55); }
+.theme-night .app.lifted .face img { filter: none; }
+.theme-night.lifting .app:not(.lifted) .face { opacity: 0.7; }
+/* while an app is moved (or a hint shows over the dock) the cards step aside, so the hint has the space */
+.theme-night .shelf { transition: opacity 240ms var(--ease); }
+.theme-night.lifting .shelf, .theme-night.hinting .shelf { opacity: 0; }
+.hint { display: none; }
+.theme-night .hint.on {
+  display: block; position: absolute; left: 50%; bottom: calc(100% + 2.5rem); transform: translateX(-50%); white-space: nowrap;
+  padding: 0.625rem 1.5rem; border-radius: 2rem; font-size: 1.4375rem; line-height: 2rem; font-weight: 600; color: #fff;
+  background: rgba(30, 20, 28, 0.42); -webkit-backdrop-filter: blur(1.75rem) saturate(170%); backdrop-filter: blur(1.75rem) saturate(170%);
+  box-shadow: inset 0 0 0 0.0625rem rgba(255, 210, 220, 0.16), 0 1rem 2.5rem rgba(0, 0, 0, 0.28);
+}
+@media (prefers-reduced-motion: reduce) {
+  .prow.lifted, .theme-night .app.lifted .face { animation: none; }
+}

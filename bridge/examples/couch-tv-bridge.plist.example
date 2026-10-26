@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- macOS: keeps the bridge running. Copy to ~/Library/LaunchAgents/app.couchtv.bridge.plist,
+     change the REPLACE paths to where you cloned the repo, then:
+       launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/app.couchtv.bridge.plist
+     Restart it with: launchctl kickstart -k gui/$(id -u)/app.couchtv.bridge
+     Stop it with:    launchctl bootout gui/$(id -u)/app.couchtv.bridge
+     macOS asks once for Local Network access the first time it talks to the TV. Say yes.
+     launchd starts programs with a bare PATH, so the Claude ask (optional) needs CLAUDE_BIN set
+     to where `claude` is (run `command -v claude` to see it). Leave it as it is if you do not use
+     the ask. Never add ANTHROPIC_API_KEY here: the ask runs on your Claude plan. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>app.couchtv.bridge</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>REPLACE/path/to/couch-tv/.venv/bin/python</string>
+    <string>REPLACE/path/to/couch-tv/bridge/server.py</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    <key>CLAUDE_BIN</key><string>REPLACE/path/to/claude</string>
+  </dict>
+  <key>WorkingDirectory</key><string>REPLACE/path/to/couch-tv</string>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>StandardOutPath</key><string>/tmp/couch-tv-bridge.log</string>
+  <key>StandardErrorPath</key><string>/tmp/couch-tv-bridge.log</string>
+</dict>
+</plist>

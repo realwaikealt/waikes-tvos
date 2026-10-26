@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en-AU" style="background:#000">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no, interactive-widget=resizes-content">
+  <title>TV</title>
+  <meta name="description" content="Phone remote for your Google TV.">
+  <meta name="theme-color" content="#000000">
+  <meta name="color-scheme" content="dark">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="TV">
+  <meta name="format-detection" content="telephone=no">
+  <!-- Paint black before anything else loads, so the app can never show a white page while it
+       starts, while the computer is slow to answer, or if a file fails to load. -->
+  <style>
+    :root { --sat: env(safe-area-inset-top, 0px); --sar: env(safe-area-inset-right, 0px); --sab: env(safe-area-inset-bottom, 0px); --sal: env(safe-area-inset-left, 0px); }
+    html { font-size: 17px; font: -apple-system-body; }
+    html, body { margin: 0; height: 100%; background: #000; color: #fff; color-scheme: dark; }
+    #root { height: 100%; }
+    .boot { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+      padding: 24px; text-align: center; font: 600 17px/1.35 -apple-system, system-ui, 'Helvetica Neue', sans-serif;
+      background: radial-gradient(120% 80% at 50% 0%, #1d1d24, #000 70%); -webkit-user-select: none; user-select: none; }
+    .boot p { margin: 0; max-width: 280px; }
+    .boot small { display: block; margin-top: 6px; font-weight: 400; font-size: 15px; color: rgba(255,255,255,.7); }
+    .boot-spin { width: 26px; height: 26px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,.25); border-top-color: #fff; animation: boot-spin .9s linear infinite; }
+    .boot button { display: none; min-height: 50px; padding: 0 26px; border: 0; border-radius: 25px; background: #fff; color: #0b0b0d; font: inherit; }
+    .boot.stuck button { display: block; }
+    .boot.stuck .boot-spin { display: none; }
+    @keyframes boot-spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .boot-spin { animation-duration: 3s; } }
+  </style>
+  <script>
+    // Runs before the app. Three jobs: mark the platform, keep taps clear of the camera, and make
+    // sure a failed start always ends on a "Try again" screen, never a blank one.
+    (function () {
+      var d = document.documentElement;
+      var q = location.search;
+      var standalone = navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || /[?&]standalone=1/.test(q);
+      var ios = /iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) || /[?&]ios=1/.test(q);
+      if (standalone) d.classList.add('standalone');
+      if (ios) d.classList.add('ios');
+      // Test hook: ?insets=top,right,bottom,left (points) stands in for the phone's real safe areas.
+      var m = /[?&]insets=([\d.,]+)/.exec(q);
+      if (m) {
+        var v = m[1].split(',');
+        ['t', 'r', 'b', 'l'].forEach(function (k, i) { d.style.setProperty('--sa' + k, (parseFloat(v[i]) || 0) + 'px'); });
+      }
+
+      // Camera guard. iPhones report their camera and status bar as safe-area insets. If an iPhone
+      // reports none at all in portrait (the iPhone Duo's corner camera may not reach web pages),
+      // keep the top 59 points free of anything tappable.
+      function insets() {
+        var p = document.createElement('div');
+        p.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding:var(--sat) var(--sar) var(--sab) var(--sal)';
+        document.body.appendChild(p);
+        var cs = getComputedStyle(p);
+        var r = { t: parseFloat(cs.paddingTop) || 0, r: parseFloat(cs.paddingRight) || 0, b: parseFloat(cs.paddingBottom) || 0, l: parseFloat(cs.paddingLeft) || 0 };
+        p.remove();
+        var portrait = innerHeight > innerWidth;
+        var guard = ios && standalone && portrait && r.t < 20 && r.r < 20 && r.l < 20;
+        d.style.setProperty('--guard-t', guard ? '59px' : '0px');
+        // Dynamic Type: iOS reports the reader's text size through -apple-system-body.
+        var fs = parseFloat(getComputedStyle(d).fontSize) || 17;
+        d.style.setProperty('--dt', String(Math.min(1.35, Math.max(0.88, fs / 17))));
+        window.__tvInsets = r;
+      }
+      window.__tvMeasure = insets;
+      addEventListener('resize', insets);
+      addEventListener('orientationchange', function () { setTimeout(insets, 250); });
+      document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') insets(); });
+
+      // Reload only once the computer has answered, so a reload can never land on a blank page.
+      var tries = 0; var retryTimer = null;
+      try { tries = +sessionStorage.getItem('tv.bootTries') || 0; } catch (e) { /* private mode */ }
+      function safeReload(onFail) {
+        fetch('/', { cache: 'no-store' }).then(function (r) {
+          if (r.ok) location.reload(); else if (onFail) onFail();
+        }).catch(function () { if (onFail) onFail(); });
+      }
+      window.__tvReload = safeReload;
+      function stuck(msg) {
+        var b = document.getElementById('boot');
+        if (!b || window.__tvReady) return;
+        b.classList.add('stuck');
+        var t = document.getElementById('boot-msg');
+        if (t) t.innerHTML = msg;
+        // Keep trying by itself while the app is on screen: 3, 6, 12, 24, then every 30 s.
+        clearTimeout(retryTimer);
+        var wait = Math.min(30000, 3000 * Math.pow(2, tries++));
+        retryTimer = setTimeout(function again() {
+          if (window.__tvReady) return;
+          if (document.visibilityState !== 'visible') { retryTimer = setTimeout(again, 2000); return; }
+          try { sessionStorage.setItem('tv.bootTries', String(tries)); } catch (e) { /* private mode */ }
+          safeReload(function () { stuck(msg); });
+        }, wait);
+      }
+      window.__tvStuck = stuck;
+      var NO_COMPUTER = 'Can’t reach the computer.<small>Is your phone on the home Wi-Fi? Trying again by itself.</small>';
+      // A script or stylesheet that fails to load: show it straight away.
+      addEventListener('error', function (e) {
+        var el = e.target;
+        if (el && (el.tagName === 'SCRIPT' || (el.tagName === 'LINK' && /stylesheet|modulepreload/.test(el.rel)))) stuck(NO_COMPUTER);
+      }, true);
+      setTimeout(function () { if (!window.__tvReady) stuck('Still connecting to the TV.<small>Trying again by itself.</small>'); }, 9000);
+      document.addEventListener('DOMContentLoaded', function () {
+        insets();
+        var btn = document.getElementById('boot-retry');
+        if (btn) btn.onclick = function () { btn.disabled = true; safeReload(function () { btn.disabled = false; stuck(NO_COMPUTER); }); };
+      });
+    })();
+  </script>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <!-- Black launch screens, so a cold start opens dark instead of white (iOS only reads these). -->
+  <link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="/splash/750x1334.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)" href="/splash/1170x2532.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)" href="/splash/1179x2556.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3)" href="/splash/1206x2622.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)" href="/splash/1290x2796.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3)" href="/splash/1320x2868.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 466px) and (device-height: 678px) and (-webkit-device-pixel-ratio: 3)" href="/splash/1398x2034.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 626px) and (device-height: 890px) and (-webkit-device-pixel-ratio: 3)" href="/splash/1878x2670.png">
+  <link rel="apple-touch-startup-image" media="(device-width: 890px) and (device-height: 626px) and (-webkit-device-pixel-ratio: 3)" href="/splash/2670x1878.png">
+</head>
+<body>
+  <div id="root"><div class="boot" id="boot" role="status" aria-live="polite">
+    <div class="boot-spin" aria-hidden="true"></div>
+    <p id="boot-msg">Connecting to the TV…</p>
+    <button id="boot-retry" type="button">Try again</button>
+  </div></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+</html>

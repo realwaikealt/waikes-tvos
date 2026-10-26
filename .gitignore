@@ -1,0 +1,39 @@
+# Your own settings and secrets
+config.json
+.env
+*.pem
+*.key
+*.jks
+*.keystore
+adbkey
+adbkey.pub
+pair-code*.txt
+token*.txt
+
+# Everything the bridge learns about the people using it
+bridge/data/
+data/
+tv-home/tvs/
+
+# Builds and tools
+*.apk
+*.aab
+build/
+.gradle/
+.kotlin/
+local.properties
+node_modules/
+dist/
+.venv/
+__pycache__/
+*.pyc
+platform-tools/
+
+# Notes, backups and patch leftovers
+*.orig
+*.rej
+.impeccable/
+*.bak
+*.bak-*
+*-backup-*
+.DS_Store

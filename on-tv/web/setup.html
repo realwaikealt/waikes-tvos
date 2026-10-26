@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TV setup</title>
+<script src="/ontv/shim.js"></script>
+<style>
+  :root { color-scheme: dark; --bg:#0b0b0d; --card:#16161a; --line:#2c2c33; --ink:#f2ead8; --dim:#bdb6a7; --amber:#ffb52e; --bad:#ff7a6b; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 -apple-system, system-ui, sans-serif; padding: 20px 16px 60px; }
+  main { max-width: 520px; margin: 0 auto; }
+  h1 { font-size: 26px; margin: 0 0 4px; } h2 { font-size: 18px; margin: 0 0 8px; }
+  p, li { color: var(--dim); } .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin: 16px 0; }
+  label { display: block; font-size: 14px; color: var(--dim); margin: 10px 0 4px; }
+  input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: #0f0f12; color: var(--ink); font-size: 16px; }
+  button { margin-top: 12px; padding: 12px 16px; border-radius: 12px; border: 0; background: #26262d; color: var(--ink); font-size: 16px; font-weight: 600; }
+  button.go { background: var(--amber); color: #111; }
+  .row { display: flex; gap: 10px; } .row > * { flex: 1; }
+  .status { font-weight: 600; } .ok { color: #7ddc8a; } .bad { color: var(--bad); }
+  .msg { min-height: 20px; margin-top: 8px; color: var(--amber); font-size: 14px; }
+  a { color: var(--amber); } .check { display: flex; gap: 10px; align-items: center; margin-top: 12px; } .check input { width: auto; }
+</style>
+</head>
+<body>
+<main>
+  <h1>TV setup</h1>
+  <p>On-TV mode: this page is served by the TV itself. <a href="/">Back to the remote</a></p>
+
+  <section class="card">
+    <h2>ADB on the TV</h2>
+    <p>Keys, typing, power off and "what's playing" need the TV's own debugging switched on. Opening apps and volume work without it.</p>
+    <p class="status" id="adb-status">Checking…</p>
+    <p id="adb-advice"></p>
+    <div id="routes">
+    <div id="route-wd">
+    <h2 style="margin-top:14px">Wireless debugging pairing (Android 11 and newer, best for Google TV)</h2>
+    <ol>
+      <li>On the TV: Settings, System, About, press Build seven times to unlock Developer options.</li>
+      <li>Settings, System, Developer options, <b>Wireless debugging</b>, switch it on, and on "Allow wireless debugging on this network?" tick <b>Always allow on this network</b> and choose Allow. The TV must be on Wi-Fi.</li>
+      <li>Careful: <b>Revoke USB debugging authorizations</b> sits right next to Wireless debugging in that list. Never press OK on it.</li>
+      <li>In Wireless debugging choose <b>Pair device with pairing code</b>. Leave that screen open on the TV.</li>
+      <li>Type the 6 digit code here. The port is optional (it is found on its own).</li>
+    </ol>
+    <div class="row"><div><label for="wd-code">Pairing code</label><input id="wd-code" inputmode="numeric" maxlength="6"></div>
+      <div><label for="wd-port">Port (optional)</label><input id="wd-port" inputmode="numeric" maxlength="5"></div></div>
+    <button class="go" id="wd-pair">Pair</button>
+    </div>
+    <div id="route-tcp">
+    <h2 style="margin-top:14px">Network debugging on port 5555 (older Android TV, Fire TV, Shield)</h2>
+    <p>Switch on Developer options and Network (or USB) debugging, press Connect, then on the TV tick <b>Always allow</b> and press Allow. Some newer Google TVs never show that question: use pairing above instead.</p>
+    <button class="go" id="adb-connect">Connect</button>
+    </div>
+    </div>
+    <div class="msg" id="adb-msg" role="status"></div>
+  </section>
+
+  <section class="card">
+    <h2>Household</h2>
+    <label for="tv-name">TV name</label><input id="tv-name" maxlength="30">
+    <label for="people">People (comma separated)</label><input id="people" maxlength="200">
+    <label for="place">Weather place name</label><input id="place" maxlength="40">
+    <div class="row"><div><label for="lat">Latitude</label><input id="lat" inputmode="decimal"></div><div><label for="lon">Longitude</label><input id="lon" inputmode="decimal"></div></div>
+    <div class="row"><div><label for="tz">Time zone</label><input id="tz" placeholder="Australia/Sydney"></div><div><label for="country">Country (2 letters)</label><input id="country" maxlength="2"></div></div>
+    <button class="go" id="save">Save</button>
+    <div class="msg" id="save-msg" role="status"></div>
+  </section>
+
+  <section class="card">
+    <h2>Ask (optional, off by default)</h2>
+    <p>On-TV mode has no Claude unless you add your own Anthropic API key. Each ask uses Claude Haiku 5.5 and costs about a fifth of a US cent. Use a key made only for this TV, with a monthly spend limit set in the Anthropic Console: the key is stored on the TV, and anyone with ADB access to the TV could read it.</p>
+    <label for="ask-key">Anthropic API key (leave empty to keep the current one)</label><input id="ask-key" type="password" autocomplete="off">
+    <label class="check"><input type="checkbox" id="ask-on"> Switch ask on</label>
+    <p id="ask-state"></p>
+    <div class="row"><button class="go" id="ask-save">Save ask</button><button id="ask-clear">Remove key</button></div>
+    <div class="msg" id="ask-msg" role="status"></div>
+  </section>
+
+  <section class="card">
+    <h2>Phones</h2>
+    <p id="phones"></p>
+    <button id="forget">Forget every phone</button>
+  </section>
+</main>
+<script>
+  var $ = function (id) { return document.getElementById(id); };
+  function api(method, path, body) {
+    return fetch(path, { method: method, headers: body ? { 'content-type': 'application/json' } : undefined, body: body ? JSON.stringify(body) : undefined })
+      .then(function (r) { return r.json().then(function (j) { if (!r.ok || j.ok === false) throw new Error(j.error || ('error ' + r.status)); return j; }); });
+  }
+  function showAdb(a) {
+    var s = $('adb-status');
+    if (a.connected) { s.className = 'status ok'; s.textContent = 'Connected (' + (a.route === 'tls' ? 'wireless debugging' : 'port 5555') + ').'; }
+    else if (a.state === 'waiting_for_allow' || a.state === 'connecting') { s.className = 'status'; s.textContent = 'Waiting. Accept "Allow debugging?" on the TV.'; }
+    else { s.className = 'status bad'; s.textContent = 'Not connected.' + (a.error ? ' (' + a.error + ')' : ''); }
+  }
+  function load() {
+    api('GET', '/api/settings').then(function (j) {
+      $('tv-name').value = j.tv_name || '';
+      $('people').value = (j.people || []).map(function (p) { return p.name; }).join(', ');
+      $('place').value = j.weather.place || ''; $('lat').value = j.weather.lat; $('lon').value = j.weather.lon;
+      $('tz').value = j.weather.timezone || ''; $('country').value = j.country || '';
+      $('ask-on').checked = !!j.ask.enabled;
+      $('ask-state').textContent = j.ask.has_key ? 'A key is saved. Model: ' + j.ask.model + '.' : 'No key saved.';
+      $('phones').textContent = j.phones + (j.phones === 1 ? ' phone is' : ' phones are') + ' paired with this TV.';
+      showAdb(j.adb);
+      // Android 13+ (most Google TVs): pairing first, 5555 second. Older TVs: the other way round.
+      if (j.adb.sdk < 30) { $('route-wd').style.display = 'none'; }
+      else if (j.adb.sdk < 33) { $('routes').insertBefore($('route-tcp'), $('route-wd')); }
+      $('adb-advice').textContent = j.adb.sdk >= 33 ? 'This TV runs Android 13 or newer: use wireless debugging pairing.' : '';
+    }).catch(function (e) { $('adb-status').textContent = e.message; });
+  }
+  var poll = null;
+  $('adb-connect').onclick = function () {
+    $('adb-msg').textContent = 'Connecting. Look at the TV.';
+    api('POST', '/api/adb/connect', {}).then(function () {
+      clearInterval(poll); var n = 0;
+      poll = setInterval(function () { n++; api('GET', '/api/adb').then(function (a) { showAdb(a); if (a.connected || n > 30) { clearInterval(poll); $('adb-msg').textContent = a.connected ? 'Done.' : ''; } }); }, 1500);
+    }).catch(function (e) { $('adb-msg').textContent = e.message; });
+  };
+  $('wd-pair').onclick = function () {
+    var code = $('wd-code').value.replace(/\D/g, ''), port = parseInt($('wd-port').value, 10);
+    if (code.length !== 6) { $('adb-msg').textContent = 'The pairing code has 6 digits.'; return; }
+    $('adb-msg').textContent = 'Pairing. This can take 20 seconds.';
+    api('POST', '/api/adb/pair', port ? { code: code, port: port } : { code: code })
+      .then(function (j) { showAdb(j.adb); $('adb-msg').textContent = j.connected ? 'Paired and connected.' : 'Paired. Connecting next.'; })
+      .catch(function (e) { $('adb-msg').textContent = e.message; });
+  };
+  $('save').onclick = function () {
+    var people = $('people').value.split(',').map(function (s) { return s.trim(); }).filter(Boolean).map(function (n, i) { return { id: 'person' + (i + 1), name: n }; });
+    var body = { tv_name: $('tv-name').value, people: people, country: $('country').value.toUpperCase() };
+    var lat = parseFloat($('lat').value), lon = parseFloat($('lon').value);
+    if (!isNaN(lat) && !isNaN(lon)) body.weather = { lat: lat, lon: lon, place: $('place').value, timezone: $('tz').value || 'UTC' };
+    api('POST', '/api/settings', body).then(function () { $('save-msg').textContent = 'Saved.'; load(); }).catch(function (e) { $('save-msg').textContent = e.message; });
+  };
+  $('ask-save').onclick = function () {
+    var body = { ask_enabled: $('ask-on').checked };
+    if ($('ask-key').value.trim()) body.ask_key = $('ask-key').value.trim();
+    api('POST', '/api/settings', body).then(function () { $('ask-key').value = ''; $('ask-msg').textContent = 'Saved.'; load(); }).catch(function (e) { $('ask-msg').textContent = e.message; });
+  };
+  $('ask-clear').onclick = function () {
+    api('POST', '/api/settings', { ask_key: '', ask_enabled: false }).then(function () { $('ask-msg').textContent = 'Key removed.'; load(); });
+  };
+  $('forget').onclick = function () {
+    if (!confirm('Every phone, including this one, will need the code from the TV again.')) return;
+    api('POST', '/api/phones/forget', {}).then(function () { location.reload(); });
+  };
+  load();
+</script>
+</body>
+</html>

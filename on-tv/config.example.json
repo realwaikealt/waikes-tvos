@@ -1,0 +1,12 @@
+{
+  "_note": "On-TV mode keeps its settings on the TV. Change them on the phone at http://<tv-ip>:5400/setup, or POST this shape (all fields optional) to /api/settings with your phone's token.",
+  "tv_name": "Living room",
+  "people": [
+    { "id": "person1", "name": "Person 1" },
+    { "id": "person2", "name": "Person 2" }
+  ],
+  "weather": { "lat": -33.8688, "lon": 151.2093, "place": "Sydney", "timezone": "Australia/Sydney" },
+  "country": "AU",
+  "ask_enabled": false,
+  "ask_key": ""
+}

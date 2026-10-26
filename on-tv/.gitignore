@@ -1,0 +1,24 @@
+# build outputs
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.kotlin/
+# copied in at build time from remote/dist and tv-home/web
+android/app/src/main/assets/
+# keys and signing
+*.jks
+*.keystore
+*.pk8
+*.der
+adbkey*
+# local test output
+test-output/
+*.apk
+config.json
+__pycache__/
+*.pyc
+# screenshots can show Wi-Fi names or the TV screen: never commit them
+/*.png
+scripts/*.png
+web/*.png

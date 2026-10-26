@@ -1,0 +1,45 @@
+{
+  "bridge": {
+    "host": "your-computer.local",
+    "port": 5400,
+    "fallback_hosts": []
+  },
+  "default_tv": "living-room",
+  "tvs": [
+    {
+      "id": "living-room",
+      "name": "Living room",
+      "label": "Living room TV",
+      "ip": "SET_YOUR_TV_IP",
+      "adb_port": 5555,
+      "mac": "",
+      "wake_on_lan": true,
+      "paired": false,
+      "keep_disabled": "data/keep-disabled.json",
+      "quick": ["sleep"]
+    }
+  ],
+  "people": [
+    { "id": "person1", "name": "Person 1" },
+    { "id": "person2", "name": "Person 2" },
+    { "id": "kids", "name": "Kids", "kid": true }
+  ],
+  "home": {
+    "look": "night",
+    "scenes": ["night", "golden", "water", "fog", "dawn"],
+    "scene_seconds": 20,
+    "clock": "12h",
+    "dock_size": 10,
+    "hide_packages": []
+  },
+  "phone_remote": true,
+  "ask": { "enabled": false },
+  "weather": {
+    "lat": -33.8688,
+    "lon": 151.2093,
+    "place": "Sydney",
+    "timezone": "Australia/Sydney"
+  },
+  "country": "AU",
+  "screens": []
+}

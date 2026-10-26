@@ -1,0 +1,22 @@
+# Linux (systemd): copy to ~/.config/systemd/user/couch-tv-bridge.service, change the paths, then:
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now couch-tv-bridge
+#   loginctl enable-linger $USER      # so it keeps running when you are logged out
+# systemd starts programs with a bare PATH, so the Claude ask (optional) needs CLAUDE_BIN: set it to
+# what `command -v claude` prints. Never add ANTHROPIC_API_KEY: the ask runs on your Claude plan.
+[Unit]
+Description=Couch TV bridge
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=%h/couch-tv
+EnvironmentFile=-%h/couch-tv/.env
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=CLAUDE_BIN=%h/.local/bin/claude
+ExecStart=%h/couch-tv/.venv/bin/python %h/couch-tv/bridge/server.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
