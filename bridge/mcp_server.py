@@ -22,7 +22,7 @@ mcp = FastMCP("tv", instructions=(
     "There can be more than one TV (tvs); tools default to the TV the person asked from."))
 
 
-def call(method, path, payload=None, raw=False, tv=None):
+def call(method, path, payload=None, raw=False, tv=None, timeout=60, headers_out=None):
     tv = tv or TV_ID
     if tv:
         path += ("&" if "?" in path else "?") + urllib.parse.urlencode({"tv": tv})
@@ -34,8 +34,10 @@ def call(method, path, payload=None, raw=False, tv=None):
         data = json.dumps(payload).encode()
         req.add_header("Content-Type", "application/json")
     try:
-        with urllib.request.urlopen(req, data=data, timeout=60) as r:
+        with urllib.request.urlopen(req, data=data, timeout=timeout) as r:
             body = r.read()
+            if headers_out is not None:
+                headers_out.update(r.headers)
     except urllib.error.HTTPError as e:
         body = e.read()
         if raw:
@@ -132,11 +134,28 @@ def tvs() -> dict:
 
 
 @mcp.tool()
-def history() -> dict:
-    """What has been played on the TV through the bridge, newest first."""
+def history(days: int | None = None, who: str | None = None) -> dict:
+    """What has been played on our TVs, newest first, with the date and time (Sydney) of each
+    play, the app, and season and episode when known. days limits it to the last N days (7 for
+    "last week"); who is a person id from config.json, or both. Use it for "what was I watching" and to resume."""
     r = call("GET", "/api/history")
-    if r.get("ok"):
-        r["items"] = r["items"][:50]
+    if not r.get("ok"):
+        return r
+    from datetime import datetime, timedelta, timezone
+    items = r["items"]
+    if days:
+        cut = datetime.now(timezone.utc) - timedelta(days=days)
+        def recent(h):
+            try:
+                return datetime.fromisoformat(h["when"]) >= cut
+            except (KeyError, TypeError, ValueError):
+                return False
+        items = [h for h in items if recent(h)]
+    if who and who not in ("both", "all", "everyone"):
+        items = [h for h in items if h.get("who") in (who, "both", None)]
+    keep = ("title", "type", "season", "episode", "episode_title", "service", "who", "when")
+    r["items"] = [{k: h.get(k) for k in keep if h.get(k) is not None} for h in items[:60]]
+    r["count"] = len(items)
     return r
 
 
@@ -168,10 +187,96 @@ def open_screen(id: str) -> dict:
 
 
 @mcp.tool()
-def screenshot(tv: str | None = None) -> Image:
-    """A picture of what is on the TV screen right now (needs ADB on the TV)."""
-    png = call("GET", "/api/screenshot", raw=True, tv=tv)
-    return Image(data=png, format="png")
+def screenshot(tv: str | None = None):
+    """A picture of what is on the TV screen right now. Netflix and other protected video show
+    as black: then use now (what is playing) and ui (the buttons) instead."""
+    head = {}
+    img = call("GET", "/api/screen-small", raw=True, tv=tv, headers_out=head)
+    if head.get("X-Screen-Black") == "1":
+        return ("The screenshot is black: this app protects its picture (Netflix, Stan and "
+                "others do). Use now and ui to see what is on.")
+    fmt = "jpeg" if (head.get("Content-Type") or "").startswith("image/jpeg") else "png"
+    return Image(data=img, format=fmt)
+
+
+@mcp.tool()
+def ui(tv: str | None = None) -> dict:
+    """The screen as text: the app in front, what has focus, and every visible label (* has
+    focus, + can be pressed, @x,y is its centre). Works where screenshots are black. stop_screen
+    true means a sign in, sign up or payment screen: stop and tell the person to finish it."""
+    return call("GET", "/api/ui", tv=tv, timeout=40)
+
+
+@mcp.tool()
+def tap(label: str, tv: str | None = None) -> dict:
+    """Press the thing on screen with this label (from ui). Most TV screens also work with the
+    arrow keys and ok. It refuses buy, subscribe and sign in buttons."""
+    return call("POST", "/api/tap", {"label": label}, tv=tv, timeout=40)
+
+
+@mcp.tool()
+def install_app(name: str, tv: str | None = None) -> dict:
+    """Install an app from the Play Store (the TV's App Store) by name, e.g. Disney+, Plex,
+    Crunchyroll. Takes 20 to 90 seconds; it presses Install itself and waits until the app is on
+    the TV. installed=true when done. If it stopped (paid app, sign in, no Install button), say
+    so and leave the screen for the person. Never pay, never sign up, never type passwords."""
+    return call("POST", "/api/install", {"name": name}, tv=tv, timeout=200)
+
+
+@mcp.tool()
+def uninstall_app(name: str, tv: str | None = None) -> dict:
+    """Remove an app. ONLY when the person clearly asked to delete or uninstall that app."""
+    return call("POST", "/api/uninstall", {"name": name}, tv=tv, timeout=60)
+
+
+@mcp.tool()
+def inputs(tv: str | None = None) -> dict:
+    """The TV's HDMI inputs: number, label, devices seen on each (names like PlayStation 5 when
+    the device is on), and state."""
+    return call("GET", "/api/inputs", tv=tv, timeout=40)
+
+
+@mcp.tool()
+def input(name: str, remember_as: str | None = None, tv: str | None = None) -> dict:
+    """Switch the TV to an input: a device ("playstation", "xbox"), a number ("hdmi 2"), or
+    "home" for the apps. It makes a best guess when the TV cannot tell which HDMI a device is on.
+    remember_as saves the name for that input, e.g. input("hdmi 3", remember_as="playstation")
+    when the person says that is where it is."""
+    payload = {"name": name}
+    if remember_as:
+        payload["remember_as"] = remember_as
+    return call("POST", "/api/input", payload, tv=tv, timeout=40)
+
+
+@mcp.tool()
+def off_after_episode(cancel: bool = False, tv: str | None = None) -> dict:
+    """Turn the TV off when what is playing now ends (at the credits, or when the next episode
+    starts). The home screen and phone show it as the sleep timer. cancel=true stops it."""
+    payload = {"cancel": True} if cancel else {}
+    return call("POST", "/api/off-after", payload, tv=tv, timeout=40)
+
+
+@mcp.tool()
+def restart_app(app: str | None = None, tv: str | None = None) -> dict:
+    """Fix an app that is playing up ("Netflix is being weird", frozen, no sound, stuck): close
+    it fully, open it again and carry on with what was playing. app is an app id; leave it out
+    for the app on screen."""
+    payload = {"app": app} if app else {}
+    return call("POST", "/api/restart-app", payload, tv=tv, timeout=90)
+
+
+@mcp.tool()
+def latest_episode(title: str) -> dict:
+    """Is the new episode out: the newest episode available in this home's country (season, number,
+    name, date, apps), any announced upcoming release, and the last episode watched here."""
+    return call("GET", "/api/latest?" + urllib.parse.urlencode({"title": title}), timeout=40)
+
+
+@mcp.tool()
+def both_like() -> dict:
+    """For "something we'd both like": each person's genres and shows, what they share,
+    what either dropped, who has little history, and the household's ready picks (app, reason)."""
+    return call("GET", "/api/both", timeout=40)
 
 
 if __name__ == "__main__":

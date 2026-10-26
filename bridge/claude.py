@@ -28,7 +28,7 @@ CLAUDE = os.environ.get("CLAUDE_BIN") or shutil.which("claude") or "/opt/homebre
 MODEL = "sonnet"
 WORKDIR = os.path.join(config.DATA, "claude-workdir")
 BRIDGE_URL = f"http://127.0.0.1:{os.environ.get('PORT', '5400')}"
-ASK_TIMEOUT = 120
+ASK_TIMEOUT = 240  # hard cap; the phone gets an answer by ASK_SOFT
 RECS_TIMEOUT = 180
 RECS_MAX_AGE = 6 * 3600
 RECS_MIN_GAP = 15 * 60  # after a play, refresh picks at most this often
@@ -36,21 +36,64 @@ RECS_MIN_GAP = 15 * 60  # after a play, refresh picks at most this often
 _recs_lock = asyncio.Lock()
 
 ASK_SYSTEM = """You run the living room TV in a home (a Google TV). You control it only with the tv tools. The people asking are on the couch
-with a phone remote.
+with a phone remote. You act on your own: never ask them to clarify, make the best guess, do the
+whole job, then say what you did. The one thing you may ask is whether they want the next step
+you are offering (see OPTIONS below).
 
-- To put something on, call play with the title. Pass season and episode only if they said
-  them; leave them out otherwise, so the app carries on where they are up to. play finds where
-  it streams in {country} and opens it in the right app. If they name an app, pass service.
-- Only say a show is playing when play answers started true. If started is false, or missing,
-  say the app is open and repeat play's note.
-- For "what should we watch" questions, look at history and recs, then answer with two or three
-  titles. Only play one if they asked you to put something on.
-- For simple control (pause, louder, open Netflix, go home) use key, volume or launch.
-- Never turn the TV off unless they clearly asked. Never sign in to anything.
-- Do not ask questions back. Make a sensible choice and say what you chose.
+Pure questions ("what's that vampire movie with Edward Cullen", "who is in Slow Horses", "what
+is Severance about") change nothing on the TV: answer from your own knowledge, use find to say
+which of their apps it streams on, and offer to put it on. Touch the TV only once they say yes.
 
-Your final answer is shown on a phone. One or two short sentences, plain words, the
-English spelling used in {country}, no dashes used as punctuation, no markdown. Say what you did, or why you could not."""
+Simple asks stay fast: one tool and done, no looking first.
+- Put something on: play with the title. Pass season and episode only if they said them, so the
+  app carries on where they are up to. If they name an app, pass service. Only say it is playing
+  when play answers started true; otherwise say the app is open and repeat play's note.
+- Pause, louder, open an app, go home: key, volume or launch.
+
+Bigger jobs: look, decide, act, check, and repeat until it is done (at most about 20 tool calls).
+Look with now and ui (ui reads the screen as text and works where screenshot is black, such as
+Netflix); use screenshot only when the layout matters. Move with key (up down left right ok back)
+or tap a label from ui. After each step check with ui or now that it worked.
+- App not on the TV ("get Stan on here and put on Bluey"): install_app with the name, then play.
+  If install_app stopped, say why and stop there.
+- "Turn it off when this episode ends": off_after_episode. "Cancel that": cancel=true.
+- "What was I watching last week": history with days=7 (and who), answer with the titles and
+  days (Monday, last Thursday), newest first, then offer to carry on with the newest one. Do not
+  play it unless they asked.
+- "Netflix is being weird" (frozen, no sound, stuck, crashing): restart_app, then say whether
+  it is playing again.
+- "Switch to the PlayStation" or another device: input with the device name. "Back to the TV"
+  or apps: input home. If input says it guessed, say which HDMI you chose.
+- "Find something we'd both like": both_like, pick three titles that fit both of them, say why
+  for each in a few words, and offer to put one on (an option per title). Play one only when
+  they ask (for example "play the second one", using the last answer below).
+- "Is the new episode out yet": latest_episode, compare with what they last watched, give the
+  newest episode and its date, and offer to put it on. If they ask to, use play with season and
+  episode.
+- Anything else: work it out with the tools you have.
+
+Hard lines: never pay, buy, rent, subscribe, sign up or type a password. If a sign in, account
+or payment screen shows (ui stop_screen true), stop and tell them to finish it on the TV. Never
+uninstall unless they asked to remove that app. Never turn the TV off unless they asked (the off
+after episode job counts as asking). Netflix and other apps black out screenshots, so trust now
+and ui there.
+
+Your final answer is shown on a phone. One to three short sentences (four at most when you
+give several titles), plain words, the English spelling used in {country}, no dashes used as punctuation, no
+markdown. Never use bullet points, numbered lists or line breaks: put several titles in one
+sentence. Say what you did, and plainly what you could not do and why.
+
+OPTIONS: when your answer offers something or asks whether they want it, end with one more line,
+exactly OPTIONS: followed by a JSON list of one to three quick replies, each {{"label": "...",
+"text": "..."}}. label is one to three words for a button; text is the full reply the person would
+send, naming the title so it makes sense on its own, for example
+OPTIONS: [{{"label": "Play it", "text": "Yes, play Twilight"}}, {{"label": "Not now", "text": "No thanks"}}]
+Leave the OPTIONS line out when nothing is offered. Never mention the options in the sentences."""
+
+MAX_TURNS = 25        # the step cap for one ask
+ASK_SOFT = 80         # the phone waits 90 s; answer by then and let the job finish in the background
+LAST_FOR = 15 * 60    # the last answer on a TV is given to the next ask for 15 minutes
+_last = {}            # tv id -> {"text", "reply", "ts", "pending"}
 
 RECS_PROMPT = """{taste}
 
@@ -85,7 +128,8 @@ async def run_claude(prompt, system=None, mcp_config=None, timeout=ASK_TIMEOUT):
     if system:
         args += ["--system-prompt", system]
     if mcp_config:
-        args += ["--strict-mcp-config", "--mcp-config", mcp_config, "--allowedTools", "mcp__tv"]
+        args += ["--strict-mcp-config", "--mcp-config", mcp_config, "--allowedTools", "mcp__tv",
+                 "--max-turns", str(MAX_TURNS)]
     else:
         args += ["--strict-mcp-config"]
     proc = await asyncio.create_subprocess_exec(
@@ -101,6 +145,10 @@ async def run_claude(prompt, system=None, mcp_config=None, timeout=ASK_TIMEOUT):
         data = json.loads(text)
     except json.JSONDecodeError:
         raise RuntimeError((err.decode(errors="replace").strip() or text)[:200] or "Claude failed")
+    if data.get("subtype") == "error_max_turns":
+        raise RuntimeError("I ran out of steps before finishing")
+    if data.get("subtype") == "error_max_turns":
+        raise RuntimeError("I ran out of steps before finishing")
     if data.get("is_error"):
         raise RuntimeError(str(data.get("result") or data.get("subtype") or "Claude error")[:200])
     return data.get("result") or ""
@@ -120,33 +168,142 @@ def _mcp_config(ask_id, tv_id=None):
     return path
 
 
+_OPTIONS = re.compile(r"\n?\s*OPTIONS:\s*(\[.*\])\s*$", re.S)
+
+
+def split_options(reply):
+    """(say, options): the answer without its OPTIONS line, and at most three {label, text}."""
+    m = _OPTIONS.search(reply or "")
+    if not m:
+        # A broken OPTIONS line is dropped, never shown to the person.
+        return re.sub(r"\n?\s*OPTIONS:.*$", "", reply or "", flags=re.S).strip(), []
+    say = reply[:m.start()].strip()
+    try:
+        raw = json.loads(m.group(1))
+    except json.JSONDecodeError:
+        return say, []
+    opts = []
+    for o in raw if isinstance(raw, list) else []:
+        if isinstance(o, dict) and str(o.get("label") or "").strip() and str(o.get("text") or "").strip():
+            opts.append({"label": str(o["label"]).strip()[:24], "text": str(o["text"]).strip()[:200]})
+        if len(opts) == 3:
+            break
+    return say, opts
+
+
+DOING = {"install_app": "installing {name}", "play": "putting on {title}",
+         "restart_app": "restarting the app", "input": "switching input", "tap": "pressing {label}",
+         "launch": "opening {app}", "off_after_episode": "setting the TV to go off"}
+
+
+def _doing(actions):
+    for a in reversed(actions):
+        words = DOING.get(a.get("tool"))
+        if words:
+            try:
+                return words.format(**{k: v for k, v in (a.get("args") or {}).items()})
+            except (KeyError, IndexError):
+                return words.split(" {")[0]
+    return None
+
+
+def _ago(seconds):
+    mins = int(seconds // 60)
+    return "just now" if mins < 1 else f"{mins} min ago"
+
+
+DOING = {"install_app": "installing {name}", "play": "putting on {title}",
+         "restart_app": "restarting the app", "input": "switching input", "tap": "pressing {label}",
+         "launch": "opening {app}", "off_after_episode": "setting the TV to go off"}
+
+
+def _doing(actions):
+    for a in reversed(actions):
+        words = DOING.get(a.get("tool"))
+        if words:
+            try:
+                return words.format(**{k: v for k, v in (a.get("args") or {}).items()})
+            except (KeyError, IndexError):
+                return words.split(" {")[0]
+    return None
+
+
+def _memory(reply):
+    say, opts = split_options(reply)
+    return say + (" (offered: " + "; ".join(o["text"] for o in opts) + ")" if opts else "")
+
+
+def _ago(seconds):
+    mins = int(seconds // 60)
+    return "just now" if mins < 1 else f"{mins} min ago"
+
+
 async def ask(text, who, asks, tv_id=None):
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
     ask_id = uuid.uuid4().hex[:12]
     asks[ask_id] = []
     cfg = _mcp_config(ask_id, tv_id)
     start = time.monotonic()
+    key = tv_id or "default"
     names = [p["name"] for p in config.PEOPLE]
     asker = {p["id"]: p["name"] + " is asking" for p in config.PEOPLE}
     asker["both"] = " and ".join(names) + " are watching together"
     asker = asker.get(who)
     prompt = f"({asker}) {text}" if asker else text
+    now = datetime.now(ZoneInfo(config.TIMEZONE))
+    prompt += f"\n\n[Now: {now.strftime('%A %d %B %Y, %I:%M %p').replace(' 0', ' ')} local time]"
+    last = _last.get(key)
+    if last and time.time() - last["ts"] < LAST_FOR:
+        # So "yes", "play the second one" and "keep watching" follow on from the last answer.
+        prompt += (f"\n[Last ask on this TV, {_ago(time.time() - last['ts'])}: \"{last['text']}\". "
+                   f"Your answer then: \"{last['reply']}\""
+                   + (" (that job was still running when you answered)" if last.get("pending") else "")
+                   + "]")
     likes = taste.summary(who)
     if likes:
         # So "recommend something" and "put on something good" use the real taste.
         prompt = f"{prompt}\n\n[Background, use only if relevant]\n{likes}"
-    try:
-        reply = await run_claude(prompt, ASK_SYSTEM.format(country=config.COUNTRY_NAME), cfg)
-    except RuntimeError as e:
-        reply = f"Sorry, that did not work: {e}"
-        log.warning("ask failed: %s", e)
-    finally:
-        actions = asks.pop(ask_id, [])
+
+    async def job():
         try:
-            os.remove(cfg)
-        except OSError:
-            pass
-    return {"reply": reply.strip(), "actions": actions,
+            return (await run_claude(prompt, ASK_SYSTEM.format(country=config.COUNTRY_NAME), cfg)).strip()
+        except RuntimeError as e:
+            log.warning("ask failed: %s", e)
+            return f"Sorry, that did not work: {e}"
+        finally:
+            try:
+                os.remove(cfg)
+            except OSError:
+                pass
+
+    task = asyncio.create_task(job())
+    try:
+        reply = await asyncio.wait_for(asyncio.shield(task), ASK_SOFT)
+        actions = asks.pop(ask_id, [])
+        _last[key] = {"text": text, "reply": _memory(reply), "ts": time.time()}
+    except asyncio.TimeoutError:
+        # The phone gives up at 90 s. Answer now and let the job finish on its own.
+        actions = list(asks.get(ask_id, []))
+        doing = _doing(actions)
+        reply = ("Still working on it" + (f", {doing}" if doing else "")
+                 + ". Give it a minute and watch the TV.")
+        _last[key] = {"text": text, "reply": reply, "ts": time.time(), "pending": True}
+
+        def finished(t):
+            asks.pop(ask_id, None)
+            r = t.result() if not t.cancelled() and not t.exception() else "That job did not finish."
+            _last[key] = {"text": text, "reply": _memory(r), "ts": time.time()}
+            log.info("ask finished in the background after %.0f s: %s", time.monotonic() - start, r)
+            _background.discard(t)
+        _background.add(task)
+        task.add_done_callback(finished)
+    say, options = split_options(reply)
+    return {"reply": say, "say": say, "options": options, "actions": actions,
             "seconds": round(time.monotonic() - start, 1)}
+
+
+_background = set()
 
 
 # ---------- picks ----------

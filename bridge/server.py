@@ -765,6 +765,10 @@ async def h_screenshot(request):
 
 # ---------- Claude ----------
 import claude  # noqa: E402  (needs the helpers above)
+import agentic  # noqa: E402  (the ask's eyes, installs, inputs, off after this episode)
+import sys as _sys  # noqa: E402
+
+agentic.S = _sys.modules[__name__]
 
 
 async def recs_refresh_soon():
@@ -1024,6 +1028,7 @@ async def h_sleep_set(request):
         raise ApiError(400, "minutes is required (0 cancels)")
     if minutes < 0 or minutes > 600:
         raise ApiError(400, "minutes must be 0 to 600")
+    agentic.cancel(clear_timer=False)  # a timer set by hand replaces "off when this episode ends"
     ends = None
     if minutes > 0:
         ends = datetime.fromtimestamp(time.time() + minutes * 60, HOME_TZ).isoformat(timespec="seconds")
@@ -1698,6 +1703,7 @@ def make_app():
     r.add_post("/api/power", h_power)
     r.add_post("/api/volume", h_volume)
     r.add_get("/api/screenshot", h_screenshot)
+    agentic.routes(r)
     r.add_route("OPTIONS", "/api/{tail:.*}", h_options)
     r.add_route("*", "/api/{tail:.*}", h_api_missing)
     r.add_get("/tv", h_tv_redirect)

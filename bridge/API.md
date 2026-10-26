@@ -270,8 +270,9 @@ provider in this order: free apps, then subscriptions, then the rest.
 - `app`: only the app could be opened. `note` says what to do on the TV.
 
 ### `POST /api/ask`
-Free text to Claude (runs on the subscription, never the API). Takes about 5 to 20 seconds, so
-show a thinking state. Optional `who` (see "Who is watching").
+Free text to Claude (runs on the subscription, never the API). Takes about 5 to 20 seconds for
+simple asks; bigger jobs (installing an app) can run longer, so at 80 s it answers "Still working
+on it" and the job finishes in the background. Show a thinking state. Optional `who` (see "Who is watching").
 ```json
 {"text": "put on the latest Bluey", "who": "person1"}
 ```
@@ -284,8 +285,34 @@ show a thinking state. Optional `who` (see "Who is watching").
 }
 ```
 `409` when `ask.enabled` is `false` in `config.json` (the phone hides Ask then).
-`reply` is one or two short sentences, safe to show as is. `actions` lists what Claude did to
-the TV (can be empty when it only answered).
+`reply` is one to three short sentences, safe to show as is. `actions` lists what Claude did
+to the TV (can be empty when it only answered).
+
+Also in every answer (since 27 Oct 2026, for a chat box):
+```json
+{
+  "ok": true,
+  "say": "That's Twilight (2008). It's on Stan and Prime Video. Want me to put it on?",
+  "reply": "That's Twilight (2008). It's on Stan and Prime Video. Want me to put it on?",
+  "options": [{"label": "Play it", "text": "Yes, play Twilight"},
+              {"label": "Not now", "text": "No thanks"}],
+  "actions": [{"tool": "find", "args": {"title": "Twilight"}, "ok": true}],
+  "seconds": 6.1
+}
+```
+- `say` is the sentence for the person; `reply` is the same text, kept for older front ends.
+- `options` is 0 to 3 quick replies Claude proposes when it offers a next step or asks whether
+  they want it. `label` is a short button name (at most 24 characters), `text` the full reply.
+  Tapping one simply sends its `text` as the next `POST /api/ask` (same `tv`); the bridge gives
+  Claude the last ask and answer on that TV for 15 minutes, so "Yes, play Twilight" carries on.
+  Empty list when nothing was offered. Claude writes them as a last line `OPTIONS: [...]`
+  (JSON), which the bridge strips from `say`; a broken line is dropped, never shown.
+- Pure questions ("what's that vampire movie with Edward Cullen") are answered from Claude's own
+  knowledge plus `find` (which of the home's apps it streams on), without touching the TV until
+  the person says yes.
+- `tv` in the body (or `?tv=`) picks the TV, as everywhere else.
+- After 80 s the answer is "Still working on it, ..." with no options, and the job finishes in
+  the background; the next ask is told how it ended.
 
 ### `GET /api/recs`
 Claude's picks plus continue watching. Optional `?who=person1`. Fast: it returns the cached picks
@@ -484,6 +511,63 @@ While an `on` is in progress, `/api/now` and the events stream carry `"waking": 
 ### `GET /api/screenshot`
 PNG of the TV screen. Needs ADB (`/api/health` `adb: true`), otherwise `503`.
 For Claude and debugging, not for the front ends.
+
+## Agentic ask endpoints (`agentic.py`)
+What Claude uses to do whole jobs from one ask. All take the usual `?tv=`. Front ends can call
+them too, but none of them are needed by the phone remote or the TV home.
+
+### `GET /api/ui`
+The screen as text, from `uiautomator dump`: `app`, `focused` (the label with focus), `items`
+(one line per visible label: `*` has focus, `+` can be pressed, `@x,y` its centre), and
+`stop_screen` / `stop_labels` when a sign in, sign up or payment button is showing. Works where
+screenshots are black (protected video). About 3 to 4 seconds. `409` when the screen cannot be
+read (some players never go idle). A home screen drawn in a web view shows only its outline.
+
+### `POST /api/tap`
+`{"label": "Install"}` (or `{"x": 204, "y": 780}`): presses that label with `input tap`.
+Refuses buy, subscribe, sign in and price buttons (`403`).
+
+### `GET /api/screen-small`
+The screen as a 960 wide JPEG for Claude (the PNG from `/api/screenshot` is about 1.3 MB).
+Header `X-Screen-Black: 1` when the picture is all black.
+
+### `POST /api/install` and `POST /api/uninstall`
+`{"name": "Stan"}` (or `{"package": "..."}`). Install finds the Play Store package from the app
+catalogue plus a short list of extras (else it opens a Play Store search), opens its page,
+presses Install and waits until `pm list packages` has it (up to 150 s). Answers
+`installed: true`, or `installed: false` with `stopped`: `paid` (never buys), `sign_in_or_payment`
+(left on screen for a person), `no_button`, `timeout`. Uninstall refuses the home screen app,
+the Play Store, the keep-off list and apps that came with the TV. Only when someone asked.
+
+### `GET /api/inputs` and `POST /api/input`
+`GET` lists HDMI inputs: `name` (HDMI n), the TV's own label, `state`, and `devices` seen over
+HDMI CEC on that port (a console only shows while it is on). `POST {"name": "playstation"}`
+switches by device name, number (`"hdmi 2"`), a remembered name, or a best guess (`how`:
+`device`, `number`, `remembered`, `guess`; never an input that only has a soundbar on it).
+`{"name": "home"}` goes back to the apps. `remember_as` saves a name for that input
+(`data/input-names.json`). Switching uses `content://android.media.tv/passthrough/<input id>`.
+
+### `POST /api/off-after` and `GET /api/off-after`
+Turns the TV off when what is playing ends: at the credits (`threshold_s`, default 30, before
+the end, when the length is known), when the next episode or video starts, or when playback
+stops. When the length is known it also sets the sleep timer, so the home and phone show
+"Off in N min", and keeps it right through pauses. Leaving the app drops the plan. A sleep timer
+set by hand replaces it. `{"cancel": true}` cancels. `{"dry_run": true}` only logs what it
+would do (for testing). `GET` says whether it is armed and why it last stopped.
+
+### `POST /api/restart-app`
+`{"app": "netflix"}` or empty for the app on screen: force stops it, opens it again and carries
+on with what was playing (the show page, which resumes where the profile was up to; YouTube
+reopens its search for the video).
+
+### `GET /api/latest?title=...`
+The newest episode available (season, episode, name, date, apps), announced upcoming releases,
+and the last episode of it played on our TVs, with `newer_than_last_watched`.
+
+### `GET /api/both`
+For "something we would both like": each person's genres and shows, shared genres, shows
+everyone watched, shows anyone dropped, people with little history, and the household's
+ready picks. `?who=a,b` narrows it to those people.
 
 ## Keep-off guard (one list per TV, owned by the bridge)
 Once a day the bridge checks each paired TV over ADB and switches off again any app on that

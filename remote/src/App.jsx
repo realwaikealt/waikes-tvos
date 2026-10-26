@@ -86,16 +86,28 @@ function useKeyboardInset() {
     const vv = window.visualViewport;
     if (!vv) return undefined;
     const root = document.documentElement;
+    // Android shrinks the page instead: a typing field in focus and a page much shorter than it
+    // was at this width means the keyboard is up too.
+    let tallest = { w: window.innerWidth, h: window.innerHeight };
     const f = () => {
+      if (window.innerWidth !== tallest.w) tallest = { w: window.innerWidth, h: window.innerHeight };
+      tallest.h = Math.max(tallest.h, window.innerHeight);
       const kb = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
-      const open = kb > 80;
-      root.style.setProperty('--kb', `${open ? kb : 0}px`);
+      const typing = document.activeElement?.tagName === 'INPUT';
+      const shrunk = typing && window.innerHeight < tallest.h - 120;
+      const open = kb > 80 || shrunk;
+      root.style.setProperty('--kb', `${kb > 80 ? kb : 0}px`);
       root.classList.toggle('kb-open', open);
       // iOS sometimes scrolls the whole page up to show the field; the sheet is already lifted.
       if (open && window.scrollY) window.scrollTo(0, 0);
     };
-    vv.addEventListener('resize', f); vv.addEventListener('scroll', f); f();
-    return () => { vv.removeEventListener('resize', f); vv.removeEventListener('scroll', f); };
+    const later = () => setTimeout(f, 50);
+    vv.addEventListener('resize', f); vv.addEventListener('scroll', f); window.addEventListener('resize', f);
+    document.addEventListener('focusin', later); document.addEventListener('focusout', later); f();
+    return () => {
+      vv.removeEventListener('resize', f); vv.removeEventListener('scroll', f); window.removeEventListener('resize', f);
+      document.removeEventListener('focusin', later); document.removeEventListener('focusout', later);
+    };
   }, []);
 }
 

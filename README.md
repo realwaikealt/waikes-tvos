@@ -46,7 +46,14 @@ actually watch.
 | **Fire TV on Vega OS** (newer Fire TV sticks) | No | No | No |
 | **Samsung** (Tizen) | No | No | No |
 | **LG** (webOS) | No | No | No |
-| **Roku, Apple TV, Hisense VIDAA** | No | No | No |
+| **Roku, Apple TV, Hisense with VIDAA** | No | No | No |
+
+**Hisense, Sharp and other brands that sell more than one kind of TV:** it depends on the model,
+not the brand. Their Google TV and Android TV models should work. Their VIDAA models run
+Hisense's own system and do not. Open **Settings, System, About** (or
+**Device Preferences, About**): "Android TV OS" means yes. Or run `scripts/check-tv.py`.
+Brand by brand (TCL, Philips, Panasonic, Sharp, Xiaomi and more, untested):
+[docs/TV-BRANDS.md](docs/TV-BRANDS.md).
 
 **What you can and cannot do on each:**
 - **Google TV and Android TV:** everything in this repo. Your own home screen, your apps in your

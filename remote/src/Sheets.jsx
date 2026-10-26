@@ -5,7 +5,7 @@ import { tick } from './haptics.js';
 import { api } from './api.js';
 import { logoFor } from './appLogos.js';
 
-export const Sheet = forwardRef(function Sheet({ open, onClose, title, children, className = '', fromTop = false, closeDrag }, ref) {
+export const Sheet = forwardRef(function Sheet({ open, onClose, title, children, className = '', fromTop = false, closeDrag, extra = null }, ref) {
   return (
     <div className={`sheet-layer ${open ? 'open' : ''} ${fromTop ? 'from-top' : ''}`} aria-hidden={!open} inert={!open}
       onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}>
@@ -14,6 +14,7 @@ export const Sheet = forwardRef(function Sheet({ open, onClose, title, children,
         {!fromTop && <div className="grabber" />}
         <header className="sheet-head">
           <h2>{title}</h2>
+          {extra}
           <button className="round glass small" aria-label="Close" onClick={onClose}><Ic.Close size={18} /></button>
         </header>
         {children}
@@ -26,19 +27,34 @@ export const Sheet = forwardRef(function Sheet({ open, onClose, title, children,
 const Speech = typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition);
 const canListen = Boolean(Speech) && typeof window !== 'undefined' && window.isSecureContext;
 
-// The input is always mounted so the tap on "Ask" can focus it straight away:
-// iOS only raises the keyboard when focus happens inside the tap itself.
-// Each ask carries a number; closing the sheet or asking again makes older answers stale, so a late
-// answer never lands in a sheet that has moved on. After an answer that worked, it closes by itself.
-export const AskSheet = forwardRef(function AskSheet({ open, onClose, who, recs, onAsk, onDone }, inputRef) {
+// Ask is a short conversation with Claude: his words on the right, Claude's on the left, and up to
+// three quick replies under Claude's latest answer ("Yes, play it"). A quick reply is sent as his
+// next message. The thread lasts for the session and is cleared after 15 minutes without a message,
+// the same as the bridge's own memory of the conversation. "New chat" clears it straight away.
+// The input sits at the bottom, just above the keyboard, and is always mounted so the tap on "Ask"
+// can focus it straight away (iOS only raises the keyboard when focus happens inside the tap).
+const THREAD_KEY = 'tv.askThread';
+const IDLE_MS = 15 * 60000;
+const loadThread = () => {
+  try {
+    const t = JSON.parse(sessionStorage.getItem(THREAD_KEY) || 'null');
+    return t && Date.now() - t.at < IDLE_MS ? t.items.filter((m) => !m.pending) : [];
+  } catch { return []; }
+};
+const saveThread = (items) => { try { sessionStorage.setItem(THREAD_KEY, JSON.stringify({ at: Date.now(), items })); } catch { /* private mode */ } };
+const friendly = (msg) => (msg === 'Can’t reach the bridge' ? 'Can’t reach the TV. Is your phone on the home Wi-Fi?' : msg);
+
+export const AskSheet = forwardRef(function AskSheet({ open, onClose, recs, onAsk, onDone }, inputRef) {
   const [text, setText] = useState('');
-  const [phase, setPhase] = useState('idle');
-  const [result, setResult] = useState(null);
+  const [thread, setThread] = useState(loadThread);
   const [secs, setSecs] = useState(0);
   const [listening, setListening] = useState(false);
   const rec = useRef(null);
-  const reqId = useRef(0);
+  const chat = useRef(0);          // bumps on New chat, so a late answer to the old chat is dropped
   const closeT = useRef(null);
+  const lastAt = useRef(Date.now());
+  const list = useRef(null);
+  const busy = thread.some((m) => m.pending);
   // Speaking through the keyboard's microphone: the words arrive in bursts, not a letter at a time.
   // After a burst, once the text has been still for 1.5 s, a 2 s countdown shows and then it sends.
   // Typing a key, or tapping the countdown, stops it. Typed text always waits for Send.
@@ -49,41 +65,63 @@ export const AskSheet = forwardRef(function AskSheet({ open, onClose, who, recs,
   const textNow = useRef('');
   textNow.current = text;
   const cancelAuto = () => { clearTimeout(idleT.current); clearInterval(cdT.current); setCountdown(0); };
-  useEffect(() => cancelAuto, []);
+  useEffect(() => () => { cancelAuto(); clearTimeout(closeT.current); }, []);
 
+  useEffect(() => { saveThread(thread); }, [thread]);
   useEffect(() => {
-    reqId.current += 1;
     clearTimeout(closeT.current);
     cancelAuto(); burst.current = false;
-    if (open) { setPhase('idle'); setResult(null); setText(''); } else { rec.current?.abort?.(); setListening(false); }
-  }, [open]);
-  useEffect(() => () => clearTimeout(closeT.current), []);
+    if (open) {
+      setText('');
+      if (Date.now() - lastAt.current > IDLE_MS && !busy) setThread([]);   // 15 minutes quiet: start fresh
+    } else { rec.current?.abort?.(); setListening(false); }
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (phase !== 'thinking') return undefined;
+    if (!busy) return undefined;
     setSecs(0);
     const t = setInterval(() => setSecs((s) => s + 1), 1000);
     return () => clearInterval(t);
-  }, [phase]);
+  }, [busy]);
+  // Keep the newest message and its quick replies in view, also when the keyboard makes room smaller.
+  useEffect(() => { const el = list.current; if (el) el.scrollTop = el.scrollHeight; }, [thread]);
+  useEffect(() => {
+    const el = list.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(() => { el.scrollTop = el.scrollHeight; });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [thread.length > 0]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const submit = async (q) => {
     const ask = (q ?? textNow.current).trim();
     cancelAuto(); burst.current = false;
-    if (!ask) return;
+    if (!ask || busy) return;
     inputRef.current?.blur();
-    const id = ++reqId.current;
-    setText(ask); setPhase('thinking');
+    clearTimeout(closeT.current);
+    const c = chat.current;
+    const id = `${Date.now()}`;
+    lastAt.current = Date.now();
+    setText('');
+    setThread((t) => [...t.map((m) => ({ ...m, options: [] })), { id: `${id}-me`, me: true, text: ask }, { id, pending: true }]);
+    let reply;
     try {
       const r = await onAsk(ask);
-      if (id !== reqId.current) return;
-      setResult({ ok: true, reply: r.reply, did: (r.actions || []).some((a) => a.ok) });
-      setPhase('done'); tick();
-      closeT.current = setTimeout(() => { if (id === reqId.current) { onDone?.(r.reply); onClose(); } }, 2600);
+      reply = { text: r.say || r.reply || 'Done.', options: (Array.isArray(r.options) ? r.options : []).filter((o) => o && o.text).slice(0, 3), still: /^Still working on it/.test(r.reply || '') };
+      if (c === chat.current) {
+        tick();
+        // A plain "done it" with nothing to choose closes by itself, as before; the answer stays as a toast.
+        if ((r.actions || []).some((a) => a.ok) && !reply.options.length && !reply.still) {
+          closeT.current = setTimeout(() => { if (c === chat.current) { onDone?.(reply.text); onClose(); } }, 2600);
+        }
+      }
     } catch (e) {
-      if (id !== reqId.current) return;
-      setResult({ ok: false, reply: e.message === 'Can’t reach the bridge' ? 'Can’t reach the TV. Is your phone on the home Wi-Fi?' : e.message });
-      setPhase('done');
+      reply = { text: friendly(e.message), err: true, options: [{ label: 'Try again', text: ask }] };
     }
+    if (c !== chat.current) return;
+    lastAt.current = Date.now();
+    setThread((t) => t.map((m) => (m.id === id ? { id, ...reply } : m)));
   };
+  const newChat = () => { tick(); chat.current += 1; clearTimeout(closeT.current); setThread([]); setText(''); inputRef.current?.focus(); };
 
   const startCountdown = () => {
     let left = 2;
@@ -100,7 +138,8 @@ export const AskSheet = forwardRef(function AskSheet({ open, onClose, who, recs,
     if (v.length - textNow.current.length >= 4) burst.current = true;
     setText(v);
     cancelAuto();
-    if (burst.current && v.trim()) idleT.current = setTimeout(startCountdown, 1500);
+    clearTimeout(closeT.current);
+    if (burst.current && v.trim() && !busy) idleT.current = setTimeout(startCountdown, 1500);
   };
   // A real key press means typing: no auto send.
   const onKey = (e) => { if (e.key && e.key.length === 1) { burst.current = false; cancelAuto(); } };
@@ -123,52 +162,57 @@ export const AskSheet = forwardRef(function AskSheet({ open, onClose, who, recs,
     'Something funny, under an hour',
     'What’s new on Stan?',
   ];
+  const last = thread[thread.length - 1];
+  const chips = last && !last.me && !last.pending ? last.options || [] : [];
 
   return (
-    <Sheet open={open} onClose={onClose} title="Ask for a show" className="ask-sheet">
-      <form className={`ask-field glass ${phase === 'idle' ? '' : 'is-hidden'}`} onSubmit={(e) => { e.preventDefault(); submit(); }}>
-            <input ref={inputRef} value={text} onChange={onType} onKeyDown={onKey} enterKeyHint="send"
-              placeholder="Put on…" aria-label="What do you want to watch?" autoComplete="off" autoCorrect="on" />
-            {canListen && <button type="button" className={`round glass ask-mic ${listening ? 'listening' : ''}`} aria-label={listening ? 'Stop listening' : 'Speak'}
-              onPointerDown={(e) => e.preventDefault()} onClick={listen}><Ic.Mic size={20} /></button>}
-            <button type="submit" className="round solid ask-send" aria-label="Send" disabled={!text.trim()}
-              onPointerDown={(e) => e.preventDefault()}><Ic.Send size={20} /></button>
+    <Sheet open={open} onClose={onClose} title="Ask for a show" className="ask-sheet"
+      extra={thread.length > 0 && <button type="button" className="pill glass new-chat" onClick={newChat}>New chat</button>}>
+      {thread.length > 0 ? (
+        <div className="thread" ref={list} role="log" aria-live="polite" aria-label="Conversation with Claude">
+          {thread.map((m) => (m.me ? (
+            <p key={m.id} className="bubble me"><span className="sr-only">You said: </span>{m.text}</p>
+          ) : m.pending ? (
+            <div key={m.id} className="bubble claude pending" role="status">
+              <span className="sr-only">Claude is working on it.</span>
+              <span className="dots" aria-hidden="true"><i /><i /><i /></span>
+              <small>Claude is finding it{secs > 3 ? ` · ${secs}s` : ''}. Usually 5 to 20 seconds.</small>
+            </div>
+          ) : (
+            <p key={m.id} className={`bubble claude ${m.err ? 'err' : ''}`}><span className="sr-only">Claude: </span>{m.text}
+              {m.still && <small>It carries on by itself. Watch the TV.</small>}</p>
+          )))}
+          {chips.length > 0 && (
+            <div className="replies" aria-label="Quick replies">
+              {chips.map((o) => (
+                <button key={o.text} type="button" className="chip glass reply-chip" onClick={() => { tick(); submit(o.text); }}>{o.label || o.text}</button>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="ideas" aria-label="Ideas">
+          {ideas.map((i) => <button key={i} type="button" className="chip glass" onClick={() => { tick(); submit(i); }}>{i}</button>)}
+        </div>
+      )}
+      <form className="ask-field glass" onSubmit={(e) => { e.preventDefault(); submit(); }}>
+        <input ref={inputRef} value={text} onChange={onType} onKeyDown={onKey} enterKeyHint="send"
+          placeholder={thread.length ? 'Reply…' : 'Put on…'} aria-label={thread.length ? 'Reply to Claude' : 'What do you want to watch?'} autoComplete="off" autoCorrect="on" />
+        {canListen && <button type="button" className={`round glass ask-mic ${listening ? 'listening' : ''}`} aria-label={listening ? 'Stop listening' : 'Speak'}
+          onPointerDown={(e) => e.preventDefault()} onClick={listen}><Ic.Mic size={20} /></button>}
+        <button type="submit" className="round solid ask-send" aria-label="Send" disabled={!text.trim() || busy}
+          onPointerDown={(e) => e.preventDefault()}><Ic.Send size={20} /></button>
       </form>
-      {phase === 'idle' && countdown > 0 && (
+      {countdown > 0 && (
         <button type="button" className="autosend" aria-live="polite" onPointerDown={(e) => e.preventDefault()}
           onClick={() => { tick(); burst.current = false; cancelAuto(); }}>
           <span className="autosend-bar" key={text} />
           <span>Sending in {countdown} s</span><b>Keep editing</b>
         </button>
       )}
-      {phase === 'idle' && (
-        <>
-          {!canListen && (
-            <p className="tip talk-tip"><span className="talk-mic"><Ic.Mic size={18} /></span>
-              <span><b>Tap the mic on your keyboard and speak.</b> It sends by itself when you stop.</span></p>
-          )}
-          <div className="ideas">
-            {ideas.map((i) => <button key={i} className="chip glass" onClick={() => { tick(); submit(i); }}>{i}</button>)}
-          </div>
-        </>
-      )}
-      {phase === 'thinking' && (
-        <div className="thinking" aria-live="polite">
-          <div className="said">“{text}”</div>
-          <div className="dots"><i /><i /><i /></div>
-          <p>Claude is finding it{secs > 3 ? ` · ${secs}s` : ''}</p>
-          <small>Usually 5 to 15 seconds. The TV changes when it is ready.</small>
-        </div>
-      )}
-      {phase === 'done' && result && (
-        <div className="answer" aria-live="polite">
-          <div className="said">“{text}”</div>
-          <p className={`reply ${result.ok ? '' : 'err'}`}>{result.reply}</p>
-          <div className="answer-actions">
-            <button className="pill glass" onClick={() => { tick(); clearTimeout(closeT.current); reqId.current += 1; setPhase('idle'); setText(''); inputRef.current?.focus(); }}>Ask again</button>
-            <button className="pill solid" onClick={() => { tick(); onClose(); }}>Done</button>
-          </div>
-        </div>
+      {!canListen && countdown === 0 && thread.length === 0 && (
+        <p className="tip talk-tip"><span className="talk-mic"><Ic.Mic size={18} /></span>
+          <span><b>Tap the mic on your keyboard and speak.</b> It sends by itself when you stop.</span></p>
       )}
     </Sheet>
   );

@@ -28,6 +28,8 @@ Some things to know:
 
 Voice works through your phone keyboard's own mic key, and the remote sends the request by itself a moment after you stop talking. An in-app mic button only appears if the remote is served over `https` (see the optional section below).
 
+Ask is a short chat. Claude may offer up to 3 quick replies under its answer, and tapping one sends it.
+
 If the computer restarts or the bridge is updated, the remote notices the next time you open it and
 switches to the new version by itself.
 
