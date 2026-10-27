@@ -395,3 +395,18 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .prow.lifted, .theme-night .app.lifted .face { animation: none; }
 }
+
+/* ---------- Settings, on the TV ---------- */
+.settings { position: fixed; inset: 0; z-index: 50; display: none; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.55); text-shadow: none; }
+.settings.on { display: flex; }
+.settings-panel { width: 56rem; max-width: 92vw; max-height: 86vh; display: flex; flex-direction: column; padding: 2.25rem 2.5rem 1.75rem; border-radius: 2.5rem; background: #221820; box-shadow: 0 2rem 5rem rgba(0, 0, 0, 0.6), inset 0 0 0 0.0625rem rgba(255, 255, 255, 0.1); }
+.settings-panel h2 { font-size: 2.5rem; line-height: 3rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 1rem; }
+.settings-list { display: flex; flex-direction: column; gap: 0.375rem; flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: none; }
+.settings-list::-webkit-scrollbar { display: none; }
+.srow { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; padding: 0 1.5rem; min-height: 3.5rem; border-radius: 1.75rem; font-size: 1.5625rem; font-weight: 600; color: rgba(255, 255, 255, 0.86); }
+.srow .sv { color: rgba(255, 255, 255, 0.65); white-space: nowrap; }
+.srow .sv.act { font-weight: 700; }
+.srow.focus { background: #fff; color: #111; }
+.srow.focus .sv { color: #333; }
+.settings-note { min-height: 1.75rem; margin-top: 0.75rem; font-size: 1.25rem; color: var(--warn); }
+.settings-help { font-size: 1.1875rem; color: rgba(255, 255, 255, 0.55); }

@@ -23,9 +23,9 @@
 
   // Settings from the bridge's config.json (served as config.js, and saved with the offline copy),
   // read in readConfig() once the page starts (mock.js fills them in for previews). See docs/CONFIG.md.
-  var CFG = {}, HOME = {}, TVCFG = {}, QUICK = [];
+  var CFG = {}, HOME = {}, TVCFG = {}, QUICK = [], SET = {}, SCENES_ALL = [];
   var WXCFG = { lat: -33.8688, lon: 151.2093, place: "Sydney", timezone: "Australia/Sydney" };
-  var QUICK_ALL = ["sleep", "picture", "look", "input"];
+  var QUICK_ALL = ["sleep", "picture", "look", "input", "settings"];
   // The look: ?theme= for a preview, then what the Look button last chose on this TV, then home.look.
   var THEME = "night", NIGHT = true, CLOCK24 = false;
 
@@ -142,20 +142,25 @@
     TVCFG = (CFG.tvs || []).filter(function (t) { return t.id === mine; })[0] || (CFG.tvs || [])[0] || {};
     // no "quick" from an older bridge: the sleep timer, and the picture switch where the TV has one
     QUICK = (TVCFG.quick || ["sleep", "picture"]).filter(function (q, i, a) { return QUICK_ALL.indexOf(q) >= 0 && a.indexOf(q) === i; });
+    // What was chosen on this TV in Settings wins over config.json.
+    SET = kept("tvhome.settings") || {};
+    if (SET.hide && SET.hide.length) QUICK = QUICK.filter(function (q) { return SET.hide.indexOf(q) < 0; });
+    if (QUICK.indexOf("settings") < 0) QUICK.push("settings");   // always there, so there is always a way back in
     THEME = (Q.match(/[?&]theme=([a-z]+)/) || [])[1] || kept("tvhome.look") || HOME.look || "night";
     if (THEME !== "classic") THEME = "night";
     NIGHT = THEME === "night";
     document.documentElement.classList.toggle("theme-night", NIGHT);
     GRID_COLS = NIGHT ? 12 : 8;
-    DOCK_APPS = Math.max(1, Math.min(10, parseInt(HOME.dock_size, 10) || 10));
-    CLOCK24 = HOME.clock === "24h";
+    DOCK_APPS = Math.max(1, Math.min(10, parseInt(SET.dock || HOME.dock_size, 10) || 10));
+    CLOCK24 = (SET.clock || HOME.clock) === "24h";
     (Array.isArray(HOME.hide_packages) ? HOME.hide_packages : []).forEach(function (p) {
       if (typeof p === "string" && HIDDEN.indexOf(p) < 0) HIDDEN.push(p);
     });
     var ids = SCENES.map(function (x) { return x.id; });
-    var pick = (HOME.scenes || []).filter(function (id, i, a) { return ids.indexOf(id) >= 0 && a.indexOf(id) === i; });
+    SCENES_ALL = SCENES.slice();
+    var pick = (SET.scenes || HOME.scenes || []).filter(function (id, i, a) { return ids.indexOf(id) >= 0 && a.indexOf(id) === i; });
     if (pick.length) SCENES = pick.map(function (id) { return SCENES[ids.indexOf(id)]; });
-    SCENE_MS = Math.max(5, parseInt(HOME.scene_seconds, 10) || 20) * 1000;
+    SCENE_MS = Math.max(5, parseInt(SET.secs || HOME.scene_seconds, 10) || 20) * 1000;
     var people = CFG.people || [{ id: "person1", name: "Person 1" }, { id: "person2", name: "Person 2" }];
     setPeople(localPeopleOrder(people, OFFLINE));
     newApps = kept("tvhome.apps.new") || [];
@@ -272,9 +277,11 @@
     var mm = (m < 10 ? "0" : "") + m;
     var hm = CLOCK24 ? (h < 10 ? "0" : "") + h + ":" + mm : (h % 12 || 12) + ":" + mm;
     $("time").innerHTML = hm + (CLOCK24 ? "" : "<small>" + (h < 12 ? "am" : "pm") + "</small>");
-    var day = d.toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" }).replace(",", "");
+    var day = dateStyle() === "us"
+      ? d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })
+      : d.toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" }).replace(",", "");
     var w = NIGHT && data.weather && data.weather.temp != null ? data.weather : null;
-    $("date").innerHTML = esc(day) + (w ? '<span class="wx">' + wxIcon(w) + esc(w.temp + "° " + w.text) + "</span>" : "");
+    $("date").innerHTML = esc(day) + (w ? '<span class="wx">' + wxIcon(w) + esc(shownTemp(w.temp) + "° " + w.text) + "</span>" : "");
     document.body.classList.toggle("night", h >= 21 || h < 6);
     if (NIGHT) glassClock(hm);
     if (quickReady) renderQuick();
@@ -424,7 +431,7 @@
     return QUICK.filter(function (q) {
       if (q === "sleep") return !OFFLINE;
       if (q === "picture") return !OFFLINE && picShown;
-      if (q === "look") return true;
+      if (q === "look" || q === "settings") return true;
       if (q === "input") return !OFFLINE || nativeInputs();
       return false;
     });
@@ -460,6 +467,8 @@
         el.innerHTML = ICONS.look + "<span>" + (NIGHT ? "Classic look" : "Night look") + "</span>";
       } else if (q === "input") {
         el.innerHTML = ICONS.input + "<span>Input</span>";
+      } else if (q === "settings") {
+        el.innerHTML = ICONS.gear + "<span>Settings</span>";
       }
     });
     if (qi >= vis.length) qi = Math.max(0, vis.length - 1);
@@ -520,7 +529,114 @@
     else if (q === "picture") togglePicture();
     else if (q === "look") toggleLook();
     else if (q === "input") openInputs();
+    else if (q === "settings") openSettings();
   }
+  // ---------------- Settings, on the TV itself ----------------
+  // Everything here is kept on this TV (tvhome.settings) and wins over config.json. Up and down pick a row,
+  // left and right (or OK) change it, Back closes. Anything that needs the page to start again does so on close.
+  var setI = 0, setDirty = false, setFlash = "";
+  function dateStyle() { return SET.date || ((CFG.country || "") === "US" ? "us" : "intl"); }
+  function tempUnit() { return SET.unit || ((CFG.country || "") === "US" ? "F" : "C"); }
+  function shownTemp(c) { return tempUnit() === "F" ? Math.round(c * 9 / 5 + 32) : c; }
+  var SCENE_NAMES = { night: "Night", golden: "Golden hour", water: "Waterline", fog: "Fog", dawn: "Dawn" };
+  function sceneOn(id) { return SCENES.some(function (x) { return x.id === id; }); }
+  function setRows() {
+    var rows = [
+      { k: "look", label: "Look", cur: NIGHT ? "night" : "classic", opts: [["night", "Night scenes"], ["classic", "Classic photo"]] },
+      { k: "clock", label: "Clock", cur: CLOCK24 ? "24h" : "12h", opts: [["12h", "12-hour"], ["24h", "24-hour"]] },
+      { k: "unit", label: "Temperature", cur: tempUnit(), opts: [["F", "Fahrenheit"], ["C", "Celsius"]] },
+      { k: "date", label: "Date style", cur: dateStyle(), opts: [["us", "Monday, October 26"], ["intl", "Monday 26 October"]] },
+      { k: "secs", label: "Each scene lasts", cur: Math.round(SCENE_MS / 1000), opts: [[10, "10 seconds"], [20, "20 seconds"], [30, "30 seconds"], [60, "1 minute"], [120, "2 minutes"]] },
+      { k: "dock", label: "Apps in the dock", cur: DOCK_APPS, opts: [4, 5, 6, 7, 8, 9, 10].map(function (n) { return [n, String(n)]; }) }
+    ];
+    SCENES_ALL.forEach(function (sc) {
+      rows.push({ k: "scene:" + sc.id, label: "Scene: " + (SCENE_NAMES[sc.id] || sc.id), cur: sceneOn(sc.id) ? 1 : 0, opts: [[1, "On"], [0, "Off"]] });
+    });
+    var names = { sleep: "Sleep timer button", look: "Look button", input: "Input button" };
+    ["sleep", "look", "input"].forEach(function (q) {
+      if ((TVCFG.quick || []).indexOf(q) < 0) return;
+      rows.push({ k: "q:" + q, label: names[q], cur: QUICK.indexOf(q) >= 0 ? 1 : 0, opts: [[1, "Shown"], [0, "Hidden"]] });
+    });
+    rows.push({ k: "!android", label: "The TV's own settings", action: "Open" });
+    rows.push({ k: "!reset", label: "Put all of these back", action: "Reset" });
+    rows.push({ k: "!close", label: "Done", action: "Close" });
+    return rows;
+  }
+  function renderSettings() {
+    var rows = setRows(), box = $("settings-list");
+    setI = Math.max(0, Math.min(rows.length - 1, setI));
+    box.innerHTML = rows.map(function (r, i) {
+      var val;
+      if (r.action) val = '<span class="sv act">' + r.action + "</span>";
+      else {
+        var hit = r.opts.filter(function (o) { return String(o[0]) === String(r.cur); })[0];
+        val = '<span class="sv">\u2039&nbsp;&nbsp;' + esc(hit ? hit[1] : String(r.cur)) + '&nbsp;&nbsp;\u203a</span>';
+      }
+      return '<div class="srow' + (i === setI ? " focus" : "") + '"><span class="sl">' + esc(r.label) + "</span>" + val + "</div>";
+    }).join("");
+    $("settings-note").textContent = setFlash;
+    var f = box.querySelector(".focus");
+    if (f && f.scrollIntoView) f.scrollIntoView({ block: "nearest" });
+  }
+  function openSettings() {
+    zone = "settings"; setI = 0; setFlash = "";
+    $("settings").classList.add("on");
+    paintFocus();
+  }
+  function closeSettings() {
+    $("settings").classList.remove("on");
+    zone = "quick";
+    if (setDirty) { location.reload(); return; }   // the page starts again with what was chosen
+    paintFocus();
+  }
+  function saveSet() { keep("tvhome.settings", SET); setDirty = true; }
+  function changeSet(dir) {
+    var r = setRows()[setI];
+    if (!r) return;
+    if (r.action) { runSetAction(r); return; }
+    var at = 0;
+    r.opts.forEach(function (o, i) { if (String(o[0]) === String(r.cur)) at = i; });
+    var next = r.opts[(at + dir + r.opts.length) % r.opts.length][0];
+    if (r.k === "look") { keep("tvhome.look", next); setDirty = true; }
+    else if (r.k === "clock" || r.k === "unit" || r.k === "date" || r.k === "secs" || r.k === "dock") { SET[r.k] = next; saveSet(); }
+    else if (r.k.indexOf("scene:") === 0) {
+      var id = r.k.slice(6);
+      var on = SCENES.map(function (x) { return x.id; });
+      if (next) { if (on.indexOf(id) < 0) on.push(id); }
+      else on = on.filter(function (x) { return x !== id; });
+      if (!on.length) { setFlash = "At least one scene has to stay on."; renderSettings(); return; }
+      var order = SCENES_ALL.map(function (x) { return x.id; });
+      SET.scenes = order.filter(function (x) { return on.indexOf(x) >= 0; });
+      SCENES = SCENES_ALL.filter(function (x) { return SET.scenes.indexOf(x.id) >= 0; });
+      saveSet();
+    } else if (r.k.indexOf("q:") === 0) {
+      var q = r.k.slice(2), hide = (SET.hide || []).filter(function (x) { return x !== q; });
+      if (!next) hide.push(q);
+      SET.hide = hide; saveSet();
+      QUICK = next ? QUICK.concat([q]) : QUICK.filter(function (x) { return x !== q; });
+    }
+    // show it straight away where the page already knows how
+    if (r.k === "clock") CLOCK24 = next === "24h";
+    else if (r.k === "secs") SCENE_MS = next * 1000;
+    else if (r.k === "dock") DOCK_APPS = next;
+    r.cur = next;
+    setFlash = "";
+    clock();
+    renderSettings();
+  }
+  function runSetAction(r) {
+    if (r.k === "!close") { closeSettings(); return; }
+    if (r.k === "!reset") {
+      SET = {}; keep("tvhome.settings", SET); keep("tvhome.look", null); setDirty = true;
+      closeSettings(); return;
+    }
+    if (r.k === "!android") {
+      var ok = false;
+      try { ok = !!(TV && TV.launch && TV.launch(SETTINGS_PKG)); } catch (e) {}
+      if (!ok) api("POST", "/api/launch", { app: "settings" }).catch(function () {});
+    }
+  }
+
   function refreshQuick() {
     var jobs = [];
     if (QUICK.indexOf("sleep") >= 0) {
@@ -916,6 +1032,7 @@
   function paintFocus() {
     clearFocus();
     renderHint();
+    if (zone === "settings") { renderSettings(); return; }
     if (zone === "menu") { renderMenu(); return; }
     if (zone === "pmenu") { renderPop(); $("people").classList.add("focus"); return; }
     if (zone === "quick" && quickEls[qi]) {
@@ -966,6 +1083,11 @@
     if (lift) { moveLift(dx, dy); return; }
     // Night with More apps open: the cards step aside, so up and down skip them
     var cards = NIGHT && expanded ? [] : shelfEls;
+    if (zone === "settings") {
+      if (dy) { setI += dy; setFlash = ""; renderSettings(); }
+      else if (dx) changeSet(dx);
+      return;
+    }
     if (zone === "menu") {
       if (dx) menuI = Math.max(0, Math.min(SLEEP_CHOICES.length - 1, menuI + dx));
       paintFocus();
@@ -1035,6 +1157,7 @@
   function goHome() {
     if (lift) { dropLift(); return; }   // BACK puts a picked-up app down where it is
     if (zone === "pmenu") { if (plift) dropPeople(); else closePop(); paintFocus(); return; }
+    if (zone === "settings") { closeSettings(); return; }
     if (zone === "menu") { closeMenu(); paintFocus(); return; }   // BACK just closes the sleep choices
     if (expanded) { expanded = false; renderGrid(); }
     startFocus();
@@ -1059,6 +1182,7 @@
   function activate() {
     touched = true;
     if (lift) { dropLift(); return; }
+    if (zone === "settings") { changeSet(1); return; }
     if (zone === "menu") { setSleep(SLEEP_CHOICES[menuI]); paintFocus(); return; }
     if (zone === "pmenu") {
       if (plift) { dropPeople(); return; }

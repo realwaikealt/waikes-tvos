@@ -262,4 +262,5 @@ def public():
     return {"people": PEOPLE, "weather": WEATHER, "home": HOME,
             "tvs": [{"id": t["id"], "name": t["name"], "quick": quick_for(t),
                      "picture_modes": [m["name"] for m in picture_modes(t.get("picture"))]} for t in TVS],
-            "default_tv": DEFAULT_TV, "ask": {"enabled": ASK_ENABLED}, "phone_remote": PHONE_REMOTE}
+            "default_tv": DEFAULT_TV, "ask": {"enabled": ASK_ENABLED}, "phone_remote": PHONE_REMOTE,
+            "country": COUNTRY}
