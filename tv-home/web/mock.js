@@ -26,7 +26,7 @@
   // ---------- the settings config.js would carry ----------
   var NAMES = ["Alex", "Sam", "Jordan", "Riley", "Casey", "Morgan", "Taylor", "Jamie"];
   var cfg = { weather: { lat: -33.8688, lon: 151.2093, place: "Sydney", timezone: "Australia/Sydney" },
-    default_tv: "living-room", tvs: [{ id: "living-room", name: "Living room" }], home: {} };
+    default_tv: "living-room", tvs: [{ id: "living-room", name: "Living room" }], home: {}, ask: { enabled: !/[?&]noask/.test(location.search) } };
   var n = arg("people");
   if (n !== null) {
     cfg.people = NAMES.slice(0, Math.max(0, Math.min(8, parseInt(n, 10) || 0))).map(function (name) {
@@ -93,6 +93,16 @@
     return new Promise(function (resolve, reject) {
       setTimeout(function () {
         if (down) return reject(new Error("The computer isn't answering."));
+        if (path.indexOf("/api/ask/state") === 0) {
+          var st = window.MOCK_ASK || null;
+          if (st && st.status === "pending" && Date.now() > st.readyAt) { st.status = "done"; st.reply = st.final; st.options = [{ label: "Tell me more", text: "Tell me more" }]; st.ts = Date.now() / 1000; }
+          return resolve({ ok: true, state: st, now: Date.now() / 1000, enabled: true, available: true });
+        }
+        if (path.indexOf("/api/ask") === 0 && method === "POST") {
+          var long = /long|joke/.test(body.text) ? new Array(14).join("This is a longer answer that goes on for a while so it has to scroll. ") : "";
+          window.MOCK_ASK = { id: "m" + Date.now(), text: body.text, status: "pending", reply: "", options: [], ts: Date.now() / 1000, readyAt: Date.now() + 2500, final: long || "It is 84 and sunny in Goodyear. Good evening for a movie outside." };
+          return setTimeout(function () { resolve({ ok: true, say: window.MOCK_ASK.final, reply: window.MOCK_ASK.final, options: [{ label: "Tell me more", text: "Tell me more" }] }); }, 2600);
+        }
         if (path.indexOf("/api/continue/open") === 0) return resolve({ ok: true, note: "" });
         if (path.indexOf("/api/continue") === 0) {
           var w = (path.match(/who=([^&]+)/) || [])[1];

@@ -488,3 +488,10 @@ main.single { display: flex; flex-direction: column; padding-left: var(--sa-l); 
 .kb-open .ask-sheet .replies { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-right: -4px; }
 .kb-open .ask-sheet .replies::-webkit-scrollbar { display: none; }
 .kb-open .ask-sheet .replies .reply-chip { flex: none; white-space: nowrap; }
+
+/* Backup block in the TV sheet */
+.backup-block { margin-top: 18px; }
+.backup-block .arrange-pair { margin-bottom: 8px; }
+.backup-block a.arrange-open { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; color: inherit; }
+.backup-block button:disabled { opacity: .6; }
+.more-note { margin-top: 6px; font-size: 14px; color: var(--ink-2); line-height: 1.35; }

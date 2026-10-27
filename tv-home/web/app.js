@@ -25,7 +25,7 @@
   // read in readConfig() once the page starts (mock.js fills them in for previews). See docs/CONFIG.md.
   var CFG = {}, HOME = {}, TVCFG = {}, QUICK = [], SET = {}, SCENES_ALL = [];
   var WXCFG = { lat: -33.8688, lon: 151.2093, place: "Sydney", timezone: "Australia/Sydney" };
-  var QUICK_ALL = ["sleep", "picture", "look", "input", "settings"];
+  var QUICK_ALL = ["sleep", "picture", "look", "input", "ask", "settings"];
   // The look: ?theme= for a preview, then what the Look button last chose on this TV, then home.look.
   var THEME = "night", NIGHT = true, CLOCK24 = false;
 
@@ -38,10 +38,50 @@
     if (v == null) try { v = localStorage.getItem(PFX + key); } catch (e) {}
     try { return v == null ? null : JSON.parse(v); } catch (e) { return null; }
   }
-  function keep(key, value) {
+  function keep(key, value, noSync) {
     var j = JSON.stringify(value);
     try { localStorage.setItem(PFX + key, j); } catch (e) {}
     try { if (TV && TV.keep) TV.keep(PFX + key, j); } catch (e) {}
+    if (!noSync) syncPush(key, j);
+  }
+
+  // What this TV keeps is also copied to the bridge (/api/tv-state), so a backup holds it and a
+  // restore (or a fresh install) brings it back. tvhome.rev is the version of the copy this TV has.
+  var SYNC = !(MOCK || PREVIEW || OFFLINE);
+  var SYNC_KEYS = ["tvhome.settings", "tvhome.look", "tvhome.people.order", "tvhome.order.tv", "tvhome.apps.new", "tvhome.apps.seen"];
+  var syncQueue = {}, syncTimer = null;
+  function syncPush(key, j) {
+    if (!SYNC || SYNC_KEYS.indexOf(key) < 0) return;
+    syncQueue[key] = j;
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(syncFlush, 800);
+  }
+  function syncFlush() {
+    var vals = syncQueue; syncQueue = {};
+    if (!Object.keys(vals).length) return;
+    api("POST", "/api/tv-state", { values: vals }).then(function (j) { if (j.rev) keep("tvhome.rev", j.rev, true); }, function () {
+      Object.keys(vals).forEach(function (k) { if (!(k in syncQueue)) syncQueue[k] = vals[k]; });
+      clearTimeout(syncTimer);
+      syncTimer = setTimeout(syncFlush, 15000);
+    });
+  }
+  // Resolves true when this TV took newer settings from the bridge (the page then starts again).
+  function syncDown() {
+    if (!SYNC) return Promise.resolve(false);
+    return api("GET", "/api/tv-state").then(function (j) {
+      var mine = +kept("tvhome.rev") || 0, vals = j.values || {};
+      var local = SYNC_KEYS.filter(function (k) { return kept(k) != null; });
+      if (mine === 0 && local.length) { local.forEach(function (k) { syncPush(k, JSON.stringify(kept(k))); }); return false; }
+      if (j.rev < mine) { local.forEach(function (k) { syncPush(k, JSON.stringify(kept(k))); }); return false; }
+      if (j.rev === mine) return false;
+      var changed = false;
+      SYNC_KEYS.forEach(function (k) {
+        var theirs = vals[k] == null ? null : JSON.parse(vals[k]);
+        if (JSON.stringify(theirs) !== JSON.stringify(kept(k))) { keep(k, theirs, true); changed = true; }
+      });
+      keep("tvhome.rev", j.rev, true);
+      return changed;
+    }, function () { return false; });
   }
 
   // Default order: YouTube, then Netflix, then the rest the way a household reaches for them.
@@ -79,6 +119,7 @@
     moon: '<svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>',
     picture: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17a8.5 8.5 0 0 0 0-17z" class="fill"/></svg>',
     more: '<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg>',
+    ask: '<svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-4.5 4v-4A2.5 2.5 0 0 1 4 13.5z"/><path d="M12 6.5l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z" class="fill"/></svg>',
     gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
     look: '<svg viewBox="0 0 24 24"><rect x="2.5" y="4.5" width="19" height="15" rx="3"/><path d="M2.5 16l5.5-5.5 4.5 4.5 3-3 6 6"/><circle cx="16.5" cy="8.8" r="1.6"/></svg>',
     input: '<svg viewBox="0 0 24 24"><rect x="2.5" y="4" width="19" height="13" rx="2.5"/><path d="M8 21h8M12 7.5v6M9.5 11l2.5 2.5 2.5-2.5"/></svg>',
@@ -145,6 +186,8 @@
     // What was chosen on this TV in Settings wins over config.json.
     SET = kept("tvhome.settings") || {};
     if (SET.hide && SET.hide.length) QUICK = QUICK.filter(function (q) { return SET.hide.indexOf(q) < 0; });
+    // Ask Claude shows whenever the bridge has it switched on (unless hidden in Settings)
+    if (CFG.ask && CFG.ask.enabled && QUICK.indexOf("ask") < 0 && !(SET.hide && SET.hide.indexOf("ask") >= 0)) QUICK.push("ask");
     if (QUICK.indexOf("settings") < 0) QUICK.push("settings");   // always there, so there is always a way back in
     THEME = (Q.match(/[?&]theme=([a-z]+)/) || [])[1] || kept("tvhome.look") || HOME.look || "night";
     if (THEME !== "classic") THEME = "night";
@@ -238,8 +281,7 @@
     if (h >= 9 && h < 13) return 1;
     if (h >= 13 && h < 17) return 2;
     if (h >= 17 && h < 19) return 3;
-    if (h >= 19 && h < 22) return 5;
-    return 4;
+    return 4;   // evening and night: the last photo (there are five, 0 to 4)
   }
 
   function setBg(url, isShow) {
@@ -432,6 +474,7 @@
       if (q === "sleep") return !OFFLINE;
       if (q === "picture") return !OFFLINE && picShown;
       if (q === "look" || q === "settings") return true;
+      if (q === "ask") return askOn();
       if (q === "input") return !OFFLINE || nativeInputs();
       return false;
     });
@@ -467,6 +510,8 @@
         el.innerHTML = ICONS.look + "<span>" + (NIGHT ? "Classic look" : "Night look") + "</span>";
       } else if (q === "input") {
         el.innerHTML = ICONS.input + "<span>Input</span>";
+      } else if (q === "ask") {
+        el.innerHTML = ICONS.ask + "<span>Ask Claude</span>";
       } else if (q === "settings") {
         el.innerHTML = ICONS.gear + "<span>Settings</span>";
       }
@@ -529,12 +574,136 @@
     else if (q === "picture") togglePicture();
     else if (q === "look") toggleLook();
     else if (q === "input") openInputs();
+    else if (q === "ask") openAsk();
     else if (q === "settings") openSettings();
   }
+  // ---------------- Ask Claude, on the TV ----------------
+  // Up and down pick a suggestion, OK asks it. A question typed in the phone remote's Ask tab shows here too:
+  // the bridge keeps the latest ask for this TV (/api/ask/state) and this screen follows it while it is open.
+  var ASK_PROMPTS = ["What can you do?", "What should we watch tonight?", "Recommend something like what I last watched", "Tell me a joke"];
+  var askI = 0, askState = null, askIgnore = null, askTimer = null, askDots = 0, askHint = "", askClock = 0, askKey = "";
+  function askOn() { return !OFFLINE && !!(CFG.ask && CFG.ask.enabled); }
+  function askView() {
+    var s = askState;
+    if (!s || (!s.local && s.id === askIgnore)) return "menu";
+    if (s.status === "pending") return "wait";
+    return "answer";
+  }
+  function askRows() {
+    var v = askView(), rows = [];
+    if (v === "menu") {
+      ASK_PROMPTS.forEach(function (p) { rows.push({ k: "send", label: p, text: p }); });
+      rows.push({ k: "close", label: "Close" });
+    } else if (v === "wait") {
+      rows.push({ k: "close", label: "Hide (it keeps working)" });
+    } else {
+      rows.push({ k: "answer" });
+      if (askState.status === "done") (askState.options || []).forEach(function (o) { rows.push({ k: "send", label: o.label, text: o.text }); });
+      rows.push({ k: "menu", label: "Ask something else" });
+      rows.push({ k: "close", label: "Done" });
+    }
+    return rows;
+  }
+  function askScrollable() { var a = $("ask-a"); return a.scrollHeight > a.clientHeight + 2; }
+  function renderAsk() {
+    var v = askView(), rows = askRows(), a = $("ask-a"), s = askState;
+    askI = Math.max(0, Math.min(rows.length - 1, askI));
+    $("ask-q").textContent = v !== "menu" && s && s.text ? "“" + s.text + "”" : "";
+    a.style.display = v === "menu" ? "none" : "";
+    a.classList.toggle("wait", v === "wait");
+    if (v === "wait") a.textContent = "Thinking" + new Array(askDots % 4 + 1).join(".");
+    else if (v === "answer") a.textContent = s.reply || "No answer came back.";
+    a.classList.toggle("focus", !!rows[askI] && rows[askI].k === "answer" && askScrollable());
+    $("ask-list").innerHTML = rows.map(function (r, i) {
+      if (r.k === "answer") return "";
+      return '<div class="srow' + (i === askI ? " focus" : "") + '"><span class="sl">' + esc(r.label) + "</span></div>";
+    }).join("");
+    $("ask-note").textContent = (s && s.status === "error") || v === "menu" ? askHint : "";
+    $("ask-help").textContent = v === "menu"
+      ? "OK to ask. You can also type a question in the Ask tab on your phone remote and the answer shows here. Back to close."
+      : v === "wait" ? "Back to hide this. The answer shows when it is ready."
+      : (askScrollable() ? "Up and down to read. OK to choose. Back to close." : "OK to choose. Back to close.");
+  }
+  function askApply(j) {
+    askHint = j.hint || "";
+    var s = j.state;
+    if (j.enabled === false) askHint = "Ask Claude is switched off on the computer (ask.enabled in config.json).";
+    if (s) {
+      var age = (j.now || 0) - (s.ts || 0);
+      if (askClock === 0) {   // first look after opening: an old answer is not shown again
+        askClock = 1;
+        if (s.status !== "pending" && age > 600) askIgnore = s.id;
+      }
+      if (!askState || !askState.local || s.text === askState.text) {
+        var now = s.id + s.status, changed = askKey !== now;
+        askState = s; askKey = now;
+        if (changed) { askI = 0; if (askView() === "answer") { renderAsk(); askI = askScrollable() ? 0 : Math.min(1, askRows().length - 1); } }
+      }
+    }
+    renderAsk();
+  }
+  function askPoll() {
+    clearTimeout(askTimer);
+    if (zone !== "ask") return;
+    askDots++;
+    api("GET", "/api/ask/state").then(askApply, function (e) {
+      askHint = e.message; renderAsk();
+    }).then(function () { askTimer = setTimeout(askPoll, askView() === "wait" ? 1200 : 2000); });
+  }
+  function openAsk() {
+    zone = "ask"; askI = 0; askClock = 0; askHint = ""; askDots = 0;
+    $("ask").classList.add("on");
+    renderAsk();
+    askPoll();
+    paintFocus();
+  }
+  function closeAsk() {
+    clearTimeout(askTimer);
+    $("ask").classList.remove("on");
+    zone = "quick";
+    paintFocus();
+  }
+  function askSend(text) {
+    askKey = "";
+    askState = { id: "local" + Date.now(), local: true, text: text, status: "pending", reply: "", options: [] };
+    askI = 0;
+    renderAsk();
+    api("POST", "/api/ask", { text: text, who: who }, 95000).then(function (j) {
+      if (askState && askState.local && askState.text === text) {
+        askState = { id: "r" + Date.now(), text: text, status: "done", reply: j.say || j.reply || "", options: j.options || [] };
+        renderAsk(); askI = askScrollable() ? 0 : 1; renderAsk();
+      }
+    }, function (e) {
+      if (askState && askState.local && askState.text === text) {
+        askState = { id: "e" + Date.now(), text: text, status: "error", reply: e.message, options: [] };
+        askI = 1; renderAsk();
+      }
+    });
+  }
+  function askMove(dy) {
+    var rows = askRows(), a = $("ask-a");
+    if (rows[askI] && rows[askI].k === "answer" && askScrollable()) {
+      var atEnd = a.scrollTop + a.clientHeight >= a.scrollHeight - 2;
+      if (dy < 0 && a.scrollTop > 0) { a.scrollTop = Math.max(0, a.scrollTop - 84); return; }
+      if (dy > 0 && !atEnd) { a.scrollTop += 84; return; }
+    }
+    askI = Math.max(0, Math.min(rows.length - 1, askI + dy));
+    renderAsk();
+    var f = $("ask-list").querySelector(".focus");
+    if (f && f.scrollIntoView) f.scrollIntoView({ block: "nearest" });
+  }
+  function askActivate() {
+    var r = askRows()[askI];
+    if (!r || r.k === "answer") return;
+    if (r.k === "send") askSend(r.text);
+    else if (r.k === "menu") { askIgnore = askState && askState.id; askState = null; askI = 0; renderAsk(); }
+    else closeAsk();
+  }
+
   // ---------------- Settings, on the TV itself ----------------
   // Everything here is kept on this TV (tvhome.settings) and wins over config.json. Up and down pick a row,
   // left and right (or OK) change it, Back closes. Anything that needs the page to start again does so on close.
-  var setI = 0, setDirty = false, setFlash = "";
+  var setI = 0, setDirty = false, setFlash = "", setConfirm = "";
   function dateStyle() { return SET.date || ((CFG.country || "") === "US" ? "us" : "intl"); }
   function tempUnit() { return SET.unit || ((CFG.country || "") === "US" ? "F" : "C"); }
   function shownTemp(c) { return tempUnit() === "F" ? Math.round(c * 9 / 5 + 32) : c; }
@@ -552,11 +721,15 @@
     SCENES_ALL.forEach(function (sc) {
       rows.push({ k: "scene:" + sc.id, label: "Scene: " + (SCENE_NAMES[sc.id] || sc.id), cur: sceneOn(sc.id) ? 1 : 0, opts: [[1, "On"], [0, "Off"]] });
     });
-    var names = { sleep: "Sleep timer button", look: "Look button", input: "Input button" };
-    ["sleep", "look", "input"].forEach(function (q) {
-      if ((TVCFG.quick || []).indexOf(q) < 0) return;
+    var names = { sleep: "Sleep timer button", look: "Look button", input: "Input button", ask: "Ask Claude button" };
+    ["sleep", "look", "input", "ask"].forEach(function (q) {
+      if (q === "ask" ? !askOn() : (TVCFG.quick || []).indexOf(q) < 0) return;
       rows.push({ k: "q:" + q, label: names[q], cur: QUICK.indexOf(q) >= 0 ? 1 : 0, opts: [[1, "Shown"], [0, "Hidden"]] });
     });
+    rows.push({ k: "!rhome", label: "Restart this home screen", action: "Restart" });
+    rows.push({ k: "!reboot", label: rebootAsk ? "Press OK again to reboot the TV" : "Reboot the TV (fixes most glitches)", action: rebootAsk ? "Confirm" : "Reboot" });
+    rows.push({ k: "!backup", label: "Back up everything", action: "Back up now" });
+    rows.push({ k: "!restore", label: "Restore the latest backup", action: setConfirm === "!restore" ? "Press OK to restore" : "Restore" });
     rows.push({ k: "!android", label: "The TV's own settings", action: "Open" });
     rows.push({ k: "!reset", label: "Put all of these back", action: "Reset" });
     rows.push({ k: "!close", label: "Done", action: "Close" });
@@ -565,6 +738,7 @@
   function renderSettings() {
     var rows = setRows(), box = $("settings-list");
     setI = Math.max(0, Math.min(rows.length - 1, setI));
+    if (setConfirm && rows[setI].k !== setConfirm) { setConfirm = ""; rows = setRows(); }
     box.innerHTML = rows.map(function (r, i) {
       var val;
       if (r.action) val = '<span class="sv act">' + r.action + "</span>";
@@ -624,11 +798,64 @@
     clock();
     renderSettings();
   }
+  // Restart: "Restart this home screen" force-stops and starts this app again; "Reboot" restarts the whole TV
+  // (asks twice, 6 s to confirm) and the bridge checks it comes back on this home screen, not Google's setup screen.
+  var rebootAsk = false, rebootTimer = null, restartPoll = null;
+  function watchRestart() {
+    clearInterval(restartPoll);
+    var n = 0;
+    restartPoll = setInterval(function () {
+      if (++n > 100) { clearInterval(restartPoll); return; }
+      api("GET", "/api/restart").then(function (j) {
+        var s = j.restart || {};
+        if (s.phase === "working") { setFlash = s.detail || "Working…"; }
+        else if (s.phase === "done") { setFlash = s.detail || "Done."; clearInterval(restartPoll); }
+        else if (s.phase === "failed") { setFlash = "Failed: " + (s.detail || "unknown"); clearInterval(restartPoll); }
+        if (zone === "settings") $("settings-note").textContent = setFlash;
+      }, function () { if (zone === "settings") $("settings-note").textContent = setFlash; });
+    }, 3000);
+  }
+  function runRestart(what) {
+    setFlash = what === "home" ? "Restarting the home screen…" : "Rebooting the TV. This takes about a minute.";
+    renderSettings();
+    api("POST", "/api/restart", { what: what }, 15000).then(function () { watchRestart(); }, function (e) {
+      if (what === "home") { location.reload(); return; }   // no bridge or no ADB: at least start this page again
+      setFlash = "Couldn't reboot: " + e.message; renderSettings();
+    });
+  }
   function runSetAction(r) {
+    if (r.k === "!rhome") { runRestart("home"); return; }
+    if (r.k === "!reboot") {
+      if (!rebootAsk) {
+        rebootAsk = true; setFlash = "Press OK again within 6 seconds to reboot the TV."; renderSettings();
+        clearTimeout(rebootTimer);
+        rebootTimer = setTimeout(function () { rebootAsk = false; setFlash = ""; if (zone === "settings") renderSettings(); }, 6000);
+      } else { rebootAsk = false; clearTimeout(rebootTimer); runRestart("reboot"); }
+      return;
+    }
     if (r.k === "!close") { closeSettings(); return; }
     if (r.k === "!reset") {
       SET = {}; keep("tvhome.settings", SET); keep("tvhome.look", null); setDirty = true;
       closeSettings(); return;
+    }
+    if (r.k === "!backup") {
+      setFlash = "Saving a backup…"; renderSettings();
+      api("POST", "/api/backup/save", {}, 20000).then(function (j) {
+        setFlash = "Saved on the computer: " + j.name + " (in the backups folder)"; renderSettings();
+      }, function (e) { setFlash = "Couldn't back up: " + e.message; renderSettings(); });
+      return;
+    }
+    if (r.k === "!restore") {
+      if (setConfirm !== "!restore") {
+        setConfirm = "!restore"; setFlash = "This puts back your last backup. Press OK again to do it, or move away to cancel.";
+        renderSettings(); return;
+      }
+      setConfirm = ""; setFlash = "Restoring…"; renderSettings();
+      api("POST", "/api/restore", { latest: true }, 30000).then(function (j) {
+        setFlash = "Restored: " + (j.restored || []).join(", ") + ". Starting again…"; renderSettings();
+        return syncDown().then(function () { setTimeout(function () { location.reload(); }, 1200); });
+      }, function (e) { setFlash = "Couldn't restore: " + e.message; renderSettings(); });
+      return;
     }
     if (r.k === "!android") {
       var ok = false;
@@ -1033,6 +1260,7 @@
     clearFocus();
     renderHint();
     if (zone === "settings") { renderSettings(); return; }
+    if (zone === "ask") { renderAsk(); return; }
     if (zone === "menu") { renderMenu(); return; }
     if (zone === "pmenu") { renderPop(); $("people").classList.add("focus"); return; }
     if (zone === "quick" && quickEls[qi]) {
@@ -1083,6 +1311,7 @@
     if (lift) { moveLift(dx, dy); return; }
     // Night with More apps open: the cards step aside, so up and down skip them
     var cards = NIGHT && expanded ? [] : shelfEls;
+    if (zone === "ask") { if (dy) askMove(dy); return; }
     if (zone === "settings") {
       if (dy) { setI += dy; setFlash = ""; renderSettings(); }
       else if (dx) changeSet(dx);
@@ -1158,6 +1387,7 @@
     if (lift) { dropLift(); return; }   // BACK puts a picked-up app down where it is
     if (zone === "pmenu") { if (plift) dropPeople(); else closePop(); paintFocus(); return; }
     if (zone === "settings") { closeSettings(); return; }
+    if (zone === "ask") { closeAsk(); return; }
     if (zone === "menu") { closeMenu(); paintFocus(); return; }   // BACK just closes the sleep choices
     if (expanded) { expanded = false; renderGrid(); }
     startFocus();
@@ -1183,6 +1413,7 @@
     touched = true;
     if (lift) { dropLift(); return; }
     if (zone === "settings") { changeSet(1); return; }
+    if (zone === "ask") { askActivate(); return; }
     if (zone === "menu") { setSleep(SLEEP_CHOICES[menuI]); paintFocus(); return; }
     if (zone === "pmenu") {
       if (plift) { dropPeople(); return; }
@@ -1388,10 +1619,11 @@
   // the native side calls these
   // Home on the remote also re-reads the lists, so an order arranged on the phone shows straight away
   window.tv = { back: goHome, home: function () { goHome(); refresh(); },
-    resume: function () { okReset(); refresh(); if (!OFFLINE) refreshQuick(); refreshWeather(); } };
+    resume: function () { okReset(); syncDown().then(function (changed) { if (changed) location.reload(); }); refresh(); if (!OFFLINE) refreshQuick(); refreshWeather(); } };
 
   function start() {
     readConfig();
+    syncDown().then(function (changed) { if (changed) location.reload(); });
     mark("app-start");
     clock();
     setInterval(clock, 15000);

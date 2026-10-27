@@ -12,6 +12,7 @@ import logging
 import os
 import re
 import socket
+import time
 
 from adb_shell.adb_device_async import AdbDeviceTcpAsync
 from adb_shell.auth.sign_pythonrsa import PythonRSASigner
@@ -108,6 +109,7 @@ class TV:
         self.fallback_ip = cfg.get("ip")
         self.adb_port = config.adb_port(cfg)
         self.mac = cfg.get("mac")
+        self.last_wake = None
         self.paired = bool(cfg.get("paired"))
         self.keep_disabled_file = cfg.get("keep_disabled")
         # Picture mode: which number in `settings get global picture_mode` is which mode, and
@@ -116,7 +118,7 @@ class TV:
         # Wake-on-LAN is tried when a mac is set, unless "wake_on_lan": false.
         self.wake_on_lan = cfg.get("wake_on_lan", True) is not False
         # Per-TV state the server keeps (what is playing, sleep timer, picture mode, ...).
-        self.state = {"playing": {"item": None}, "media_now": {}, "seen_playing": {},
+        self.state = {"restart": {"phase": "idle", "detail": "", "at": None}, "playing": {"item": None}, "media_now": {}, "seen_playing": {},
                       "sleep": {"ends": None, "handle": None}, "waking": {"on": False},
                       "installed": {"packages": None, "checked": 0.0}, "picture": {}}
         self.remote = None
@@ -445,24 +447,77 @@ class TV:
         asyncio.ensure_future(self.adb_connect())
         return True
 
-    async def wake(self):
-        """Wake-on-LAN. When the TV is off it leaves the network, so a magic packet is the only
-        way to reach it. Works only if the TV keeps its network card awake in standby."""
-        if not self.mac or not self.wake_on_lan:
-            return
-        mac = bytes.fromhex(self.mac.replace(":", ""))
-        packet = b"\xff" * 6 + mac * 16
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    def _local_ips(self):
+        """Every IPv4 address of this computer. On a PC with several adapters (Wi-Fi, Ethernet,
+        VPN, virtual switches) a broadcast leaves only through one of them unless we bind each."""
+        ips = {"0.0.0.0"}
         try:
-            for addr in ("255.255.255.255", TV_BROADCAST):
-                for port in (9, 7):
-                    try:
-                        s.sendto(packet, (addr, port))
-                    except OSError as e:
-                        self.log.warning("wake packet to %s failed: %s", addr, e)
-        finally:
-            s.close()
+            for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+                ips.add(info[4][0])
+        except OSError:
+            pass
+        try:  # the address the OS would use to reach the TV
+            t = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            t.connect((self.ip or self.fallback_ip or "192.168.0.1", 9))
+            ips.add(t.getsockname()[0])
+            t.close()
+        except OSError:
+            pass
+        return sorted(i for i in ips if not i.startswith("127.") and not i.startswith("169.254."))
+
+    def wake_targets(self):
+        targets = ["255.255.255.255", TV_BROADCAST]
+        ip = self.ip or self.fallback_ip
+        if ip:
+            targets.append(ip)  # directed: works if the router/ARP entry still knows the TV
+            targets.append(ip.rsplit(".", 1)[0] + ".255")  # /24 broadcast
+        seen = []
+        for t in targets:
+            if t and t not in seen:
+                seen.append(t)
+        return seen
+
+    async def wake(self, repeats=3, dry_run=False):
+        """Wake-on-LAN. When the TV is off it leaves the network, so a magic packet is the only
+        way to reach it. Works only if the TV keeps its network card awake in standby.
+        The packet goes to every broadcast/directed target, from every local adapter, on ports
+        9 and 7, `repeats` times. Returns a summary dict (also kept in self.last_wake)."""
+        info = {"sent": 0, "failed": 0, "targets": [], "from": [], "mac": self.mac, "at": time.time(), "dry_run": dry_run}
+        self.last_wake = info
+        if not self.mac or not self.wake_on_lan:
+            info["error"] = "no mac set" if not self.mac else "wake_on_lan is off"
+            return info
+        mac = bytes.fromhex(self.mac.replace(":", "").replace("-", ""))
+        packet = bytes([0xFF]) * 6 + mac * 16
+        info["targets"] = self.wake_targets()
+        info["from"] = self._local_ips()
+        if dry_run:
+            return info
+        for n in range(repeats):
+            for src in info["from"]:
+                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                try:
+                    s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+                    if src != "0.0.0.0":
+                        s.bind((src, 0))
+                    for addr in info["targets"]:
+                        for port in (9, 7):
+                            try:
+                                s.sendto(packet, (addr, port))
+                                info["sent"] += 1
+                            except OSError as e:
+                                info["failed"] += 1
+                                info["last_error"] = f"{addr}:{port} from {src}: {e}"
+                except OSError as e:
+                    info["failed"] += 1
+                    info["last_error"] = f"bind {src}: {e}"
+                finally:
+                    s.close()
+            if n < repeats - 1:
+                await asyncio.sleep(0.15)
+        self.log.info("wake: %s packets sent (%s failed) to %s from %s", info["sent"], info["failed"],
+                      info["targets"], info["from"])
+        return info
 
     async def screenshot(self):
         if not await self.adb_ready():

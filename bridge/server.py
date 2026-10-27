@@ -9,6 +9,7 @@ import logging
 import mimetypes
 import os
 import time
+import uuid
 from collections.abc import MutableMapping
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
@@ -16,6 +17,7 @@ from zoneinfo import ZoneInfo
 from aiohttp import web
 
 import apps
+import backup
 import config
 import finder
 import history_import
@@ -94,6 +96,7 @@ seen_playing = _StateProxy("seen_playing")
 sleep = _StateProxy("sleep")
 waking = _StateProxy("waking")
 picture_state = _StateProxy("picture")
+ask_state = {}  # tv id -> the latest ask, for the TV screen
 asks = {}  # ask id -> list of actions Claude took through the MCP tools
 
 # Extra screens the TV can open (for example a computer through Moonlight). Empty by default;
@@ -682,7 +685,8 @@ async def h_power(request):
     on = tv.is_on
     log.info("power %s done in %.1fs (connected=%s, is_on=%s)", state,
              time.monotonic() - started, tv.connected, on)
-    return ok(power="unknown" if on is None else ("on" if on else "off"))
+    return ok(power="unknown" if on is None else ("on" if on else "off"),
+              wake=tv.last_wake if state == "on" else None)
 
 
 POWER_ON_BUDGET = 32  # seconds; the phone app waits 40
@@ -711,7 +715,9 @@ async def power_on():
             else:
                 await asyncio.sleep(1)
         if not tv.connected:
-            raise TVUnavailable("the TV did not wake over the network (turn it on with its remote)")
+            w = tv.last_wake or {}
+            raise TVUnavailable("the TV did not wake over the network (turn it on with its remote)"
+                                + (f" [sent {w.get('sent', 0)} wake packets]" if w else ""))
         await asyncio.sleep(1)  # let the TV report its power state
     # Still in standby but on the network ("light" standby, the first minute or so after off):
     # POWER switches it on in under a second. WAKEUP did nothing. A wake packet
@@ -730,6 +736,125 @@ async def power_on():
                 break
     if not tv.is_on:
         raise TVUnavailable("the TV is on the network but did not switch on; try again")
+
+
+# ---------- wake test and restart ----------
+HOME_PKG = "app.couchtv.launcher"
+HOME_ACT = HOME_PKG + "/.MainActivity"
+restart_state = _StateProxy("restart")  # per TV: {"phase", "detail", "at"}
+
+
+def _set_restart(phase, detail=""):
+    restart_state["phase"] = phase
+    restart_state["detail"] = detail
+    restart_state["at"] = now_iso()
+    log.info("restart: %s %s", phase, detail)
+    push_now()
+
+
+async def home_is_ours():
+    """True when the TV's HOME resolves to the couch-tv home (not the black setup-wizard one)."""
+    out = await tv.adb("shell", "cmd package resolve-activity --brief -a android.intent.action.MAIN "
+                                "-c android.intent.category.HOME", timeout=15)
+    return HOME_PKG + "/" in (out.strip().splitlines() or [""])[-1]
+
+
+async def ensure_home(start=True):
+    """Make couch-tv the HOME, keep the other homes switched off, optionally start it."""
+    path = os.path.join(HERE, tv.keep_disabled_file or "")
+    try:
+        with open(path) as f:
+            keep = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        keep = []
+    keep = keep or ["com.google.android.apps.tv.launcherx", "com.google.android.apps.tv.dreamx",
+                    "com.google.android.tungsten.setupwraith"]
+    if not await home_is_ours():
+        for pkg in keep:
+            await tv.adb("shell", "pm", "disable-user", "--user", "0", pkg)
+        await tv.adb("shell", "cmd", "package", "set-home-activity", "--user", "0", HOME_ACT)
+        log.warning("restart: home was not couch-tv; set it again")
+    if start:
+        await tv.adb("shell", f"am start -n {HOME_ACT}")
+
+
+async def restart_home_screen():
+    _set_restart("working", "restarting the home screen")
+    await ensure_home(start=False)
+    await tv.adb("shell", f"am force-stop {HOME_PKG}; am start -n {HOME_ACT}")
+    await asyncio.sleep(3)
+    good = await home_is_ours()
+    _set_restart("done" if good else "failed", "home screen restarted" if good else "home is not couch-tv")
+
+
+async def reboot_tv():
+    """adb reboot, then wait for the TV and make sure it came back on the couch-tv home."""
+    try:
+        _set_restart("working", "making sure couch-tv is the home before rebooting")
+        await ensure_home(start=False)
+        _set_restart("working", "rebooting the TV")
+        try:
+            await tv.adb("shell", "reboot", timeout=8)
+        except Exception as e:  # the link drops as the TV goes down; that is expected
+            log.info("restart: reboot command ended with %s", e)
+        await asyncio.sleep(15)
+        loop = asyncio.get_running_loop()
+        end = loop.time() + 240
+        up = False
+        while loop.time() < end:
+            if await tv.port_open(tv.adb_port, 1.5):
+                up = True
+                break
+            await tv.wake()
+            await asyncio.sleep(3)
+        if not up:
+            _set_restart("failed", "the TV did not come back within 4 minutes")
+            return
+        _set_restart("working", "TV is back, checking the home screen")
+        for attempt in range(20):  # adb may need a moment after boot
+            try:
+                await asyncio.sleep(5)
+                tv.adb_ok = False
+                await ensure_home(start=True)
+                break
+            except Exception as e:
+                log.info("restart: waiting for adb (%s)", e)
+        await asyncio.sleep(4)
+        good = await home_is_ours()
+        _set_restart("done" if good else "failed",
+                     "TV rebooted and is on the couch-tv home" if good else "TV is up but home is not couch-tv")
+    except Exception as e:
+        log.exception("restart failed")
+        _set_restart("failed", str(e))
+
+
+async def h_restart_get(request):
+    return ok(restart=dict(restart_state._d()))
+
+
+async def h_restart(request):
+    data = await body(request)
+    what = data.get("what")
+    if what not in ("home", "reboot"):
+        raise ApiError(400, "what must be home or reboot")
+    if restart_state._d().get("phase") == "working":
+        raise ApiError(409, "a restart is already running")
+    if data.get("dry_run"):
+        return ok(dry_run=True, what=what, adb=bool(tv.adb_ok))
+    tv.require()
+    if not await tv.adb_ready():
+        raise ApiError(503, "ADB is not on; can't restart from here")
+    _set_restart("working", "starting")
+    task = for_tv(tv.id, restart_home_screen if what == "home" else reboot_tv)
+    request.app.setdefault("restart_tasks", []).append(task)  # keep a reference
+    record_action(request, "restart", {"what": what}, True)
+    return ok(started=what)
+
+
+async def h_wake(request):
+    data = await body(request)
+    info = await tv.wake(dry_run=bool(data.get("dry_run")))
+    return ok(wake=info)
 
 
 async def h_volume(request):
@@ -782,9 +907,29 @@ async def h_ask(request):
     text = (data.get("text") or "").strip()
     if not text:
         raise ApiError(400, "text is required")
-    result = await claude.ask(text, store.norm_who(data.get("who")) or store.current_who(), asks,
-                              _current.get())
+    tv_key = _current.get()
+    # The TV shows what was asked and the answer, whether it was typed on a phone or picked on the TV.
+    state = ask_state[tv_key] = {"id": uuid.uuid4().hex[:8], "text": text, "status": "pending",
+                                 "reply": "", "options": [], "ts": time.time()}
+    try:
+        result = await claude.ask(text, store.norm_who(data.get("who")) or store.current_who(), asks,
+                                  tv_key)
+    except Exception as e:
+        log.warning("ask crashed: %r", e)
+        state.update(status="error", reply=f"Claude could not be reached: {e}", ts=time.time())
+        raise ApiError(502, "Claude could not be reached. Is Claude signed in on this computer?")
+    failed = result["reply"].startswith("Sorry, that did not work")
+    state.update(status="error" if failed else "done", reply=result["reply"],
+                 options=result["options"], ts=time.time())
     return ok(**result)
+
+
+async def h_ask_state(request):
+    """What the TV's Ask Claude screen shows: the latest ask on this TV, and whether Claude can run here."""
+    state = ask_state.get(_current.get())
+    return ok(state=state, now=time.time(), enabled=config.ASK_ENABLED, available=claude.available(),
+              hint=None if claude.available() else
+              "Claude is not installed on the computer that runs the bridge (the claude command was not found).")
 
 
 async def h_recs(request):
@@ -862,6 +1007,63 @@ async def h_tv_config_js(request):
     """The home page reads its people and weather place from here (and saves a copy offline)."""
     return web.Response(text=_config_js(), content_type="application/javascript",
                         headers={"Cache-Control": "no-cache"})
+
+
+# ---------- backup and restore: everything set up, in one file ----------
+async def h_backup_download(request):
+    """GET: the backup as a file to save (the phone's Download button)."""
+    data = backup.make()
+    name = "couch-tv-backup-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".json"
+    return web.Response(text=json.dumps(data, indent=1, ensure_ascii=False), content_type="application/json",
+                        headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+
+async def h_backup_save(request):
+    """POST: write a timestamped backup on this computer; says where."""
+    info = await asyncio.to_thread(backup.save)
+    record_action(request, "backup", {"name": info["name"]}, True)
+    return ok(**info)
+
+
+async def h_backups(request):
+    return ok(dir=backup.backup_dir(), backups=backup.listing())
+
+
+async def h_restore(request):
+    """POST {"backup": <the backup object>} or {"name": "file.json"} or {"latest": true}.
+    The current state is saved first (before-restore-*.json), so a restore can be undone."""
+    data = await body(request)
+    try:
+        if isinstance(data.get("backup"), dict):
+            b = data["backup"]
+        elif data.get("name"):
+            b = backup.load_named(str(data["name"]))
+        elif data.get("latest"):
+            item = backup.latest()
+            if not item:
+                raise ValueError("there is no backup yet")
+            b = backup.load_named(item["name"])
+        else:
+            raise ValueError("send backup, name or latest")
+        result = await asyncio.to_thread(backup.apply, b)
+    except ValueError as e:
+        raise ApiError(400, str(e))
+    record_action(request, "restore", {"restored": result["restored"]}, True)
+    for tv_id in TVS:
+        with_tv(tv_id, push_now)
+    return ok(people=config.PEOPLE, **result)
+
+
+async def h_tv_state_get(request):
+    """What the TV keeps for itself, so a backup holds it and a new APK or TV gets it back."""
+    return ok(**backup.tv_state())
+
+
+async def h_tv_state_set(request):
+    data = await body(request)
+    if not isinstance(data.get("values"), dict):
+        raise ApiError(400, "values (an object) is required")
+    return ok(**backup.set_tv_state(data["values"]))
 
 
 async def h_config(request):
@@ -1679,6 +1881,7 @@ def make_app():
     r.add_get("/api/find", h_find)
     r.add_post("/api/play", h_play)
     r.add_post("/api/ask", h_ask)
+    r.add_get("/api/ask/state", h_ask_state)
     r.add_get("/api/recs", h_recs)
     r.add_get("/api/history", h_history)
     r.add_get("/api/taste", h_taste)
@@ -1691,6 +1894,12 @@ def make_app():
     r.add_post("/api/who", h_who_set)
     r.add_get("/api/weather", h_weather)
     r.add_get("/api/config", h_config)
+    r.add_get("/api/backup", h_backup_download)
+    r.add_post("/api/backup/save", h_backup_save)
+    r.add_get("/api/backups", h_backups)
+    r.add_post("/api/restore", h_restore)
+    r.add_get("/api/tv-state", h_tv_state_get)
+    r.add_post("/api/tv-state", h_tv_state_set)
     r.add_post("/api/home-apps", h_home_apps)
     r.add_get("/api/app-order", h_app_order_get)
     r.add_post("/api/app-order", h_app_order_set)
@@ -1701,6 +1910,9 @@ def make_app():
     r.add_get("/api/screens", h_screens)
     r.add_post("/api/screens/open", h_screens_open)
     r.add_post("/api/power", h_power)
+    r.add_post("/api/wake", h_wake)
+    r.add_get("/api/restart", h_restart_get)
+    r.add_post("/api/restart", h_restart)
     r.add_post("/api/volume", h_volume)
     r.add_get("/api/screenshot", h_screenshot)
     agentic.routes(r)

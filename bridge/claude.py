@@ -111,6 +111,11 @@ Answer with ONLY a JSON array, no prose, each item:
 The reason is at most eight words."""
 
 
+def available():
+    """Is there a claude command to run? (It uses that command's own sign in, never an API key.)"""
+    return bool(CLAUDE and (os.path.exists(CLAUDE) or shutil.which(CLAUDE)))
+
+
 def _env(extra=None):
     env = {k: v for k, v in os.environ.items()
            if k not in ("ANTHROPIC_API_KEY", "CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT")
@@ -268,8 +273,10 @@ async def ask(text, who, asks, tv_id=None):
     async def job():
         try:
             return (await run_claude(prompt, ASK_SYSTEM.format(country=config.COUNTRY_NAME), cfg)).strip()
-        except RuntimeError as e:
+        except (RuntimeError, OSError) as e:   # OSError: the claude command is not there
             log.warning("ask failed: %s", e)
+            if isinstance(e, OSError):
+                e = "the claude command could not be run on the computer"
             return f"Sorry, that did not work: {e}"
         finally:
             try:

@@ -64,6 +64,8 @@ export const api = {
   getPicture: () => call('GET', '/api/picture'),
   people: () => call('GET', '/api/people'),
   savePeople: (people) => call('POST', '/api/people', { people }),
+  backupNow: () => call('POST', '/api/backup/save', {}, 20000),
+  restoreLatest: () => call('POST', '/api/restore', { latest: true }, 30000),
 };
 
 // Live TV state: server-sent events, with a slow poll as the fallback when the stream drops.

@@ -382,6 +382,37 @@ export function PeopleSheet({ open, onClose, onSaved }) {
   );
 }
 
+// Back up everything (people, settings, the TV's own choices) on the computer, take a copy, or put the last one back.
+function BackupBlock({ open }) {
+  const [msg, setMsg] = useState('');
+  const [sure, setSure] = useState(false);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { if (!open) { setSure(false); setMsg(''); } }, [open]);
+  const run = async (job, done) => {
+    setBusy(true); setMsg('Working…');
+    try { setMsg(done(await job())); } catch (e) { setMsg(e.message || 'Something went wrong'); }
+    setBusy(false);
+  };
+  return (
+    <section className="more-block backup-block">
+      <h3>Backup</h3>
+      <div className="arrange-pair">
+        <button className="pill glass arrange-open" disabled={busy} onClick={() => { tick(); setSure(false); run(api.backupNow, (j) => `Saved on the computer: ${j.name}`); }}>Back up now</button>
+        <a className="pill glass arrange-open" href="/api/backup" download>Download a copy</a>
+      </div>
+      <div className="arrange-pair">
+        <button className="pill glass arrange-open" disabled={busy} onClick={() => {
+          tick();
+          if (!sure) { setSure(true); setMsg('This puts back the last backup. Tap again to confirm.'); return; }
+          setSure(false);
+          run(api.restoreLatest, (j) => `Restored: ${(j.restored || []).join(', ')}. Your TV picks it up in a moment.`);
+        }}>{sure ? 'Tap to confirm restore' : 'Restore last backup'}</button>
+      </div>
+      {msg && <p className="more-note" role="status">{msg}</p>}
+    </section>
+  );
+}
+
 export const MoreSheet = forwardRef(function MoreSheet({ open, onClose, sleepEnds, onSleep, onKey, onText, sleepError, tvs, tvId, onTv, picture, pictureInfo, onPicture, onArrange, onPeople }, ref) {
   const [typed, setTyped] = useState('');
   const sheetEl = useRef(null);
@@ -447,6 +478,7 @@ export const MoreSheet = forwardRef(function MoreSheet({ open, onClose, sleepEnd
         <button className="pill glass arrange-open" onClick={() => { tick(); onArrange(); }}><Ic.Grid size={18} /> Arrange apps</button>
         <button className="pill glass arrange-open" onClick={() => { tick(); onPeople(); }}><Ic.People size={18} /> People</button>
       </div>
+      <BackupBlock open={open} />
     </Sheet>
   );
 });
