@@ -279,5 +279,27 @@ def both_like() -> dict:
     return call("GET", "/api/both", timeout=40)
 
 
+@mcp.tool()
+def weather() -> dict:
+    """Weather for this home: now, the next 12 hours, 7 days with highs, lows and rain chance, sunrise and sunset (Open-Meteo)."""
+    import weather_ctx
+    try:
+        return {"ok": True, "report": weather_ctx.summary(
+            float(os.environ["WX_LAT"]), float(os.environ["WX_LON"]), os.environ.get("WX_PLACE", "home"),
+            os.environ.get("WX_TZ") or "auto", os.environ.get("WX_UNITS", "F") == "F")}
+    except Exception as e:
+        return {"ok": False, "error": f"weather lookup failed: {e}"}
+
+
+@mcp.tool()
+def brave_search(query: str) -> dict:
+    """Search the web with Brave (optional; only works when BRAVE_API_KEY is set). Prefer WebSearch when this says it is not set up."""
+    import weather_ctx
+    try:
+        return {"ok": True, "results": weather_ctx.brave(query)}
+    except Exception as e:
+        return {"ok": False, "error": f"search failed: {e}"}
+
+
 if __name__ == "__main__":
     mcp.run()

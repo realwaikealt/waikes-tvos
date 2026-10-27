@@ -37,3 +37,6 @@ export const Send = (p) => <I d="M12 19V5M6 11l6-6 6 6" {...p} />;
 export const Wifi = (p) => <I {...p}><path d="M2 8.5a15 15 0 0 1 20 0M5.5 12.2a10 10 0 0 1 13 0M9 15.8a5 5 0 0 1 6 0" /><circle cx="12" cy="19" r="1" fill="currentColor" /></I>;
 export const Sparkle = (p) => <I d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" {...p} />;
 export const People = (p) => <I {...p}><circle cx="9" cy="8" r="3.2" /><path d="M3 19.5a6 6 0 0 1 12 0" /><circle cx="17" cy="9" r="2.6" /><path d="M15.5 14.2a5 5 0 0 1 5.5 4.8" /></I>;
+export const Pin = (p) => <I {...p}><path d="M9 4h6l-1 6 3 3v1.5H7V13l3-3z" /><path d="M12 14.5V21" /></I>;
+export const Eye = (p) => <I {...p}><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" /><circle cx="12" cy="12" r="2.8" /></I>;
+export const EyeOff = (p) => <I {...p}><path d="M4 4l16 16M9.9 5.8A8.6 8.6 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a16 16 0 0 1-3 3.8M6.2 7.6A16 16 0 0 0 2.5 12S6 18.5 12 18.5c1.3 0 2.5-.3 3.5-.8M10 10a2.8 2.8 0 0 0 4 4" /></I>;

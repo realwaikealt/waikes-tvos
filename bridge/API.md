@@ -597,3 +597,13 @@ URLs. Credit "Data from JustWatch" somewhere quiet (their terms).
   (`picture.modes`), and `GET /api/picture` lists them. App order documented; `dock_max` follows
   `home.dock_size`. `/api/ask` answers `409` when `ask.enabled` is `false`.
 - Public export. The dated history of the private build is not included.
+
+## Auto arrange (apps)
+
+Groups, sort modes and the Hidden tab. Only changes what the TV home and the phone show; nothing is disabled on the TV. Rules: `tv-home/web/arrange-rules.js`; steps: `bridge/arrange.py` (phone) and `tv-home/web/arrange.js` (TV), checked against each other by `bridge/test_arrange.py` and `node tv-home/web/arrange-test.js`.
+
+- `GET /api/arrange` gives `prefs` (`mode`: smart, used, recent, az, category, manual; `group`; `show_hidden`; `pinned`; `hidden`; `shown`), `usage` (opens per app), and `items`, the TV's apps sorted for that mode with `group` and `hidden`.
+- `POST /api/arrange` takes `{"prefs": {...}}` to merge settings, `{"pin": pkg, "on": bool}`, `{"hide": pkg, "on": bool}`, or `{"usage": {...}}` from a TV that was offline.
+- `POST /api/app-used {"package"}` counts one opening. `POST /api/launch` counts too.
+- `POST /api/app-order` with `"manual": true` (dragging on the phone) also switches to My order.
+- Saved in `app-arrange.<tv>.json`; backups include it.

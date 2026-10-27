@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no, interactive-widget=resizes-content">
-  <title>TV</title>
-  <meta name="description" content="Phone remote for your Google TV.">
+  <title>Waike’s tvOS</title>
+  <meta name="description" content="Waike’s tvOS: the phone remote for your TV, by Waike.">
   <meta name="theme-color" content="#000000">
   <meta name="color-scheme" content="dark">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="TV">
+  <meta name="apple-mobile-web-app-title" content="Waike’s tvOS">
   <meta name="format-detection" content="telephone=no">
   <!-- Paint black before anything else loads, so the app can never show a white page while it
        starts, while the computer is slow to answer, or if a file fails to load. -->
@@ -97,9 +97,21 @@
         }, wait);
       }
       window.__tvStuck = stuck;
+      document.addEventListener('DOMContentLoaded', function () {
+        var e = document.getElementById('boot-diag');
+        if (e) e.textContent = (standalone ? 'app mode' : 'browser') + ' · ' + ('noModule' in HTMLScriptElement.prototype ? 'modules ok' : 'no modules') + ' · ' + location.host;
+        // After 4 s without the app, say how far it got (module script / api) so a black-ish screen is never a mystery.
+        setTimeout(function () {
+          if (window.__tvReady || !e) return;
+          fetch('/ping', { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
+            e.textContent += ' · ping ' + t.trim();
+          }).catch(function (x) { e.textContent += ' · ping failed: ' + x; });
+        }, 4000);
+      });
       var NO_COMPUTER = 'Can’t reach the computer.<small>Is your phone on the home Wi-Fi? Trying again by itself.</small>';
       // A script or stylesheet that fails to load: show it straight away.
       addEventListener('error', function (e) {
+        if (e.message) { var d2 = document.getElementById('boot-diag'); if (d2) d2.textContent += ' · JS error: ' + e.message; }
         var el = e.target;
         if (el && (el.tagName === 'SCRIPT' || (el.tagName === 'LINK' && /stylesheet|modulepreload/.test(el.rel)))) stuck(NO_COMPUTER);
       }, true);
@@ -130,7 +142,11 @@
     <div class="boot-spin" aria-hidden="true"></div>
     <p id="boot-msg">Connecting to the TV…</p>
     <button id="boot-retry" type="button">Try again</button>
+    <small id="boot-diag" style="font-size:12px;opacity:.6"></small>
+    <small><a href="/install" style="color:#8cf">Help</a> · <a href="/diag" style="color:#8cf">Diagnostics</a></small>
   </div></div>
+  <noscript><p style="color:#fff;font:16px -apple-system,sans-serif;padding:24px">This page needs JavaScript. <a href="/diag" style="color:#8cf">Diagnostics</a></p></noscript>
+  <script nomodule>document.getElementById('boot-msg').innerHTML='This browser is too old for the remote.<small>Open <a href="/diag" style="color:#8cf">/diag</a> for details.</small>';</script>
   <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>

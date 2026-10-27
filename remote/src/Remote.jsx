@@ -15,7 +15,7 @@ function WhoSwitch({ people, who, setWho }) {
   const options = [...list.map((p) => ({ id: p.id, name: p.name, colour: personColour(p) })), { id: 'both', name: 'Both' }];
   if (options.length <= SEG_MAX) {
     return (
-      <div className="seg glass" role="tablist" aria-label="Who's watching">
+      <div className="seg who-seg glass" role="tablist" aria-label="Who's watching">
         {options.map((o) => (
           <button key={o.id} role="tab" aria-selected={who === o.id} className={who === o.id ? 'on' : ''}
             onClick={() => { tick(); setWho(o.id); }}>{o.name}</button>
@@ -46,33 +46,60 @@ function WhoSwitch({ people, who, setWho }) {
   );
 }
 
+// The status header: which TV, whether it is reachable and what it is doing, then the two controls
+// you reach for most (more, power). Who is watching sits on its own row, and only when there is
+// more than one person to choose from.
 export function TopBar({ people, tvName, who, setWho, tv, appInfo, reach, sleepLeft, onPower, onMore }) {
-  const status = reach === false ? 'Not connected'
-    : !tv ? 'Connecting…'
-      : !tv.tv_connected ? 'TV not connected'
-        : tv.waking ? 'Waking…'
-        : tv.power === 'off' ? 'Off'
-          : tv.app?.id === 'home' ? 'Home'
-            : appInfo?.name || 'On';
-  // The now playing row names the app, and the pad says Off, Waking or can't reach, so the bar
-  // only speaks up for the home screen, connecting and the sleep timer.
-  const isApp = !(reach !== false && tv?.tv_connected && tv.power === 'on' && !tv.waking && tv.app?.id === 'home');
-  // The status slot shows the sleep timer and the home screen.
-  const parts = [
-    sleepLeft && <span key="sleep"><Ic.Moon size={12} /> {sleepLeft}</span>,
-    !isApp && <span key="st">{status}</span>,
-  ].filter(Boolean);
+  let tone = 'ok';
+  let line;
+  if (reach === false) { tone = 'bad'; line = 'Can’t reach the bridge'; }
+  else if (!tv) { tone = 'warn'; line = 'Connecting…'; }
+  else if (!tv.tv_connected) { tone = 'bad'; line = 'TV not connected'; }
+  else if (tv.waking) { tone = 'warn'; line = 'Waking…'; }
+  else if (tv.power === 'off') { tone = 'off'; line = 'Off'; }
+  else if (tv.app?.id === 'home') line = 'Home screen';
+  else {
+    const st = { playing: 'Playing', paused: 'Paused', buffering: 'Loading' }[tv.playing?.state];
+    line = [appInfo?.name || tv.app?.name || 'On', st].filter(Boolean).join(' · ');
+  }
+  const many = (people || []).length > 1;
+  const avatar = many && (people.length + 1) > SEG_MAX;
   return (
-    <header className="topbar">
-      <WhoSwitch people={people} who={who} setWho={setWho} />
-      <div className={`tvname ${parts.length ? '' : 'is-app'}`}>
-        <b>{tvName || 'TV'}</b>
-        <span>{parts.length ? parts.reduce((acc, p, i) => (i ? [...acc, ' · ', p] : [p]), []) : status}</span>
-      </div>
-      <button className="round glass" aria-label="More controls" onClick={() => { tick(); onMore(); }}><Ic.More /></button>
-      <button className={`round glass power ${tv?.power === 'on' ? 'is-on' : ''}`} aria-label={tv?.power === 'on' ? 'Turn TV off' : 'Turn TV on'}
-        onClick={() => { tick(); onPower(); }}><Ic.Power /></button>
-    </header>
+    <>
+      <header className="topbar status">
+        {avatar && <WhoSwitch people={people} who={who} setWho={setWho} />}
+        <div className="status-main" role="status" aria-live="polite">
+          <span className={`dot ${tone}`} aria-hidden="true" />
+          <span className="status-text"><b>{tvName || 'TV'}</b><span>{line}</span></span>
+        </div>
+        {sleepLeft && <span className="sleep-chip glass" aria-label={`Sleep timer, ${sleepLeft} left`}><Ic.Moon size={14} /> {sleepLeft}</span>}
+        <button className="round glass" aria-label="More controls" onClick={() => { tick(); onMore(); }}><Ic.More /></button>
+        <button className={`round glass power ${tv?.power === 'on' ? 'is-on' : ''}`} aria-label={tv?.power === 'on' ? 'Turn TV off' : 'Turn TV on'}
+          onClick={() => { tick(); onPower(); }}><Ic.Power /></button>
+      </header>
+      {many && !avatar && <WhoSwitch people={people} who={who} setWho={setWho} />}
+    </>
+  );
+}
+
+// Everyday shortcuts, one tap each, in a row under the pad. Sleep shows the time left on its tile.
+export function QuickActions({ sleepLeft, onSleep, onKey, onPicture, disabled }) {
+  const items = [
+    { k: 'sleep', label: sleepLeft ? sleepLeft : 'Sleep', icon: <Ic.Moon size={22} />, on: Boolean(sleepLeft), run: onSleep, aria: sleepLeft ? `Sleep timer, ${sleepLeft} left. Change` : 'Sleep timer' },
+    { k: 'input', label: 'Input', icon: <Ic.Input size={22} />, run: () => onKey('input') },
+    { k: 'captions', label: 'Subtitles', icon: <Ic.Captions size={22} />, run: () => onKey('captions') },
+    { k: 'picture', label: 'Picture', icon: <Ic.Sparkle size={22} />, run: onPicture },
+    { k: 'settings', label: 'Settings', icon: <Ic.Gear size={22} />, run: () => onKey('settings') },
+  ];
+  return (
+    <div className="quick" role="group" aria-label="Quick actions">
+      {items.map((i) => (
+        <button key={i.k} className={`qa glass ${i.on ? 'on' : ''}`} disabled={disabled} aria-label={i.aria || i.label}
+          onClick={() => { tick(); i.run(); }}>
+          {i.icon}<span>{i.label}</span>
+        </button>
+      ))}
+    </div>
   );
 }
 

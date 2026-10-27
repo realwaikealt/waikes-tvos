@@ -3,7 +3,7 @@ import { flushSync } from 'react-dom';
 import { api, subscribeNow, setTvId } from './api.js';
 import { tick } from './haptics.js';
 import * as Ic from './icons.jsx';
-import { TopBar, NowPlaying, Pad, Controls, AskButton } from './Remote.jsx';
+import { TopBar, QuickActions, NowPlaying, Pad, Controls, AskButton } from './Remote.jsx';
 import { Watch } from './Watch.jsx';
 import { AskSheet, MoreSheet, ArrangeSheet, PeopleSheet, Onboarding } from './Sheets.jsx';
 import { usePullDown, usePageDrag } from './gestures.js';
@@ -117,7 +117,12 @@ export default function App() {
   // ask.enabled false in config.json hides Ask; people can be any number (none: everything shows as Both)
   const [askOn, setAskOn] = useState(true);
   // nobody set up: no picker, the remote shows everything
-  useEffect(() => { if (!who && people.length === 0) setWho('both'); }, [people]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Nobody set up shows everything; one person means there is nobody to choose between.
+  useEffect(() => {
+    if (who) return;
+    if (people.length === 0) setWho('both');
+    else if (people.length === 1) { setWho(people[0].id); api.setWho(people[0].id).catch(() => {}); }
+  }, [people]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { api.config().then((c) => { if (Array.isArray(c.people)) setPeople(c.people); if (c.ask && c.ask.enabled === false) setAskOn(false); }).catch(() => {}); }, []);
   const [who, setWhoState] = useState(() => store.get('tv.who'));
   // Which TV this phone drives, remembered per phone. null is the bridge's default (living room).
@@ -245,6 +250,7 @@ export default function App() {
     setPictureInfo(null);
     if (sheet === 'more' && thisTv?.picture) api.getPicture().then(setPictureInfo).catch(() => {});
   }, [sheet, tvId]);
+  const onTvPage = async (what) => { try { await api.tvPage(what); say(what === 'game' ? 'Opening the TV game bar' : 'Opening the TV picture settings'); } catch (e) { say(e.message, 'err'); } };
   const onPicture = async (mode) => {
     try { const r = await api.picture(mode); setPictureInfo((i) => ({ ...(i || {}), ...r })); setTv((t) => t && { ...t, picture: r.mode }); say(`Picture: ${pictureInfo?.modes?.find((m) => m.id === r.mode)?.name || r.mode}`); } catch (e) { say(e.message, 'err'); }
   };
@@ -253,6 +259,11 @@ export default function App() {
   const openAsk = () => { tick(); flushSync(() => setSheet('ask')); askInput.current?.focus({ preventScroll: true }); };
 
   const sleepEnds = tv?.sleep?.ends;
+  // One tap on the Sleep tile steps through 30, 60, 90 minutes, then off.
+  const cycleSleep = () => {
+    const left = sleepEnds ? Math.max(0, Math.round((new Date(sleepEnds) - Date.now()) / 60000)) : 0;
+    onSleep(!left ? 30 : [60, 90].find((m) => m > left + 1) || 0);
+  };
   const sleepLeft = sleepEnds ? `${Math.max(0, Math.round((new Date(sleepEnds) - Date.now()) / 60000))}m` : null;
   const p = tv?.playing;
   // Keep wearing the last show while an app or menu without artwork is up, so the remote never goes flat grey.
@@ -294,13 +305,15 @@ export default function App() {
   };
   // The pill can be dragged like the iPhone home bar, and the whole dock (Ask and the tabs) takes a
   // sideways swipe like the pages above it, so paging works from the top of the screen to the bottom.
-  const pill = usePageDrag(pager, (t) => goTo(t), 'thumb');
+  const pill = usePageDrag(pager, (t) => goTo(t), 'thumb', askOn ? 4 : 3);
   const dockDrag = usePageDrag(pager, (t) => goTo(t), 'content');
   const tabs = (
-    <nav ref={tabsRef} className="tabs glass" aria-label="Sections" {...pill}>
+    <nav ref={tabsRef} className="tabs tabbar glass" aria-label="Sections" style={{ '--n': askOn ? 4 : 3 }} {...pill}>
       <span className="tabs-thumb" aria-hidden="true" />
-      <button className={tab === 'remote' ? 'on' : ''} aria-current={tab === 'remote'} onClick={() => goTo('remote')}><Ic.Remote size={18} /> Remote</button>
-      <button className={tab === 'watch' ? 'on' : ''} aria-current={tab === 'watch'} onClick={() => goTo('watch')}><Ic.Grid size={18} /> Watch</button>
+      <button className={tab === 'remote' ? 'on' : ''} aria-current={tab === 'remote'} onClick={() => goTo('remote')}><Ic.Remote size={22} /><span>Remote</span></button>
+      <button className={tab === 'watch' ? 'on' : ''} aria-current={tab === 'watch'} onClick={() => goTo('watch')}><Ic.Grid size={22} /><span>Watch</span></button>
+      {askOn && <button className="act" onClick={openAsk}><Ic.Mic size={22} /><span>Ask</span></button>}
+      <button className="act" onClick={() => { tick(); setSheet('more'); }}><Ic.Screen size={22} /><span>TV</span></button>
     </nav>
   );
 
@@ -313,6 +326,7 @@ export default function App() {
       </div>
       <Pad onKey={onKey} offState={offState} wakeError={wakeError} onWake={onWake} onRetry={onRetry}
         tvName={thisTv?.name} onLivingRoom={() => { tick(); chooseTv(null); }} />
+      <QuickActions sleepLeft={sleepLeft} onSleep={cycleSleep} onKey={onKey} onPicture={() => onTvPage('picture')} disabled={Boolean(offState)} />
       <Controls tv={tv} onKey={onKey} onVolume={onVolume} />
       {wide && askOn && <AskButton onAsk={openAsk} quiet={Boolean(offState)} />}
     </div>
@@ -335,7 +349,6 @@ export default function App() {
             <section className="page watch-page" aria-label="Watch" inert={tab !== 'watch'}>{watch}</section>
           </div>
           <div className="dock" {...dockDrag}>
-            {askOn && <AskButton onAsk={openAsk} quiet={Boolean(offState)} />}
             {tabs}
           </div>
         </main>
@@ -343,7 +356,7 @@ export default function App() {
       {toast && <div key={toast.id} className={`toast glass ${toast.kind}`} role="status">{toast.text}</div>}
       <AskSheet ref={askInput} open={sheet === 'ask'} onClose={() => setSheet(null)} who={who} recs={recs} onAsk={onAsk} onDone={(reply) => say(reply)} />
       <MoreSheet ref={moreSheet} open={sheet === 'more'} tvs={tvs} tvId={tvId || 'living-room'} onTv={(id) => { tick(); chooseTv(id); }}
-        picture={tv?.picture} pictureInfo={pictureInfo} onPicture={onPicture} onClose={() => setSheet(null)} sleepEnds={sleepEnds} sleepError={sleepError} onSleep={onSleep}
+        picture={tv?.picture} pictureInfo={pictureInfo} onPicture={onPicture} onTvPage={onTvPage} onClose={() => setSheet(null)} sleepEnds={sleepEnds} sleepError={sleepError} onSleep={onSleep}
         onKey={onKey} onText={(t) => run(api.text(t), 'Sent to the TV')} onArrange={() => setSheet('arrange')} onPeople={() => setSheet('people')} />
       <ArrangeSheet open={sheet === 'arrange'} onClose={() => setSheet(null)} tvName={thisTv?.name} />
       <PeopleSheet open={sheet === 'people'} onClose={() => setSheet(null)} onSaved={(list) => { setPeople(list); if (who && who !== 'both' && !list.some((p) => p.id === who)) setWho(list[0]?.id || 'both'); }} />

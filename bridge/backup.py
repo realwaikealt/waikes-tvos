@@ -21,7 +21,7 @@ MAX_BYTES = 8 * 1024 * 1024
 # Bridge data files that are safe to carry. Everything else in data/ (certs, keys, pairing
 # results, the Claude work folder, caches) stays out.
 DATA_FILES = re.compile(
-    r"(people|who|taste|recs|keep-disabled)\.json|history\.jsonl|(app-order|home-apps)\.[A-Za-z0-9_-]+\.json")
+    r"(people|who|taste|recs|keep-disabled)\.json|history\.jsonl|(app-order|home-apps|app-arrange)\.[A-Za-z0-9_-]+\.json")
 # What the TV keeps for itself (the page's storage keys), kept on the bridge by /api/tv-state.
 TV_KEYS = ("tvhome.settings", "tvhome.look", "tvhome.people.order", "tvhome.order.tv",
            "tvhome.apps.new", "tvhome.apps.seen")

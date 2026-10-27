@@ -394,11 +394,11 @@ function BackupBlock({ open }) {
     setBusy(false);
   };
   return (
-    <section className="more-block backup-block">
+    <section className="more-block group backup-block">
       <h3>Backup</h3>
       <div className="arrange-pair">
         <button className="pill glass arrange-open" disabled={busy} onClick={() => { tick(); setSure(false); run(api.backupNow, (j) => `Saved on the computer: ${j.name}`); }}>Back up now</button>
-        <a className="pill glass arrange-open" href="/api/backup" download>Download a copy</a>
+        <a className="pill glass arrange-open" href="/api/backup" download>Download copy</a>
       </div>
       <div className="arrange-pair">
         <button className="pill glass arrange-open" disabled={busy} onClick={() => {
@@ -413,17 +413,86 @@ function BackupBlock({ open }) {
   );
 }
 
-export const MoreSheet = forwardRef(function MoreSheet({ open, onClose, sleepEnds, onSleep, onKey, onText, sleepError, tvs, tvId, onTv, picture, pictureInfo, onPicture, onArrange, onPeople }, ref) {
+// About: who made this, what it is built on, and the licence it stays under.
+function AboutBlock() {
+  const [more, setMore] = useState(false);
+  return (
+    <section className="more-block group about-block">
+      <h3>About</h3>
+      <div className="about-head">
+        <svg className="about-logo" viewBox="0 0 120 120" aria-hidden="true">
+          <defs><linearGradient id="alg-r" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#ff9a5a" /><stop offset=".55" stopColor="#d8467f" /><stop offset="1" stopColor="#4a2f8a" /></linearGradient></defs>
+          <rect width="120" height="120" rx="28" fill="url(#alg-r)" />
+          <rect x="21" y="27" width="78" height="52" rx="10" fill="none" stroke="#fff" strokeWidth="5" />
+          <path d="M46 70 L60 41 L74 70 M51.5 60 H68.5" fill="none" stroke="#fff" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M44 93 H76" stroke="#fff" strokeWidth="5" strokeLinecap="round" />
+        </svg>
+        <div>
+          <strong>Waike’s tvOS</strong>
+          <span>Version 1.0 · October 2026</span>
+        </div>
+      </div>
+      <p className="more-note">Designed and developed by Waike.</p>
+      <p className="more-note">Built on couch-tv by Seagey (MIT licence), developed from the fork realwaikealt/couch-tv-testing.</p>
+      <button className="pill glass arrange-open" onClick={() => { tick(); setMore((v) => !v); }}>{more ? 'Hide credits' : 'Credits and licence'}</button>
+      {more && (
+        <div className="about-credits">
+          <p><b>Fonts.</b> Inter and Antonio, under the SIL Open Font Licence.</p>
+          <p><b>Weather.</b> Open-Meteo.</p>
+          <p><b>Show data and posters.</b> JustWatch.</p>
+          <p><b>Backgrounds.</b> The five Night scenes were generated for couch-tv with an AI image model and are free to use. The Classic photos come from Wikimedia Commons under Creative Commons licences: Thennicke, Diliff, JJ Harrison, Christian Ferrer and Basile Morin.</p>
+          <p><b>App logos.</b> The streaming app logos belong to their owners.</p>
+          <p className="about-lic">MIT License. Copyright (c) 2026 Seagey. Copyright (c) 2026 Waike (changes and additions in Waike’s tvOS). Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: the above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// Restart: the home screen on its own, or the whole TV (asks twice, then follows the bridge until the TV is back).
+function RestartBlock({ open }) {
+  const [msg, setMsg] = useState('');
+  const [sure, setSure] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const timer = useRef(null);
+  useEffect(() => { if (!open) { setSure(false); setMsg(''); clearTimeout(timer.current); } }, [open]);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const follow = () => {
+    api.restartState().then((j) => {
+      const r = j.restart || {};
+      if (r.phase === 'working') { setMsg(r.detail || 'Working…'); timer.current = setTimeout(follow, 3000); return; }
+      setBusy(false); setMsg(r.detail || (r.phase === 'failed' ? 'That did not work.' : 'Done.'));
+    }).catch(() => { timer.current = setTimeout(follow, 4000); });
+  };
+  const go = (what) => {
+    setBusy(true); setSure(false); setMsg(what === 'reboot' ? 'Rebooting the TV. About a minute…' : 'Restarting the home screen…');
+    api.restart(what).then(() => { timer.current = setTimeout(follow, 2500); }).catch((e) => { setBusy(false); setMsg(e.message || 'Something went wrong'); });
+  };
+  return (
+    <section className="more-block group restart-block">
+      <h3>Restart</h3>
+      <div className="arrange-pair">
+        <button className="pill glass arrange-open" disabled={busy} onClick={() => { tick(); go('home'); }}>Restart home</button>
+        <button className={`pill glass arrange-open ${sure ? 'danger' : ''}`} disabled={busy} onClick={() => { tick(); if (!sure) { setSure(true); setMsg('This reboots the whole TV. Tap again to confirm.'); return; } go('reboot'); }}>{sure ? 'Tap to confirm' : 'Reboot the TV'}</button>
+      </div>
+      <button className="pill glass arrange-open wake-btn" disabled={busy} onClick={() => { tick(); setMsg('Sending the wake signal…'); api.power('on').then(() => setMsg('Wake signal sent.')).catch((e) => setMsg(e.message || 'It did not wake.')); }}><Ic.Power size={18} /> Wake the TV</button>
+      {msg && <p className="more-note" role="status">{msg}</p>}
+    </section>
+  );
+}
+
+export const MoreSheet = forwardRef(function MoreSheet({ open, onClose, sleepEnds, onSleep, onKey, onText, sleepError, tvs, tvId, onTv, picture, pictureInfo, onPicture, onTvPage, onArrange, onPeople }, ref) {
   const [typed, setTyped] = useState('');
   const sheetEl = useRef(null);
   const setRefs = (el) => { sheetEl.current = el; if (typeof ref === 'function') ref(el); else if (ref) ref.current = el; };
   const closeDrag = usePushUp(sheetEl, onClose);
   const endsAt = sleepEnds ? new Date(sleepEnds) : null;
   const left = endsAt ? Math.max(0, Math.round((endsAt - Date.now()) / 60000)) : 0;
+  const thisTv = tvs?.find((t) => t.id === tvId);
   return (
-    <Sheet ref={setRefs} open={open} onClose={onClose} title="TV" fromTop closeDrag={closeDrag} className="more-sheet">
+    <Sheet ref={setRefs} open={open} onClose={onClose} title={thisTv?.name ? `${thisTv.name} TV` : 'TV'} fromTop closeDrag={closeDrag} className="more-sheet">
       {tvs?.length > 1 && (
-        <section className="more-block first">
+        <section className="more-block group first">
           <h3><Ic.Screen size={16} /> Which TV</h3>
           <div className="chips-row" role="radiogroup" aria-label="Which TV">
             {tvs.map((t) => (
@@ -435,10 +504,20 @@ export const MoreSheet = forwardRef(function MoreSheet({ open, onClose, sleepEnd
         </section>
       )}
 
-      {tvs?.find((t) => t.id === tvId)?.picture && (
-        <section className="more-block">
-          <h3><Ic.Sparkle size={16} /> Picture</h3>
-          <div className="chips-row" role="radiogroup" aria-label="Picture mode">
+      <section className={`more-block group ${tvs?.length > 1 ? '' : 'first'}`}>
+        <h3><Ic.Moon size={16} /> Sleep timer</h3>
+        <div className="chips-row wrap">
+          {SLEEP.map((m) => (
+            <button key={m} className={`chip glass ${(m === 0 && !endsAt) || (m && endsAt && Math.abs(left - m) <= 1) ? 'on' : ''}`} onClick={() => { tick(); onSleep(m); }}>{m ? `${m} min` : 'Off'}</button>
+          ))}
+        </div>
+        <p className="note">{sleepError || (endsAt ? `The TV turns off at ${endsAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} (${left} min).` : 'Turns the TV off for you, even if your phone is locked.')}</p>
+      </section>
+
+      <section className="more-block group">
+        <h3><Ic.Sparkle size={16} /> Picture</h3>
+        {thisTv?.picture && (
+          <div className="chips-row wrap" role="radiogroup" aria-label="Picture mode">
             {(pictureInfo?.modes?.length ? pictureInfo.modes.map((x) => [x.id, x.name]) : [['calibrated', 'Calibrated'], ['dynamic', 'Dynamic']]).map(([m, label]) => {
               const cur = pictureInfo?.mode ?? picture;
               return (
@@ -447,21 +526,15 @@ export const MoreSheet = forwardRef(function MoreSheet({ open, onClose, sleepEnd
               );
             })}
           </div>
-          {!pictureInfo?.can_set && <p className="note">Picture mode works once this TV is set up.</p>}
-        </section>
-      )}
-
-      <section className={`more-block ${tvs?.length > 1 ? '' : 'first'}`}>
-        <h3><Ic.Moon size={16} /> Sleep timer</h3>
+        )}
         <div className="chips-row">
-          {SLEEP.map((m) => (
-            <button key={m} className={`chip glass ${(m === 0 && !endsAt) ? 'on' : ''}`} onClick={() => { tick(); onSleep(m); }}>{m ? `${m} min` : 'Off'}</button>
-          ))}
+          <button className="chip glass" onClick={() => { tick(); onTvPage?.('picture'); }}>Picture settings</button>
+          <button className="chip glass" onClick={() => { tick(); onTvPage?.('game'); }}>Game mode</button>
         </div>
-        <p className="note">{sleepError || (endsAt ? `The TV turns off at ${endsAt.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' })} (${left} min).` : 'Turns the TV off for you, even if your phone is locked.')}</p>
+        <p className="note">Opens the TV's own picture page (Movie, Game, Sports…) or its game bar.</p>
       </section>
 
-      <section className="more-block">
+      <section className="more-block group">
         <h3><Ic.Keyboard size={16} /> Type on the TV</h3>
         <form className="ask-field glass" onSubmit={(e) => { e.preventDefault(); if (typed.trim()) { tick(); onText(typed.trim()); setTyped(''); } }}>
           <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="For a search box on the TV" enterKeyHint="send" aria-label="Text to type on the TV" />
@@ -469,16 +542,14 @@ export const MoreSheet = forwardRef(function MoreSheet({ open, onClose, sleepEnd
         </form>
       </section>
 
-      <div className="more-grid">
-        <button className="tile glass" onClick={() => { tick(); onKey('captions'); }}><Ic.Captions /> Subtitles</button>
-        <button className="tile glass" onClick={() => { tick(); onKey('input'); }}><Ic.Input /> Input</button>
-        <button className="tile glass" onClick={() => { tick(); onKey('settings'); }}><Ic.Gear /> Settings</button>
-      </div>
-      <div className="arrange-pair">
-        <button className="pill glass arrange-open" onClick={() => { tick(); onArrange(); }}><Ic.Grid size={18} /> Arrange apps</button>
-        <button className="pill glass arrange-open" onClick={() => { tick(); onPeople(); }}><Ic.People size={18} /> People</button>
-      </div>
+      <section className="more-block group list">
+        <button className="list-row" onClick={() => { tick(); onArrange(); }}><span className="row-icon"><Ic.Grid size={20} /></span><span className="row-text"><b>Arrange apps</b><small>Order the TV’s dock</small></span><Ic.Chevron className="row-chev" /></button>
+        <button className="list-row" onClick={() => { tick(); onPeople(); }}><span className="row-icon"><Ic.People size={20} /></span><span className="row-text"><b>People</b><small>Who’s watching, and their order</small></span><Ic.Chevron className="row-chev" /></button>
+      </section>
+
       <BackupBlock open={open} />
+      <RestartBlock open={open} />
+      <AboutBlock />
     </Sheet>
   );
 });
@@ -498,7 +569,7 @@ export function Onboarding({ onPick, standalone, people }) {
         {!standalone && (
           <div className="install glass">
             <b>Put it on your home screen</b>
-            <span>In Safari, tap Share <ShareGlyph />, then <b>Add to Home Screen</b>.</span>
+            <span>In Safari, tap Share <ShareGlyph />, then <b>Add to Home Screen</b>. If the icon opens a black screen, switch off <b>Open as Web App</b> on that screen. <a href="/install">More help</a></span>
           </div>
         )}
       </div>

@@ -56,6 +56,15 @@
     ["tv.twitch.android.app", "Twitch", "#4b2a8c"], ["com.mediatek.wwtv.tvcenter", "Live TV", "#2a2a30"],
     ["com.android.vending", "App Store", "#2a2a30"], ["com.android.tv.settings", "Settings", "#2a2a30"]
   ];
+  if (arg("junk")) {
+    // what a TCL TV really lists besides the streaming apps
+    [["com.tcl.gallery", "Gallery"], ["com.tcl.ui_mediaCenter", "Media Player"], ["com.tcl.suspension", "Quick Panel"],
+      ["com.tcl.guard", "Safety Guard"], ["com.tcl.dashboard", "TCL Home"], ["com.tcl.ocean.instructions", "User Guide"],
+      ["com.tcl.smartalexa", "Works with Alexa"], ["io.github.sumyabazar1.weather", "Weather"],
+      ["com.internet.tvbrowser", "BROWSER"], ["com.instagram.airwave", "Instagram"], ["com.tubitv", "Tubi"],
+      ["com.hulu.livingroomplus", "Hulu"], ["com.peacocktv.peacockandroid", "Peacock TV"]]
+      .forEach(function (a) { apps.splice(apps.length - 2, 0, [a[0], a[1], "#2a2a30"]); });
+  }
   var fresh = ["com.plexapp.android", "Plex", "#1f1f1f"];
   if (arg("newapp")) {
     // this TV last listed its apps before Plex was installed

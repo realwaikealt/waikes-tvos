@@ -1,0 +1,133 @@
+{
+ "note": "The apps the living-room TV reported (2026-10-26), plus the Play Store and Settings.",
+ "apps": [
+  {
+   "package": "com.google.android.youtube.tv",
+   "name": "YouTube"
+  },
+  {
+   "package": "com.netflix.ninja",
+   "name": "Netflix"
+  },
+  {
+   "package": "com.disney.disneyplus",
+   "name": "Disney+"
+  },
+  {
+   "package": "com.amazon.amazonvideo.livingroom",
+   "name": "Prime Video"
+  },
+  {
+   "package": "com.apple.atve.androidtv.appletv",
+   "name": "Apple TV"
+  },
+  {
+   "package": "com.wbd.stream",
+   "name": "HBO Max"
+  },
+  {
+   "package": "com.cbs.tve",
+   "name": "CBS"
+  },
+  {
+   "package": "com.fox.foxone",
+   "name": "FOX One"
+  },
+  {
+   "package": "com.tcl.gallery",
+   "name": "Gallery"
+  },
+  {
+   "package": "com.hulu.livingroomplus",
+   "name": "Hulu"
+  },
+  {
+   "package": "com.instagram.airwave",
+   "name": "Instagram"
+  },
+  {
+   "package": "com.tcl.ui_mediaCenter",
+   "name": "Media Player"
+  },
+  {
+   "package": "com.cbs.ott",
+   "name": "Paramount+"
+  },
+  {
+   "package": "com.peacocktv.peacockandroid",
+   "name": "Peacock TV"
+  },
+  {
+   "package": "tv.pluto.android",
+   "name": "Pluto TV"
+  },
+  {
+   "package": "com.tcl.suspension",
+   "name": "Quick Panel"
+  },
+  {
+   "package": "com.tcl.guard",
+   "name": "Safety Guard"
+  },
+  {
+   "package": "com.tcl.waterfall.overseas",
+   "name": "TCL Channel"
+  },
+  {
+   "package": "com.tcl.dashboard",
+   "name": "TCL Home"
+  },
+  {
+   "package": "com.tcl.tv.plus",
+   "name": "TCL TV+"
+  },
+  {
+   "package": "com.tubitv",
+   "name": "Tubi"
+  },
+  {
+   "package": "com.tcl.tv",
+   "name": "TV"
+  },
+  {
+   "package": "com.tcl.ocean.instructions",
+   "name": "User Guide"
+  },
+  {
+   "package": "io.github.sumyabazar1.weather",
+   "name": "Weather"
+  },
+  {
+   "package": "com.tcl.smartalexa",
+   "name": "Works with Alexa"
+  },
+  {
+   "package": "com.google.android.youtube.tvkids",
+   "name": "YouTube Kids"
+  },
+  {
+   "package": "com.google.android.youtube.tvunplugged",
+   "name": "YouTube TV"
+  },
+  {
+   "package": "com.spotify.tv.android",
+   "name": "Spotify"
+  },
+  {
+   "package": "com.google.android.youtube.tvmusic",
+   "name": "YouTube Music"
+  },
+  {
+   "package": "com.internet.tvbrowser",
+   "name": "BROWSER"
+  },
+  {
+   "package": "com.android.vending",
+   "name": "App Store"
+  },
+  {
+   "package": "com.android.tv.settings",
+   "name": "Settings"
+  }
+ ]
+}

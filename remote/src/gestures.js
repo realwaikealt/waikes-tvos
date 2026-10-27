@@ -57,7 +57,7 @@ function useDrag(sheetRef, { sign, decide }) {
 // first SLOP points: sideways takes the finger and moves the pages, anything else is left alone,
 // so taps still press buttons. mode 'content' moves like the page under the finger; mode 'thumb'
 // (the Remote/Watch pill) moves like the iPhone home bar, the pages travel further than the finger.
-export function usePageDrag(pagerRef, goTo, mode = 'content') {
+export function usePageDrag(pagerRef, goTo, mode = 'content', slots = 2) {
   const g = useRef(null);
   const dragged = useRef(false);
   const settleTo = (el, to) => { el.style.scrollSnapType = ''; goTo(to); };
@@ -65,7 +65,7 @@ export function usePageDrag(pagerRef, goTo, mode = 'content') {
     onPointerDown: (e) => {
       if (!e.isPrimary || (mode === 'content' && e.target.closest?.('.tabs'))) return;
       const el = pagerRef.current; if (!el) return;
-      const k = mode === 'thumb' ? el.clientWidth / Math.max(1, e.currentTarget.clientWidth / 2) : -1;
+      const k = mode === 'thumb' ? el.clientWidth / Math.max(1, e.currentTarget.clientWidth / slots) : -1;
       g.current = { x: e.clientX, y: e.clientY, t: e.timeStamp, start: el.scrollLeft, live: false, k, id: e.pointerId };
     },
     onPointerMove: (e) => {

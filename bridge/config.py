@@ -201,7 +201,7 @@ def _home(h):
 HOME = _home(CONFIG.get("home"))
 
 # ---------- quick settings (per TV) and picture modes ----------
-QUICK_IDS = ["sleep", "picture", "look", "input"]
+QUICK_IDS = ["sleep", "picture", "look", "input", "picpage", "game"]
 
 
 def quick_for(tv_cfg):

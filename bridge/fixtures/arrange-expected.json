@@ -1,0 +1,1214 @@
+{
+ "apps": [
+  {
+   "package": "com.google.android.youtube.tv",
+   "name": "YouTube"
+  },
+  {
+   "package": "com.netflix.ninja",
+   "name": "Netflix"
+  },
+  {
+   "package": "com.disney.disneyplus",
+   "name": "Disney+"
+  },
+  {
+   "package": "com.amazon.amazonvideo.livingroom",
+   "name": "Prime Video"
+  },
+  {
+   "package": "com.apple.atve.androidtv.appletv",
+   "name": "Apple TV"
+  },
+  {
+   "package": "com.wbd.stream",
+   "name": "HBO Max"
+  },
+  {
+   "package": "com.cbs.tve",
+   "name": "CBS"
+  },
+  {
+   "package": "com.fox.foxone",
+   "name": "FOX One"
+  },
+  {
+   "package": "com.tcl.gallery",
+   "name": "Gallery"
+  },
+  {
+   "package": "com.hulu.livingroomplus",
+   "name": "Hulu"
+  },
+  {
+   "package": "com.instagram.airwave",
+   "name": "Instagram"
+  },
+  {
+   "package": "com.tcl.ui_mediaCenter",
+   "name": "Media Player"
+  },
+  {
+   "package": "com.cbs.ott",
+   "name": "Paramount+"
+  },
+  {
+   "package": "com.peacocktv.peacockandroid",
+   "name": "Peacock TV"
+  },
+  {
+   "package": "tv.pluto.android",
+   "name": "Pluto TV"
+  },
+  {
+   "package": "com.tcl.suspension",
+   "name": "Quick Panel"
+  },
+  {
+   "package": "com.tcl.guard",
+   "name": "Safety Guard"
+  },
+  {
+   "package": "com.tcl.waterfall.overseas",
+   "name": "TCL Channel"
+  },
+  {
+   "package": "com.tcl.dashboard",
+   "name": "TCL Home"
+  },
+  {
+   "package": "com.tcl.tv.plus",
+   "name": "TCL TV+"
+  },
+  {
+   "package": "com.tubitv",
+   "name": "Tubi"
+  },
+  {
+   "package": "com.tcl.tv",
+   "name": "TV"
+  },
+  {
+   "package": "com.tcl.ocean.instructions",
+   "name": "User Guide"
+  },
+  {
+   "package": "io.github.sumyabazar1.weather",
+   "name": "Weather"
+  },
+  {
+   "package": "com.tcl.smartalexa",
+   "name": "Works with Alexa"
+  },
+  {
+   "package": "com.google.android.youtube.tvkids",
+   "name": "YouTube Kids"
+  },
+  {
+   "package": "com.google.android.youtube.tvunplugged",
+   "name": "YouTube TV"
+  },
+  {
+   "package": "com.spotify.tv.android",
+   "name": "Spotify"
+  },
+  {
+   "package": "com.google.android.youtube.tvmusic",
+   "name": "YouTube Music"
+  },
+  {
+   "package": "com.internet.tvbrowser",
+   "name": "BROWSER"
+  },
+  {
+   "package": "com.android.vending",
+   "name": "App Store"
+  },
+  {
+   "package": "com.android.tv.settings",
+   "name": "Settings"
+  }
+ ],
+ "cases": [
+  {
+   "prefs": {
+    "mode": "smart"
+   },
+   "usage": {
+    "tv.pluto.android": {
+     "n": 9,
+     "t": 100
+    },
+    "com.spotify.tv.android": {
+     "n": 5,
+     "t": 300
+    }
+   },
+   "headers": true,
+   "order": [
+    [
+     "tv.pluto.android",
+     "streaming",
+     false
+    ],
+    [
+     "com.netflix.ninja",
+     "streaming",
+     false
+    ],
+    [
+     "com.google.android.youtube.tv",
+     "streaming",
+     false
+    ],
+    [
+     "com.amazon.amazonvideo.livingroom",
+     "streaming",
+     false
+    ],
+    [
+     "com.disney.disneyplus",
+     "streaming",
+     false
+    ],
+    [
+     "com.wbd.stream",
+     "streaming",
+     false
+    ],
+    [
+     "com.hulu.livingroomplus",
+     "streaming",
+     false
+    ],
+    [
+     "com.apple.atve.androidtv.appletv",
+     "streaming",
+     false
+    ],
+    [
+     "com.cbs.ott",
+     "streaming",
+     false
+    ],
+    [
+     "com.peacocktv.peacockandroid",
+     "streaming",
+     false
+    ],
+    [
+     "com.tubitv",
+     "streaming",
+     false
+    ],
+    [
+     "com.cbs.tve",
+     "streaming",
+     false
+    ],
+    [
+     "com.tcl.tv.plus",
+     "streaming",
+     false
+    ],
+    [
+     "com.google.android.youtube.tvunplugged",
+     "live",
+     false
+    ],
+    [
+     "com.fox.foxone",
+     "live",
+     false
+    ],
+    [
+     "com.tcl.tv",
+     "live",
+     false
+    ],
+    [
+     "com.google.android.youtube.tvkids",
+     "kids",
+     false
+    ],
+    [
+     "com.spotify.tv.android",
+     "music",
+     false
+    ],
+    [
+     "com.google.android.youtube.tvmusic",
+     "music",
+     false
+    ],
+    [
+     "com.android.vending",
+     "utilities",
+     false
+    ],
+    [
+     "com.internet.tvbrowser",
+     "utilities",
+     false
+    ],
+    [
+     "com.tcl.gallery",
+     "utilities",
+     false
+    ],
+    [
+     "com.tcl.ui_mediaCenter",
+     "utilities",
+     false
+    ],
+    [
+     "com.android.tv.settings",
+     "utilities",
+     false
+    ],
+    [
+     "io.github.sumyabazar1.weather",
+     "utilities",
+     false
+    ],
+    [
+     "com.instagram.airwave",
+     "other",
+     false
+    ],
+    [
+     "com.tcl.suspension",
+     "hidden",
+     true
+    ],
+    [
+     "com.tcl.guard",
+     "hidden",
+     true
+    ],
+    [
+     "com.tcl.waterfall.overseas",
+     "hidden",
+     true
+    ],
+    [
+     "com.tcl.dashboard",
+     "hidden",
+     true
+    ],
+    [
+     "com.tcl.ocean.instructions",
+     "hidden",
+     true
+    ],
+    [
+     "com.tcl.smartalexa",
+     "hidden",
+     true
+    ]
+   ]
+  },
+  {
+   "prefs": {
+    "group": false,
+    "mode": "used"
+   },
+   "usage": {
+    "tv.pluto.android": {
+     "n": 9,
+     "t": 100
+    },
+    "com.spotify.tv.android": {
+     "n": 5,
+     "t": 300
+    }
+   },
+   "headers": false,
+   "order": [
+    [
+     "tv.pluto.android",
+     "streaming",
+     false
+    ],
+    [
+     "com.spotify.tv.android",
+     "music",
+     false
+    ],
+    [
+     "com.netflix.ninja",
+     "streaming",
+     false
+    ],
+    [
+     "com.google.android.youtube.tv",
+     "streaming",
+     false
+    ],
+    [
+     "com.amazon.amazonvideo.livingroom",
+     "streaming",
+     false
+    ],
+    [
+     "com.disney.disneyplus",
+     "streaming",
+     false
+    ],
+    [
+     "com.wbd.stream",
+     "streaming",
+     false
+    ],
+    [
+     "com.hulu.livingroomplus",
+     "streaming",
+     false
+    ],
+    [
+     "com.apple.atve.androidtv.appletv",
+     "streaming",
+     false
+    ],
+    [
+     "com.cbs.ott",
+     "streaming",
+     false
+    ],
+    [
+     "com.peacocktv.peacockandroid",
+     "streaming",
+     false
+    ],
+    [
+     "com.tubitv",
+     "streaming",
+     false
+    ],
+    [
+     "com.cbs.tve",
+     "streaming",
+     false
+    ],
+    [
+     "com.tcl.tv.plus",
+     "streaming",
+     false
+    ],
+    [
+     "com.google.android.youtube.tvunplugged",
+     "live",
+     false
+    ],
+    [
+     "com.fox.foxone",
+     "live",
+     false
+    ],
+    [
+     "com.tcl.tv",
+     "live",
+     false
+    ],
+    [
+     "com.google.android.youtube.tvmusic",
+     "music",
+     false
+    ],
+    [
+     "com.android.vending",
+     "utilities",
+     false
+    ],
+    [
+     "com.internet.tvbrowser",
+     "utilities",
+     false
+    ],
+    [
+     "com.tcl.gallery",
+     "utilities",
+     false
+    ],
+    [
+     "com.instagram.airwave",
+     "other",
+     false
+    ],
+    [
+     "com.tcl.ui_mediaCenter",
+     "utilities",
+     false
+    ],
+    [
+     "com.android.tv.settings",
+     "utilities",
+     false
+    ],
+    [
+     "io.github.sumyabazar1.weather",
+     "utilities",
+     false
+    ],
+    [
+     "com.google.android.youtube.tvkids",
+     "kids",
+     false
+    ],
+    [
+     "com.tcl.suspension",
+     "hidden",
+     true
+    ],
+    [
+     "com.tcl.guard",
+     "hidden",
+     true
+    ],
+    [
+     "com.tcl.waterfall.overseas",
+     "hidden",
+     true
+    ],
+    [
+     "com.tcl.dashboard",
+     "hidden",
+     true
+    ],
+    [
+     "com.tcl.ocean.instructions",
+     "hidden",
+     true
+    ],
+    [
+     "com.tcl.smartalexa",
+     "hidden",
+     true
+    ]
+   ]
+  },
+  {
+   "prefs": {
+    "group": false,
+    "mode": "recent"
+   },
+   "usage": {
+    "tv.pluto.android": {
+     "n": 9,
+     "t": 100
+    },
+    "com.spotify.tv.android": {
+     "n": 5,
+     "t": 300
+    }
+   },
+   "headers": false,
+   "order": [
+    [
+     "com.spotify.tv.android",
+     "music",
+     false
+    ],
+    [
+     "tv.pluto.android",
+     "streaming",
+     false
+    ],
+    [
+     "com.netflix.ninja",
+     "streaming",
+     false
+    ],
+    [
+     "com.google.android.youtube.tv",
+     "streaming",
+     false
+    ],
+    [
+     "com.amazon.amazonvideo.livingroom",
+     "streaming",
+     false
+    ],
+    [
+     "com.disney.disneyplus",
+     "streaming",
+     false
+    ],
+    [
+     "com.wbd.stream",
+     "streaming",
+     false
+    ],
+    [
+     "com.hulu.livingroomplus",
+     "streaming",
+     false
+    ],
+    [
+     "com.apple.atve.androidtv.appletv",
+     "streaming",
+     false
+    ],
+    [
+     "com.cbs.ott",
+     "streaming",
+     false
+    ],
+    [
+     "com.peacocktv.peacockandroid",
+     "streaming",
+     false
+    ],
+    [
+     "com.tubitv",
+     "streaming",
+     false
+    ],
+    [
+     "com.cbs.tve",
+     "streaming",
+     false
+    ],
+    [
+     "com.tcl.tv.plus",
+     "streaming",
+     false
+    ],
+    [
+     "com.google.android.youtube.tvunplugged",
+     "live",
+     false
+    ],
+    [
+     "com.fox.foxone",
+     "live",
+     false
+    ],
+    [
+     "com.tcl.tv",
+     "live",
+     false
+    ],
+    [
+     "com.google.android.youtube.tvmusic",
+     "music",
+     false
+    ],
+    [
+     "com.android.vending",
+     "utilities",
+     false
+    ],
+    [
+     "com.internet.tvbrowser",
+     "utilities",
+     false
+    ],
+    [
+     "com.tcl.gallery",
+     "utilities",
+     false
+    ],
+    [
+     "com.instagram.airwave",
+     "other",
+     false
+    ],
+    [
+     "com.tcl.ui_mediaCenter",
+     "utilities",
+     false
+    ],
+    [
+     "com.android.tv.settings",
+     "utilities",
+     false
+    ],
+    [
+     "io.github.sumyabazar1.weather",
+     "utilities",
+     false
+    ],
+    [
+     "com.google.android.youtube.tvkids",
+     "kids",
+     false
+    ],
+    [
+     "com.tcl.suspension",
+     "hidden",
+     true
+    ],
+    [
+     "com.tcl.guard",
+     "hidden",
+     true
+    ],
+    [
+     "com.tcl.waterfall.overseas",
+     "hidden",
+     true
+    ],
+    [
+     "com.tcl.dashboard",
+     "hidden",
+     true
+    ],
+    [
+     "com.tcl.ocean.instructions",
+     "hidden",
+     true
+    ],
+    [
+     "com.tcl.smartalexa",
+     "hidden",
+     true
+    ]
+   ]
+  },
+  {
+   "prefs": {
+    "group": true,
+    "mode": "az"
+   },
+   "usage": {
+    "tv.pluto.android": {
+     "n": 9,
+     "t": 100
+    },
+    "com.spotify.tv.android": {
+     "n": 5,
+     "t": 300
+    }
+   },
+   "headers": true,
+   "order": [
+    [
+     "com.apple.atve.androidtv.appletv",
+     "streaming",
+     false
+    ],
+    [
+     "com.cbs.tve",
+     "streaming",
+     false
+    ],
+    [
+     "com.disney.disneyplus",
+     "streaming",
+     false
+    ],
+    [
+     "com.wbd.stream",
+     "streaming",
+     false
+    ],
+    [
+     "com.hulu.livingroomplus",
+     "streaming",
+     false
+    ],
+    [
+     "com.netflix.ninja",
+     "streaming",
+     false
+    ],
+    [
+     "com.cbs.ott",
+     "streaming",
+     false
+    ],
+    [
+     "com.peacocktv.peacockandroid",
+     "streaming",
+     false
+    ],
+    [
+     "tv.pluto.android",
+     "streaming",
+     false
+    ],
+    [
+     "com.amazon.amazonvideo.livingroom",
+     "streaming",
+     false
+    ],
+    [
+     "com.tcl.tv.plus",
+     "streaming",
+     false
+    ],
+    [
+     "com.tubitv",
+     "streaming",
+     false
+    ],
+    [
+     "com.google.android.youtube.tv",
+     "streaming",
+     false
+    ],
+    [
+     "com.fox.foxone",
+     "live",
+     false
+    ],
+    [
+     "com.tcl.tv",
+     "live",
+     false
+    ],
+    [
+     "com.google.android.youtube.tvunplugged",
+     "live",
+     false
+    ],
+    [
+     "com.google.android.youtube.tvkids",
+     "kids",
+     false
+    ],
+    [
+     "com.spotify.tv.android",
+     "music",
+     false
+    ],
+    [
+     "com.google.android.youtube.tvmusic",
+     "music",
+     false
+    ],
+    [
+     "com.android.vending",
+     "utilities",
+     false
+    ],
+    [
+     "com.internet.tvbrowser",
+     "utilities",
+     false
+    ],
+    [
+     "com.tcl.gallery",
+     "utilities",
+     false
+    ],
+    [
+     "com.tcl.ui_mediaCenter",
+     "utilities",
+     false
+    ],
+    [
+     "com.android.tv.settings",
+     "utilities",
+     false
+    ],
+    [
+     "io.github.sumyabazar1.weather",
+     "utilities",
+     false
+    ],
+    [
+     "com.instagram.airwave",
+     "other",
+     false
+    ],
+    [
+     "com.tcl.suspension",
+     "hidden",
+     true
+    ],
+    [
+     "com.tcl.guard",
+     "hidden",
+     true
+    ],
+    [
+     "com.tcl.waterfall.overseas",
+     "hidden",
+     true
+    ],
+    [
+     "com.tcl.dashboard",
+     "hidden",
+     true
+    ],
+    [
+     "com.tcl.ocean.instructions",
+     "hidden",
+     true
+    ],
+    [
+     "com.tcl.smartalexa",
+     "hidden",
+     true
+    ]
+   ]
+  },
+  {
+   "prefs": {
+    "mode": "category"
+   },
+   "usage": {
+    "tv.pluto.android": {
+     "n": 9,
+     "t": 100
+    },
+    "com.spotify.tv.android": {
+     "n": 5,
+     "t": 300
+    }
+   },
+   "headers": true,
+   "order": [
+    [
+     "com.apple.atve.androidtv.appletv",
+     "streaming",
+     false
+    ],
+    [
+     "com.cbs.tve",
+     "streaming",
+     false
+    ],
+    [
+     "com.disney.disneyplus",
+     "streaming",
+     false
+    ],
+    [
+     "com.wbd.stream",
+     "streaming",
+     false
+    ],
+    [
+     "com.hulu.livingroomplus",
+     "streaming",
+     false
+    ],
+    [
+     "com.netflix.ninja",
+     "streaming",
+     false
+    ],
+    [
+     "com.cbs.ott",
+     "streaming",
+     false
+    ],
+    [
+     "com.peacocktv.peacockandroid",
+     "streaming",
+     false
+    ],
+    [
+     "tv.pluto.android",
+     "streaming",
+     false
+    ],
+    [
+     "com.amazon.amazonvideo.livingroom",
+     "streaming",
+     false
+    ],
+    [
+     "com.tcl.tv.plus",
+     "streaming",
+     false
+    ],
+    [
+     "com.tubitv",
+     "streaming",
+     false
+    ],
+    [
+     "com.google.android.youtube.tv",
+     "streaming",
+     false
+    ],
+    [
+     "com.fox.foxone",
+     "live",
+     false
+    ],
+    [
+     "com.tcl.tv",
+     "live",
+     false
+    ],
+    [
+     "com.google.android.youtube.tvunplugged",
+     "live",
+     false
+    ],
+    [
+     "com.google.android.youtube.tvkids",
+     "kids",
+     false
+    ],
+    [
+     "com.spotify.tv.android",
+     "music",
+     false
+    ],
+    [
+     "com.google.android.youtube.tvmusic",
+     "music",
+     false
+    ],
+    [
+     "com.android.vending",
+     "utilities",
+     false
+    ],
+    [
+     "com.internet.tvbrowser",
+     "utilities",
+     false
+    ],
+    [
+     "com.tcl.gallery",
+     "utilities",
+     false
+    ],
+    [
+     "com.tcl.ui_mediaCenter",
+     "utilities",
+     false
+    ],
+    [
+     "com.android.tv.settings",
+     "utilities",
+     false
+    ],
+    [
+     "io.github.sumyabazar1.weather",
+     "utilities",
+     false
+    ],
+    [
+     "com.instagram.airwave",
+     "other",
+     false
+    ],
+    [
+     "com.tcl.suspension",
+     "hidden",
+     true
+    ],
+    [
+     "com.tcl.guard",
+     "hidden",
+     true
+    ],
+    [
+     "com.tcl.waterfall.overseas",
+     "hidden",
+     true
+    ],
+    [
+     "com.tcl.dashboard",
+     "hidden",
+     true
+    ],
+    [
+     "com.tcl.ocean.instructions",
+     "hidden",
+     true
+    ],
+    [
+     "com.tcl.smartalexa",
+     "hidden",
+     true
+    ]
+   ]
+  },
+  {
+   "prefs": {
+    "pinned": [
+     "com.tubitv"
+    ],
+    "hidden": [
+     "com.netflix.ninja"
+    ],
+    "shown": [
+     "com.tcl.guard"
+    ],
+    "mode": "smart"
+   },
+   "usage": {
+    "tv.pluto.android": {
+     "n": 9,
+     "t": 100
+    },
+    "com.spotify.tv.android": {
+     "n": 5,
+     "t": 300
+    }
+   },
+   "headers": true,
+   "order": [
+    [
+     "com.tubitv",
+     "streaming",
+     false
+    ],
+    [
+     "tv.pluto.android",
+     "streaming",
+     false
+    ],
+    [
+     "com.google.android.youtube.tv",
+     "streaming",
+     false
+    ],
+    [
+     "com.amazon.amazonvideo.livingroom",
+     "streaming",
+     false
+    ],
+    [
+     "com.disney.disneyplus",
+     "streaming",
+     false
+    ],
+    [
+     "com.wbd.stream",
+     "streaming",
+     false
+    ],
+    [
+     "com.hulu.livingroomplus",
+     "streaming",
+     false
+    ],
+    [
+     "com.apple.atve.androidtv.appletv",
+     "streaming",
+     false
+    ],
+    [
+     "com.cbs.ott",
+     "streaming",
+     false
+    ],
+    [
+     "com.peacocktv.peacockandroid",
+     "streaming",
+     false
+    ],
+    [
+     "com.cbs.tve",
+     "streaming",
+     false
+    ],
+    [
+     "com.tcl.tv.plus",
+     "streaming",
+     false
+    ],
+    [
+     "com.google.android.youtube.tvunplugged",
+     "live",
+     false
+    ],
+    [
+     "com.fox.foxone",
+     "live",
+     false
+    ],
+    [
+     "com.tcl.tv",
+     "live",
+     false
+    ],
+    [
+     "com.google.android.youtube.tvkids",
+     "kids",
+     false
+    ],
+    [
+     "com.spotify.tv.android",
+     "music",
+     false
+    ],
+    [
+     "com.google.android.youtube.tvmusic",
+     "music",
+     false
+    ],
+    [
+     "com.android.vending",
+     "utilities",
+     false
+    ],
+    [
+     "com.internet.tvbrowser",
+     "utilities",
+     false
+    ],
+    [
+     "com.tcl.gallery",
+     "utilities",
+     false
+    ],
+    [
+     "com.tcl.ui_mediaCenter",
+     "utilities",
+     false
+    ],
+    [
+     "com.android.tv.settings",
+     "utilities",
+     false
+    ],
+    [
+     "io.github.sumyabazar1.weather",
+     "utilities",
+     false
+    ],
+    [
+     "com.instagram.airwave",
+     "other",
+     false
+    ],
+    [
+     "com.tcl.guard",
+     "hidden",
+     false
+    ],
+    [
+     "com.netflix.ninja",
+     "hidden",
+     true
+    ],
+    [
+     "com.tcl.suspension",
+     "hidden",
+     true
+    ],
+    [
+     "com.tcl.waterfall.overseas",
+     "hidden",
+     true
+    ],
+    [
+     "com.tcl.dashboard",
+     "hidden",
+     true
+    ],
+    [
+     "com.tcl.ocean.instructions",
+     "hidden",
+     true
+    ],
+    [
+     "com.tcl.smartalexa",
+     "hidden",
+     true
+    ]
+   ]
+  }
+ ]
+}

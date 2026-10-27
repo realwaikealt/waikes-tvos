@@ -1,0 +1,29 @@
+/* The apps on the Watch page: sort chips, group headings, pins and the Hidden section (AppShelf.jsx). */
+.as { display: flex; flex-direction: column; gap: 14px; }
+.as-chips { display: flex; gap: 8px; padding: 0 var(--side); overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; }
+.as-chips::-webkit-scrollbar { display: none; }
+.as-chip { flex: none; min-height: 44px; padding: 0 16px; background: var(--glass); color: var(--ink); scroll-snap-align: start; white-space: nowrap; }
+.as-chip.on { background: var(--solid); color: var(--on-solid); }
+.as-chip.small { min-height: 36px; padding: 0 14px; font-size: 14px; }
+.as-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 var(--side); }
+.as-note { font-size: 13px; color: var(--ink-3); }
+.as-group { display: flex; flex-direction: column; gap: 8px; }
+.as-group h4 { margin: 0; padding: 4px var(--side) 0; font: 650 12px/16px var(--font); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.as-tile { position: relative; min-width: 0; }
+.as-tile .as-open { width: 100%; }
+.as-tile.is-hidden .app-icon { opacity: 0.5; }
+.as-tile.editing .app-icon { animation: as-wobble 0.34s ease-in-out infinite alternate; }
+@keyframes as-wobble { from { transform: rotate(-1.4deg); } to { transform: rotate(1.4deg); } }
+.as-pin { position: absolute; top: -2px; left: 2px; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--solid); color: var(--on-solid); }
+.as-badge {
+  position: absolute; top: -6px; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; padding: 0;
+  background: rgba(60, 60, 67, 0.92); color: #fff; border: 1px solid rgba(255, 255, 255, 0.3);
+}
+.as-pinbtn { left: -4px; }
+.as-pinbtn.on { background: var(--solid); color: var(--on-solid); }
+.as-hidebtn { right: -4px; }
+.as-badge:active { transform: scale(0.9); transition: none; }
+.as-hidden { display: flex; flex-direction: column; gap: 12px; margin-top: 4px; }
+.as-hidden-grid { padding-top: 4px; }
+.as-msg { padding: 0 var(--side); }
+@media (prefers-reduced-motion: reduce) { .as-tile.editing .app-icon { animation: none; } }

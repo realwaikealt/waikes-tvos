@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import * as Ic from './icons.jsx';
 import { tick } from './haptics.js';
 import { logoFor } from './appLogos.js';
+import { AppShelf } from './AppShelf.jsx';
 
 // Names that fit under an icon, like the iPhone home screen.
 const SHORT = { 'sbs-on-demand': 'SBS', 'prime-video': 'Prime Video', 'disney-plus': 'Disney+', 'paramount-plus': 'Paramount+', 'foxtel-go': 'Foxtel', 'hbo-max': 'HBO Max' };
@@ -37,12 +38,15 @@ export function Watch({ pull, people, who, recs, cont: contIn, apps, screens, se
             {cont.map((s) => <Poster key={s.id || `${s.title}-${s.service}`} show={s} onPlay={onPlay}
               sub={[episode(s) || s.episode_title, s.app?.name || serviceName(s.service)].filter(Boolean).join(' · ')} />)}
           </div>
-        ) : <p className="empty">{contIn === false ? 'Couldn’t load this just now.' : contIn ? 'Shows you watch on the TV will wait here.' : 'Loading…'}</p>}
+        ) : contIn === false ? <p className="empty">Couldn’t load this just now.</p>
+          : contIn ? <p className="empty">Shows you watch on the TV will wait here.</p>
+          : <div className="shelf loading" aria-busy="true" aria-label="Loading">{[0, 1, 2].map((i) => <div key={i} className="poster"><div className="poster-art" /><b className="skeleton sk-line" /><small className="skeleton sk-line short" /></div>)}</div>}
       </section>
 
       <section>
         <h3>Apps</h3>
-        {apps === null && <p className="empty">Loading…</p>}
+        <AppShelf onLaunch={onLaunch} fallback={<>
+        {apps === null && <div className="apps" aria-busy="true" aria-label="Loading">{[0, 1, 2, 3, 4, 5, 6, 7].map((i) => <div key={i} className="app-tile"><span className="app-icon skeleton" /><span className="app-label skeleton sk-line short" /></div>)}</div>}
         {apps === false && <p className="empty">Couldn’t load the apps just now. Open Watch again in a moment.</p>}
         <div className="apps">
           {(apps || []).filter((a) => a.installed !== false && !['settings', 'home', 'moonlight'].includes(a.id)).map((a) => (
@@ -52,6 +56,7 @@ export function Watch({ pull, people, who, recs, cont: contIn, apps, screens, se
             </button>
           ))}
         </div>
+        </>} />
       </section>
 
       <section>

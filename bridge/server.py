@@ -17,6 +17,7 @@ from zoneinfo import ZoneInfo
 from aiohttp import web
 
 import apps
+import arrange
 import backup
 import config
 import finder
@@ -352,6 +353,13 @@ async def h_launch(request):
         return ok(app=apps.describe_package(app["package"]))
     got, _ = await launch_app(app)
     record_action(request, "launch", {"app": target}, bool(got))
+    if got:
+        try:   # Most used, Recently used and Smart follow what is opened, from the phone too
+            st = _arrange_load()
+            arrange.bump(st["usage"], app["package"])
+            _arrange_save(st)
+        except Exception:
+            log.exception("app launch count")
     if not got:
         await installed_packages(max_age=0)
         if installed["packages"] is not None and app["package"] not in installed["packages"]:
@@ -912,15 +920,17 @@ async def h_ask(request):
     state = ask_state[tv_key] = {"id": uuid.uuid4().hex[:8], "text": text, "status": "pending",
                                  "reply": "", "options": [], "ts": time.time()}
     try:
+        def partial(t):   # the TV shows the answer growing while Claude is still working
+            state.update(status="pending", reply=t, partial=True, ts=time.time())
         result = await claude.ask(text, store.norm_who(data.get("who")) or store.current_who(), asks,
-                                  tv_key)
+                                  tv_key, on_partial=partial)
     except Exception as e:
         log.warning("ask crashed: %r", e)
         state.update(status="error", reply=f"Claude could not be reached: {e}", ts=time.time())
         raise ApiError(502, "Claude could not be reached. Is Claude signed in on this computer?")
     failed = result["reply"].startswith("Sorry, that did not work")
     state.update(status="error" if failed else "done", reply=result["reply"],
-                 options=result["options"], ts=time.time())
+                 options=result["options"], partial=False, ts=time.time())
     return ok(**result)
 
 
@@ -956,6 +966,8 @@ PLACEHOLDER = """<!doctype html><meta charset=utf-8><meta name=viewport content=
 def static_handler(folder, name):
     async def handler(request):
         rel = request.match_info.get("path", "")
+        if folder == REMOTE_DIR and rel in ("install", "diag", "ping"):
+            rel = {"install": "install.html", "diag": "diag.html", "ping": "ping.txt"}[rel]
         target = os.path.normpath(os.path.join(folder, rel))
         if not target.startswith(os.path.normpath(folder)):
             raise web.HTTPForbidden()
@@ -972,6 +984,8 @@ def static_handler(folder, name):
         ctype = mimetypes.guess_type(target)[0] or "application/octet-stream"
         if target.endswith(".webmanifest"):
             ctype = "application/manifest+json"
+        if ctype.startswith("text/") or ctype in ("application/javascript", "application/json", "application/manifest+json"):
+            ctype += "; charset=utf-8"
         return web.FileResponse(target, headers={"Cache-Control": "no-cache", "Content-Type": ctype})
     return handler
 
@@ -1057,6 +1071,39 @@ async def h_restore(request):
 async def h_tv_state_get(request):
     """What the TV keeps for itself, so a backup holds it and a new APK or TV gets it back."""
     return ok(**backup.tv_state())
+
+
+def _from_this_computer(request):
+    """True only for a request made on the computer the bridge runs on (itself or its own address)."""
+    import ipaddress
+    import socket
+    ip = (request.remote or "").split("%")[0]
+    try:
+        if ipaddress.ip_address(ip).is_loopback:
+            return True
+    except ValueError:
+        return False
+    try:
+        mine = {i[4][0] for i in socket.getaddrinfo(socket.gethostname(), None)}
+    except OSError:
+        mine = set()
+    return ip in mine
+
+
+async def h_pin_reset(request):
+    """Forgot the Settings PIN: take it off the TV's saved settings (the TV picks it up the next time it looks).
+    Only from the computer the bridge runs on. run reset-pin.cmd, or POST http://127.0.0.1:5400/api/pin/reset"""
+    if not _from_this_computer(request):
+        raise ApiError(403, "Reset the PIN on the computer the bridge runs on.")
+    raw = backup.tv_state()["values"].get("tvhome.settings")
+    try:
+        saved = json.loads(raw) if raw else {}
+    except ValueError:
+        saved = {}
+    had = isinstance(saved, dict) and saved.pop("pin", None) is not None
+    if had:
+        backup.set_tv_state({"tvhome.settings": json.dumps(saved)})
+    return ok(reset=had)
 
 
 async def h_tv_state_set(request):
@@ -1214,8 +1261,80 @@ async def h_app_order_set(request):
     store._write(_order_paths()[1], {"order": order, "line": line,
                                      "at": datetime.now(HOME_TZ).isoformat(timespec="seconds")})
     record_action(request, "app-order", {"line": line, "count": len(order)}, True)
+    # dragging apps on the phone (manual: true) means "My order"
+    if data.get("manual") is True:
+        st = _arrange_load()
+        st["prefs"]["mode"] = "manual"
+        _arrange_save(st)
     apps, line, saved = effective_order()
     return ok(apps=apps, line=line, saved=saved, dock_max=DOCK_MAX)
+
+
+# ---------- auto arrange: groups, sort modes, hidden tab (see arrange.py) ----------
+def _arrange_path():
+    return os.path.join(store.DATA, f"app-arrange.{_current.get()}.json")
+
+
+def _arrange_load():
+    raw = store._read(_arrange_path(), {})
+    return {"prefs": arrange.clean_prefs(raw.get("prefs")), "usage": arrange.clean_usage(raw.get("usage"))}
+
+
+def _arrange_save(st):
+    store._write(_arrange_path(), {"prefs": st["prefs"], "usage": st["usage"],
+                                   "at": datetime.now(HOME_TZ).isoformat(timespec="seconds")})
+
+
+def _arrange_view(st):
+    known, _line, saved = effective_order()
+    manual = store._read(_order_paths()[1], None)
+    manual_order = manual.get("order") if saved and manual else None
+    res = arrange.sort_apps(known, st["prefs"], st["usage"], manual_order)
+    return {"prefs": st["prefs"], "usage": st["usage"], "mode": res["mode"], "headers": res["headers"],
+            "items": res["items"], "modes": [{"id": m, "label": arrange.MODE_LABELS[m]} for m in arrange.MODES],
+            "categories": arrange.categories(), "manual_saved": bool(manual_order), "dock_max": DOCK_MAX}
+
+
+async def h_arrange_get(request):
+    return ok(**_arrange_view(_arrange_load()))
+
+
+async def h_arrange_set(request):
+    """{"prefs": {...}} merges those settings; {"pin": pkg, "on": bool}, {"hide": pkg, "on": bool}
+    pin or hide one app. {"usage": {...}} lets a TV that was offline hand over its counts (the larger wins)."""
+    data = await body(request)
+    st = _arrange_load()
+    merged = dict(st["prefs"])
+    if isinstance(data.get("prefs"), dict):
+        merged.update({k: v for k, v in data["prefs"].items() if k in arrange.DEFAULT_PREFS})
+    for key, field in (("pin", "pinned"), ("hide", "hidden"), ("show", "shown")):
+        pkg = data.get(key)
+        if isinstance(pkg, str) and pkg:
+            cur = [p for p in merged.get(field, []) if p != pkg]
+            merged[field] = cur + [pkg] if data.get("on", True) else cur
+            if field == "hidden" and data.get("on", True):
+                merged["pinned"] = [p for p in merged.get("pinned", []) if p != pkg]
+            if field == "hidden" and not data.get("on", True) and arrange.classify(pkg, "") == "hidden":
+                merged["shown"] = [p for p in merged.get("shown", []) if p != pkg] + [pkg]
+    st["prefs"] = arrange.clean_prefs(merged)
+    mine = arrange.clean_usage(data.get("usage"))
+    for pkg, u in mine.items():
+        cur = st["usage"].get(pkg, {"n": 0, "t": 0})
+        st["usage"][pkg] = {"n": max(cur["n"], u["n"]), "t": max(cur["t"], u["t"])}
+    _arrange_save(st)
+    record_action(request, "app-arrange", {"mode": st["prefs"]["mode"]}, True)
+    return ok(**_arrange_view(st))
+
+
+async def h_app_used(request):
+    data = await body(request)
+    pkg = data.get("package")
+    if not isinstance(pkg, str) or not pkg or len(pkg) > 200:
+        raise ApiError(400, "package is required")
+    st = _arrange_load()
+    arrange.bump(st["usage"], pkg)
+    _arrange_save(st)
+    return ok(n=st["usage"][pkg]["n"])
 
 
 async def h_sleep_get(request):
@@ -1663,6 +1782,28 @@ async def h_picture_get(request):
               can_set=bool(tv.picture_cfg.get("can_set")), modes=config.picture_modes(tv.picture_cfg))
 
 
+TV_PAGES = {
+    "picture": ("android.settings.DISPLAY_SETTINGS", "the TV's picture settings"),
+    "game": ("com.tcl.gamebar.main", "the TV's game bar"),
+}
+
+
+async def h_tvpage(request):
+    """Open one of the TV's own screens (picture settings, game bar) by intent. Picture mode itself can't be
+    changed from outside TCL's settings app, so this just opens the page where it is chosen."""
+    data = await body(request)
+    page = TV_PAGES.get(data.get("what"))
+    if not page:
+        raise ApiError(400, "what must be " + " or ".join(TV_PAGES))
+    if not (tv.paired and tv.connected and await tv.adb_ready()):
+        raise ApiError(503, "TV not connected")
+    out = await tv.adb("shell", "am", "start", "-a", page[0], timeout=10)
+    if "Error" in out or "unable to resolve" in out.lower():
+        raise ApiError(404, f"this TV has no {page[1]}")
+    record_action(request, "tvpage", {"what": data.get("what")}, True)
+    return ok(opened=data.get("what"))
+
+
 async def h_picture_set(request):
     data = await body(request)
     want = data.get("mode")
@@ -1888,6 +2029,7 @@ def make_app():
     r.add_post("/api/import", h_import)
     r.add_get("/api/picture", h_picture_get)
     r.add_post("/api/picture", h_picture_set)
+    r.add_post("/api/tvpage", h_tvpage)
     r.add_get("/api/people", h_people_get)
     r.add_post("/api/people", h_people_set)
     r.add_get("/api/who", h_who_get)
@@ -1900,9 +2042,13 @@ def make_app():
     r.add_post("/api/restore", h_restore)
     r.add_get("/api/tv-state", h_tv_state_get)
     r.add_post("/api/tv-state", h_tv_state_set)
+    r.add_post("/api/pin/reset", h_pin_reset)
     r.add_post("/api/home-apps", h_home_apps)
     r.add_get("/api/app-order", h_app_order_get)
     r.add_post("/api/app-order", h_app_order_set)
+    r.add_get("/api/arrange", h_arrange_get)
+    r.add_post("/api/arrange", h_arrange_set)
+    r.add_post("/api/app-used", h_app_used)
     r.add_get("/api/continue", h_continue)
     r.add_post("/api/continue/open", h_continue_open)
     r.add_get("/api/sleep", h_sleep_get)

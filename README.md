@@ -1,3 +1,12 @@
+# Waike’s tvOS
+
+**Waike’s tvOS** is a home screen and phone remote for a Google TV, designed and developed by Waike.
+It is built on [couch-tv](https://github.com/Seagey/couch-tv) by Seagey (MIT licence) and developed from the fork
+`realwaikealt/couch-tv-testing`. The About screen (TV Settings, or the phone remote's TV sheet) lists the credits and
+the licence. The upstream copyright stays in `LICENSE`; new work is credited to Waike alongside it.
+
+What follows is the couch-tv guide, which still applies. Package ids (`app.couchtv.launcher`, `dev.couchtv.ontv`) and API paths keep their couch-tv names so existing installs keep working.
+
 # couch-tv
 
 Your own home screen and phone remote for a Google TV. No ads on the home screen. Open source (MIT).

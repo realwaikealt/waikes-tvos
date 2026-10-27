@@ -25,7 +25,7 @@
   // read in readConfig() once the page starts (mock.js fills them in for previews). See docs/CONFIG.md.
   var CFG = {}, HOME = {}, TVCFG = {}, QUICK = [], SET = {}, SCENES_ALL = [];
   var WXCFG = { lat: -33.8688, lon: 151.2093, place: "Sydney", timezone: "Australia/Sydney" };
-  var QUICK_ALL = ["sleep", "picture", "look", "input", "ask", "settings"];
+  var QUICK_ALL = ["sleep", "picture", "look", "input", "picpage", "game", "ask", "settings"];
   // The look: ?theme= for a preview, then what the Look button last chose on this TV, then home.look.
   var THEME = "night", NIGHT = true, CLOCK24 = false;
 
@@ -117,6 +117,7 @@
   var ICONS = {
     screen: '<svg viewBox="0 0 24 24"><rect x="2.5" y="3.5" width="19" height="13" rx="2"/><path d="M9 20.5h6M12 16.5v4"/></svg>',
     moon: '<svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>',
+    game: '<svg viewBox="0 0 24 24"><rect x="2.5" y="7" width="19" height="10" rx="5"/><path d="M7.5 10v4M5.5 12h4"/><circle cx="15.5" cy="11" r=".6" class="fill"/><circle cx="17.5" cy="13" r=".6" class="fill"/></svg>',
     picture: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17a8.5 8.5 0 0 0 0-17z" class="fill"/></svg>',
     more: '<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg>',
     ask: '<svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-4.5 4v-4A2.5 2.5 0 0 1 4 13.5z"/><path d="M12 6.5l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z" class="fill"/></svg>',
@@ -191,6 +192,8 @@
     if (QUICK.indexOf("settings") < 0) QUICK.push("settings");   // always there, so there is always a way back in
     THEME = (Q.match(/[?&]theme=([a-z]+)/) || [])[1] || kept("tvhome.look") || HOME.look || "night";
     if (THEME !== "classic") THEME = "night";
+    var autoNow = autoLook();   // Auto Night look: Night after sunset, Classic after sunrise (unless a look was just picked by hand)
+    if (autoNow) { THEME = autoNow; if (kept("tvhome.look") !== autoNow) keep("tvhome.look", autoNow); }
     NIGHT = THEME === "night";
     document.documentElement.classList.toggle("theme-night", NIGHT);
     GRID_COLS = NIGHT ? 12 : 8;
@@ -319,6 +322,7 @@
     var mm = (m < 10 ? "0" : "") + m;
     var hm = CLOCK24 ? (h < 10 ? "0" : "") + h + ":" + mm : (h % 12 || 12) + ":" + mm;
     $("time").innerHTML = hm + (CLOCK24 ? "" : "<small>" + (h < 12 ? "am" : "pm") + "</small>");
+    if (clock._hm !== hm) { if (clock._hm) pulse($("time"), "tick"); clock._hm = hm; }
     var day = dateStyle() === "us"
       ? d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })
       : d.toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" }).replace(",", "");
@@ -392,8 +396,13 @@
 
   function glassClock(hm) {
     if (hm === glassShown) return;
+    var had = !!glassShown;
     glassShown = hm;
-    sceneEls.forEach(function (el, i) { if (el.classList.contains("ready")) drawClocks(el, SCENES[i], hm); });
+    sceneEls.forEach(function (el, i) {
+      if (!el.classList.contains("ready")) return;
+      drawClocks(el, SCENES[i], hm);
+      if (had && el.classList.contains("on")) Array.prototype.forEach.call(el.querySelectorAll(".gclock"), function (g) { pulse(g, "tick"); });
+    });
   }
 
   function showScene(i) {
@@ -442,8 +451,11 @@
     var el = $("hero");
     if (!it) { el.classList.remove("on"); return; }
     $("hero-title").textContent = it.title;
-    $("hero-sub").textContent = subtitle(it);
+    var sub = subtitle(it), key = it.title + "|" + sub, changed = el._k !== key;
+    el._k = key;
+    $("hero-sub").textContent = sub;
     el.classList.add("on");
+    if (changed) pulse(el, "re");
   }
 
   // ---------------- quick buttons: from tvs[].quick in config.json, in that order ----------------
@@ -475,6 +487,7 @@
       if (q === "picture") return !OFFLINE && picShown;
       if (q === "look" || q === "settings") return true;
       if (q === "ask") return askOn();
+      if (q === "picpage" || q === "game") return !OFFLINE;
       if (q === "input") return !OFFLINE || nativeInputs();
       return false;
     });
@@ -510,6 +523,10 @@
         el.innerHTML = ICONS.look + "<span>" + (NIGHT ? "Classic look" : "Night look") + "</span>";
       } else if (q === "input") {
         el.innerHTML = ICONS.input + "<span>Input</span>";
+      } else if (q === "picpage") {
+        el.innerHTML = ICONS.picture + "<span>Picture settings</span>";
+      } else if (q === "game") {
+        el.innerHTML = ICONS.game + "<span>Game mode</span>";
       } else if (q === "ask") {
         el.innerHTML = ICONS.ask + "<span>Ask Claude</span>";
       } else if (q === "settings") {
@@ -524,15 +541,22 @@
       return '<span class="opt' + (i === menuI ? " focus" : "") + '">' + (c ? c + " min" : "Off") + "</span>";
     }).join("");
   }
+  // opening and closing the panels: a short motion in, a shorter one out (a quick re-open cancels the exit)
+  function enter(el) { clearTimeout(el._lv); el.classList.remove("out"); el.classList.add("on"); }
+  function leave(el) {
+    clearTimeout(el._lv); el.classList.add("out");
+    el._lv = setTimeout(function () { el.classList.remove("on", "out"); }, 200);
+  }
+  function pulse(el, cls) { if (!el) return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
   function openMenu() {
     var m = minutesLeft();
     menuI = m ? SLEEP_CHOICES.length - 1 : 1;   // a timer is running: start on Off; otherwise 30 min
     zone = "menu";
-    $("sleep-menu").classList.add("on");
+    enter($("sleep-menu"));
     renderMenu();
   }
   function closeMenu() {
-    $("sleep-menu").classList.remove("on");
+    leave($("sleep-menu"));
     zone = "quick";
   }
   function setSleep(minutes) {
@@ -558,6 +582,7 @@
   // The look is kept on this TV; the page starts again in the other look.
   function toggleLook() {
     keep("tvhome.look", NIGHT ? "classic" : "night");
+    holdLook();
     location.replace(location.href.replace(/([?&])theme=[a-z]+&?/, "$1").replace(/[?&]$/, ""));
   }
   // The TV's own input list (HDMI, a console, a set top box): the TV_INPUT key through the bridge,
@@ -568,20 +593,28 @@
     api("POST", "/api/key", { key: "input" })
       .catch(function (e) { if (!native()) note(e.message); });
   }
+  // the TV's own picture settings page / game bar (the bridge starts them by intent)
+  function openTvPage(what) {
+    if (OFFLINE) { note("Needs the bridge on the computer."); return; }
+    api("POST", "/api/tvpage", { what: what }).catch(function (e) { note(e.message); });
+  }
   function quickAction() {
     var q = quickVisible()[qi];
     if (q === "sleep") openMenu();
     else if (q === "picture") togglePicture();
     else if (q === "look") toggleLook();
     else if (q === "input") openInputs();
+    else if (q === "picpage") openTvPage("picture");
+    else if (q === "game") openTvPage("game");
     else if (q === "ask") openAsk();
     else if (q === "settings") openSettings();
   }
   // ---------------- Ask Claude, on the TV ----------------
   // Up and down pick a suggestion, OK asks it. A question typed in the phone remote's Ask tab shows here too:
   // the bridge keeps the latest ask for this TV (/api/ask/state) and this screen follows it while it is open.
-  var ASK_PROMPTS = ["What can you do?", "What should we watch tonight?", "Recommend something like what I last watched", "Tell me a joke"];
-  var askI = 0, askState = null, askIgnore = null, askTimer = null, askDots = 0, askHint = "", askClock = 0, askKey = "";
+  var ASK_PROMPTS = ["What's the weather?", "Will it rain this week?", "What should we watch tonight?", "Tell me a joke"];
+  var askPaint = "";   // what the answer box shows now, so a poll that changes nothing does not restart the dots
+  var askI = 0,askState = null, askIgnore = null, askTimer = null, askDots = 0, askHint = "", askClock = 0, askKey = "";
   function askOn() { return !OFFLINE && !!(CFG.ask && CFG.ask.enabled); }
   function askView() {
     var s = askState;
@@ -611,8 +644,13 @@
     $("ask-q").textContent = v !== "menu" && s && s.text ? "“" + s.text + "”" : "";
     a.style.display = v === "menu" ? "none" : "";
     a.classList.toggle("wait", v === "wait");
-    if (v === "wait") a.textContent = "Thinking" + new Array(askDots % 4 + 1).join(".");
-    else if (v === "answer") a.textContent = s.reply || "No answer came back.";
+    var paint = v === "wait" ? "w|" + (s && s.reply || "") : v === "answer" ? "a|" + (s.reply || "No answer came back.") : "";
+    if (paint !== askPaint) {
+      askPaint = paint;
+      if (v === "wait") {   // the answer grows here while Claude is still working; dots only fade (opacity)
+        a.innerHTML = (s && s.reply ? esc(s.reply) + " " : "") + '<span class="tdots"><i></i><i></i><i></i></span>';
+      } else if (v === "answer") a.textContent = s.reply || "No answer came back.";
+    }
     a.classList.toggle("focus", !!rows[askI] && rows[askI].k === "answer" && askScrollable());
     $("ask-list").innerHTML = rows.map(function (r, i) {
       if (r.k === "answer") return "";
@@ -648,18 +686,18 @@
     askDots++;
     api("GET", "/api/ask/state").then(askApply, function (e) {
       askHint = e.message; renderAsk();
-    }).then(function () { askTimer = setTimeout(askPoll, askView() === "wait" ? 1200 : 2000); });
+    }).then(function () { askTimer = setTimeout(askPoll, askView() === "wait" ? 500 : 2000); });
   }
   function openAsk() {
     zone = "ask"; askI = 0; askClock = 0; askHint = ""; askDots = 0;
-    $("ask").classList.add("on");
+    enter($("ask"));
     renderAsk();
     askPoll();
     paintFocus();
   }
   function closeAsk() {
     clearTimeout(askTimer);
-    $("ask").classList.remove("on");
+    leave($("ask"));
     zone = "quick";
     paintFocus();
   }
@@ -700,6 +738,226 @@
     else closeAsk();
   }
 
+  // ---------------- Auto Night look ----------------
+  // Night after sunset, Classic after sunrise, for the place in config.json. Sunrise and sunset come from Open-Meteo
+  // (cached on this TV); with no internet the same times are worked out from the sun's position. Picking a look by
+  // hand wins until the next sunrise or sunset. ?now=<ms> pretends it is that moment (for previews and tests).
+  var NOW_SKEW = (function () { var m = Q.match(/[?&]now=(\d+)/); return m ? +m[1] - Date.now() : 0; })();
+  function nowMs() { return Date.now() + NOW_SKEW; }
+  function autoOn() { return SET.auto !== "off"; }
+  function sunEventsFormula(now) {
+    var out = [], lat = +WXCFG.lat, lon = +WXCFG.lon, rad = Math.PI / 180;
+    if (isNaN(lat) || isNaN(lon)) return out;
+    for (var off = -1; off <= 1; off++) {
+      var n = Math.ceil(now / 86400000 + 2440587.5 - 2451545.0 + 0.0008) + off;
+      var js = n - lon / 360;
+      var M = (357.5291 + 0.98560028 * js) % 360, Mr = M * rad;
+      var C = 1.9148 * Math.sin(Mr) + 0.02 * Math.sin(2 * Mr) + 0.0003 * Math.sin(3 * Mr);
+      var lr = ((M + C + 180 + 102.9372) % 360) * rad;
+      var jt = 2451545.0 + js + 0.0053 * Math.sin(Mr) - 0.0069 * Math.sin(2 * lr);
+      var sd = Math.sin(lr) * Math.sin(23.4397 * rad), cd = Math.cos(Math.asin(sd));
+      var cw = (Math.sin(-0.833 * rad) - Math.sin(lat * rad) * sd) / (Math.cos(lat * rad) * cd);
+      if (cw < -1 || cw > 1) continue;   // polar day or night: no event that day
+      var w = Math.acos(cw) / rad / 360;
+      out.push({ t: (jt - w - 2440587.5) * 86400000, kind: "rise" }, { t: (jt + w - 2440587.5) * 86400000, kind: "set" });
+    }
+    return out.sort(function (a, b) { return a.t - b.t; });
+  }
+  function sunEventsCached() {
+    var c = kept("tvhome.sun"), out = [];
+    if (!c || c.lat !== +WXCFG.lat || c.lon !== +WXCFG.lon) return out;
+    (c.rise || []).forEach(function (t) { out.push({ t: t, kind: "rise" }); });
+    (c.set || []).forEach(function (t) { out.push({ t: t, kind: "set" }); });
+    return out.sort(function (a, b) { return a.t - b.t; });
+  }
+  function sunState(now) {
+    function pick(list) {
+      var prev = null, next = null;
+      list.forEach(function (e) { if (e.t <= now) prev = e; else if (!next) next = e; });
+      return prev && next ? { prev: prev, next: next } : null;
+    }
+    var p = pick(sunEventsCached()) || pick(sunEventsFormula(now));
+    return p ? { look: p.prev.kind === "set" ? "night" : "classic", next: p.next.t, nextKind: p.next.kind } : null;
+  }
+  // The look it should be right now, or null when Auto is off, a hand-picked look is still holding, or ?theme= is set.
+  function autoLook() {
+    if (!autoOn() || /[?&]theme=/.test(Q)) return null;
+    var now = nowMs();
+    if ((+kept("tvhome.look.hold") || 0) > now) return null;
+    var s = sunState(now);
+    return s ? s.look : null;
+  }
+  function holdLook() { var s = sunState(nowMs()); if (s) keep("tvhome.look.hold", s.next, true); }
+  function autoTick() {
+    var want = autoLook();
+    if (!want || want === THEME || lift || zone === "settings" || zone === "pin" || zone === "ask") return;
+    keep("tvhome.look", want);
+    location.replace(location.href.replace(/([?&])theme=[a-z]+&?/, "$1").replace(/[?&]$/, ""));
+  }
+  function refreshSun() {
+    var c = kept("tvhome.sun");
+    if (c && c.lat === +WXCFG.lat && c.lon === +WXCFG.lon && Date.now() - c.at < 6 * 3600000) return;
+    var url = "https://api.open-meteo.com/v1/forecast?latitude=" + WXCFG.lat + "&longitude=" + WXCFG.lon +
+      "&daily=sunrise,sunset&timezone=GMT&past_days=1&forecast_days=3";
+    try {
+      fetch(url).then(function (r) { return r.json(); }).then(function (j) {
+        var d = j && j.daily;
+        if (!d || !d.sunrise || !d.sunset) return;
+        var ms = function (s) { return Date.parse(s + "Z"); }, fin = function (t) { return isFinite(t); };
+        keep("tvhome.sun", { at: Date.now(), lat: +WXCFG.lat, lon: +WXCFG.lon, rise: d.sunrise.map(ms).filter(fin), set: d.sunset.map(ms).filter(fin) }, true);
+        autoTick();
+      }).catch(function () {});
+    } catch (e) {}
+  }
+  function fmtAt(ms) {
+    var d = new Date(ms), o = { hour: CLOCK24 ? "2-digit" : "numeric", minute: "2-digit", hour12: !CLOCK24 };
+    try { return d.toLocaleTimeString("en-US", Object.assign({ timeZone: WXCFG.timezone || undefined }, o)); }
+    catch (e) { try { return d.toLocaleTimeString("en-US", o); } catch (e2) { return d.toTimeString().slice(0, 5); } }
+  }
+  function autoNote() {
+    if (!autoOn()) return "";
+    var s = sunState(nowMs());
+    if (!s) return "";
+    var hold = +kept("tvhome.look.hold") || 0;
+    return (hold > nowMs() ? "You picked this look by hand, so Auto waits until " + fmtAt(hold) + ". " : "") +
+      (s.nextKind === "set" ? "Night look starts at " + fmtAt(s.next) + " (sunset)." : "Classic look returns at " + fmtAt(s.next) + " (sunrise).");
+  }
+
+  // ---------------- Settings PIN ----------------
+  // 4 digits, asked before Settings opens and before Restart / Reboot / Back up / Restore / Reset. Only a salted, stretched
+  // SHA-256 is kept (inside tvhome.settings, so it is backed up and synced as a hash, never the digits). After a right PIN
+  // the sensitive actions stay unlocked for 2 minutes. 5 wrong tries lock the PIN screen for 30 seconds.
+  // Forgot it: on the computer, POST /api/pin/reset (run reset-pin.cmd next to run-bridge.cmd).
+  var PIN_OPEN_MS = 120000, PIN_TRIES = 5, PIN_LOCK_MS = 30000;
+  var pinS = null, pinUnlockedAt = 0, pinTick = null;
+  var PIN_GUARDED = ["!rhome", "!reboot", "!backup", "!restore", "!reset", "!android"];
+  function sha256(ascii) {
+    function rr(v, a) { return (v >>> a) | (v << (32 - a)); }
+    var mp = Math.pow, mw = mp(2, 32), i, j, result = "", words = [], abl = ascii.length * 8;
+    var hash = sha256.h = sha256.h || [], k = sha256.k = sha256.k || [], pc = k.length, ic = {};
+    for (var c = 2; pc < 64; c++) {
+      if (!ic[c]) {
+        for (i = 0; i < 313; i += c) ic[i] = c;
+        hash[pc] = (mp(c, 0.5) * mw) | 0;
+        k[pc++] = (mp(c, 1 / 3) * mw) | 0;
+      }
+    }
+    ascii += "\x80";
+    while (ascii.length % 64 - 56) ascii += "\x00";
+    for (i = 0; i < ascii.length; i++) { j = ascii.charCodeAt(i); words[i >> 2] |= (j & 255) << ((3 - i) % 4) * 8; }
+    words[words.length] = (abl / mw) | 0;
+    words[words.length] = abl;
+    for (j = 0; j < words.length;) {
+      var w = words.slice(j, j += 16), old = hash;
+      hash = hash.slice(0, 8);
+      for (i = 0; i < 64; i++) {
+        var w15 = w[i - 15], w2 = w[i - 2], a = hash[0], e = hash[4];
+        var t1 = hash[7] + (rr(e, 6) ^ rr(e, 11) ^ rr(e, 25)) + ((e & hash[5]) ^ (~e & hash[6])) + k[i] +
+          (w[i] = i < 16 ? w[i] : (w[i - 16] + (rr(w15, 7) ^ rr(w15, 18) ^ (w15 >>> 3)) + w[i - 7] + (rr(w2, 17) ^ rr(w2, 19) ^ (w2 >>> 10))) | 0);
+        var t2 = (rr(a, 2) ^ rr(a, 13) ^ rr(a, 22)) + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
+        hash = [(t1 + t2) | 0].concat(hash);
+        hash[4] = (hash[4] + t1) | 0;
+      }
+      for (i = 0; i < 8; i++) hash[i] = (hash[i] + old[i]) | 0;
+    }
+    for (i = 0; i < 8; i++) for (j = 3; j + 1; j--) { var b = (hash[i] >> (j * 8)) & 255; result += (b < 16 ? "0" : "") + b.toString(16); }
+    return result;
+  }
+  function pinHash(pin, salt) { var h = salt + ":" + pin; for (var i = 0; i < 400; i++) h = sha256(salt + h); return h; }
+  function pinRandom() {
+    var s = "";
+    try { var a = new Uint8Array(8); crypto.getRandomValues(a); for (var i = 0; i < a.length; i++) s += (a[i] < 16 ? "0" : "") + a[i].toString(16); return s; } catch (e) {}
+    for (var j = 0; j < 16; j++) s += Math.floor(Math.random() * 16).toString(16);
+    return s;
+  }
+  function pinOn() { return !!(SET.pin && SET.pin.h && SET.pin.s); }
+  function pinNeeded() { return pinOn() && Date.now() - pinUnlockedAt > PIN_OPEN_MS; }
+  function pinLockLeft() { var l = kept("tvhome.pin.lock"); return l && l.until > Date.now() ? Math.ceil((l.until - Date.now()) / 1000) : 0; }
+  function openPin(mode, then) {
+    pinS = { mode: mode, d: [0, 0, 0, 0], at: 0, then: then, back: zone, first: "", msg: "" };
+    zone = "pin";
+    $("pin").classList.add("on");
+    renderPin();
+  }
+  function closePin() {
+    clearInterval(pinTick); pinTick = null;
+    $("pin").classList.remove("on");
+    var s = pinS; pinS = null;
+    if (s) zone = s.back;
+    return s;
+  }
+  function pinCancel() { closePin(); paintFocus(); }
+  function renderPin() {
+    if (!pinS) return;
+    var titles = { check: "Enter PIN", "new": "Choose a new PIN", confirm: "Enter it again" };
+    $("pin-title").textContent = titles[pinS.mode] || "Enter PIN";
+    $("pin-boxes").innerHTML = pinS.d.map(function (n, i) {
+      return '<div class="pin-box' + (i === pinS.at ? " focus" : "") + '">' + (i === pinS.at ? n : "•") + "</div>";
+    }).join("");
+    var left = pinLockLeft();
+    $("pin-note").textContent = left ? "Too many tries. Try again in " + left + " s." : pinS.msg;
+    if (left && !pinTick) pinTick = setInterval(function () {
+      if (zone === "pin") renderPin();
+      if (!pinLockLeft()) { clearInterval(pinTick); pinTick = null; }
+    }, 1000);
+  }
+  function pinMove(dx, dy) {
+    if (!pinS) return;
+    if (dy) pinS.d[pinS.at] = (pinS.d[pinS.at] - dy + 10) % 10;
+    if (dx) pinS.at = Math.max(0, Math.min(3, pinS.at + dx));
+    pinS.msg = "";
+    renderPin();
+  }
+  function pinType(n) {
+    if (!pinS) return;
+    pinS.d[pinS.at] = n;
+    if (pinS.at < 3) pinS.at++;
+    pinS.msg = "";
+    renderPin();
+  }
+  function pinShake(msg) {
+    pinS.msg = msg; pinS.d = [0, 0, 0, 0]; pinS.at = 0;
+    renderPin();
+    var p = $("pin-panel");
+    p.classList.remove("shake"); void p.offsetWidth; p.classList.add("shake");
+  }
+  function pinSubmit() {
+    if (!pinS) return;
+    if (pinLockLeft()) { renderPin(); return; }
+    var pin = pinS.d.join("");
+    if (pinS.mode === "check") {
+      if (pinOn() && pinHash(pin, SET.pin.s) === SET.pin.h) {
+        keep("tvhome.pin.lock", null, true);
+        pinUnlockedAt = Date.now();
+        var s = closePin();
+        paintFocus();
+        if (s && s.then) s.then();
+        return;
+      }
+      var l = kept("tvhome.pin.lock") || {}, n = (l.n || 0) + 1;
+      if (n >= PIN_TRIES) { keep("tvhome.pin.lock", { n: 0, until: Date.now() + PIN_LOCK_MS }, true); pinShake(""); }
+      else { keep("tvhome.pin.lock", { n: n, until: 0 }, true); pinShake("Wrong PIN. " + (PIN_TRIES - n) + (PIN_TRIES - n === 1 ? " try" : " tries") + " left."); }
+    } else if (pinS.mode === "new") {
+      pinS.first = pin; pinS.mode = "confirm"; pinS.d = [0, 0, 0, 0]; pinS.at = 0; pinS.msg = "";
+      renderPin();
+    } else {
+      if (pin !== pinS.first) { pinS.mode = "new"; pinShake("They didn’t match. Choose it again."); return; }
+      var salt = pinRandom();
+      SET.pin = { s: salt, h: pinHash(pin, salt) };
+      keep("tvhome.settings", SET);
+      pinUnlockedAt = Date.now();
+      var done = closePin();
+      paintFocus();
+      if (done && done.then) done.then();
+    }
+  }
+  function pinDigit(e) {
+    if (e.key && e.key.length === 1 && e.key >= "0" && e.key <= "9") return +e.key;
+    if (e.keyCode >= 48 && e.keyCode <= 57) return e.keyCode - 48;
+    if (e.keyCode >= 96 && e.keyCode <= 105) return e.keyCode - 96;
+    return null;
+  }
+
   // ---------------- Settings, on the TV itself ----------------
   // Everything here is kept on this TV (tvhome.settings) and wins over config.json. Up and down pick a row,
   // left and right (or OK) change it, Back closes. Anything that needs the page to start again does so on close.
@@ -712,25 +970,36 @@
   function setRows() {
     var rows = [
       { k: "look", label: "Look", cur: NIGHT ? "night" : "classic", opts: [["night", "Night scenes"], ["classic", "Classic photo"]] },
+      { k: "auto", label: "Auto Night look", cur: autoOn() ? "on" : "off", opts: [["on", "Sunset to sunrise"], ["off", "Off"]] },
       { k: "clock", label: "Clock", cur: CLOCK24 ? "24h" : "12h", opts: [["12h", "12-hour"], ["24h", "24-hour"]] },
       { k: "unit", label: "Temperature", cur: tempUnit(), opts: [["F", "Fahrenheit"], ["C", "Celsius"]] },
       { k: "date", label: "Date style", cur: dateStyle(), opts: [["us", "Monday, October 26"], ["intl", "Monday 26 October"]] },
       { k: "secs", label: "Each scene lasts", cur: Math.round(SCENE_MS / 1000), opts: [[10, "10 seconds"], [20, "20 seconds"], [30, "30 seconds"], [60, "1 minute"], [120, "2 minutes"]] },
-      { k: "dock", label: "Apps in the dock", cur: DOCK_APPS, opts: [4, 5, 6, 7, 8, 9, 10].map(function (n) { return [n, String(n)]; }) }
+      { k: "dock", label: "Apps in the dock", cur: DOCK_APPS, opts: [4, 5, 6, 7, 8, 9, 10].map(function (n) { return [n, String(n)]; }) },
+      { k: "arr:mode", label: "Arrange apps", cur: arrMode(), opts: Arr.MODES.map(function (m) { return [m, Arr.LABELS[m]]; }) },
+      { k: "arr:group", label: "Group apps", cur: ARR.prefs.group ? 1 : 0, opts: [[1, "On"], [0, "Off"]] },
+      { k: "arr:hidden", label: "Hidden apps tab", cur: ARR.prefs.show_hidden ? 1 : 0, opts: [[1, "Shown"], [0, "Off"]] }
     ];
     SCENES_ALL.forEach(function (sc) {
       rows.push({ k: "scene:" + sc.id, label: "Scene: " + (SCENE_NAMES[sc.id] || sc.id), cur: sceneOn(sc.id) ? 1 : 0, opts: [[1, "On"], [0, "Off"]] });
     });
-    var names = { sleep: "Sleep timer button", look: "Look button", input: "Input button", ask: "Ask Claude button" };
-    ["sleep", "look", "input", "ask"].forEach(function (q) {
+    var names = { sleep: "Sleep timer button", look: "Look button", input: "Input button", picpage: "Picture settings button", game: "Game mode button", ask: "Ask Claude button" };
+    ["sleep", "look", "input", "picpage", "game", "ask"].forEach(function (q) {
       if (q === "ask" ? !askOn() : (TVCFG.quick || []).indexOf(q) < 0) return;
       rows.push({ k: "q:" + q, label: names[q], cur: QUICK.indexOf(q) >= 0 ? 1 : 0, opts: [[1, "Shown"], [0, "Hidden"]] });
     });
+    rows.push({ k: "!picpage", label: "Picture settings (Movie, Game, Sports…)", action: "Open" });
+    rows.push({ k: "!game", label: "Game mode (TV game bar)", action: "Open" });
+    if (pinOn()) {
+      rows.push({ k: "!pinchg", label: "Change the PIN", action: "Change" });
+      rows.push({ k: "!pinoff", label: "Remove the PIN", action: "Remove" });
+    } else rows.push({ k: "!pinset", label: "Lock Settings with a PIN", action: "Set up" });
     rows.push({ k: "!rhome", label: "Restart this home screen", action: "Restart" });
     rows.push({ k: "!reboot", label: rebootAsk ? "Press OK again to reboot the TV" : "Reboot the TV (fixes most glitches)", action: rebootAsk ? "Confirm" : "Reboot" });
     rows.push({ k: "!backup", label: "Back up everything", action: "Back up now" });
     rows.push({ k: "!restore", label: "Restore the latest backup", action: setConfirm === "!restore" ? "Press OK to restore" : "Restore" });
     rows.push({ k: "!android", label: "The TV's own settings", action: "Open" });
+    rows.push({ k: "!about", label: "About Waike’s tvOS", action: "Open" });
     rows.push({ k: "!reset", label: "Put all of these back", action: "Reset" });
     rows.push({ k: "!close", label: "Done", action: "Close" });
     return rows;
@@ -748,17 +1017,66 @@
       }
       return '<div class="srow' + (i === setI ? " focus" : "") + '"><span class="sl">' + esc(r.label) + "</span>" + val + "</div>";
     }).join("");
-    $("settings-note").textContent = setFlash;
+    $("settings-note").textContent = setFlash || autoNote();
     var f = box.querySelector(".focus");
     if (f && f.scrollIntoView) f.scrollIntoView({ block: "nearest" });
   }
+  // About / credits. Every line below is checked against the repo (LICENSE, README credits,
+  // backgrounds/CREDITS.md); the phone remote's About block repeats the same facts.
+  var ABOUT = { name: "Asher\u2019s tvOS", version: "1.0", build: "October 2026" };
+  var MIT_TEXT = "MIT License\n\nCopyright (c) 2026 Seagey\nCopyright (c) 2026 Waike (changes and additions in Asher\u2019s tvOS)\n\n" +
+    "Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \u201cSoftware\u201d), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\n" +
+    "The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\n" +
+    "THE SOFTWARE IS PROVIDED \u201cAS IS\u201d, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.";
+  var ABOUT_LOGO = '<svg class="about-logo" viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="alg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff9a5a"/><stop offset=".55" stop-color="#d8467f"/><stop offset="1" stop-color="#4a2f8a"/></linearGradient></defs>' +
+    '<rect width="120" height="120" rx="28" fill="url(#alg)"/><rect x="21" y="27" width="78" height="52" rx="10" fill="none" stroke="#fff" stroke-width="5"/>' +
+    '<path d="M46 70 L60 41 L74 70 M51.5 60 H68.5" fill="none" stroke="#fff" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<path d="M44 93 H76" stroke="#fff" stroke-width="5" stroke-linecap="round"/></svg>';
+  function aboutHtml() {
+    var h = '<div class="about-hero">' + ABOUT_LOGO + "<h2>" + esc(ABOUT.name) + "</h2>" +
+      '<div class="about-tag">A calm, fast home screen and phone remote for your TV.</div>' +
+      '<div class="about-ver">Version ' + ABOUT.version + " \u00b7 " + ABOUT.build + "</div>" +
+      '<div class="about-by">Designed and developed by Waike</div></div>';
+    function sec(title, paras) { return '<div class="about-sec"><h3>' + esc(title) + "</h3>" + paras.join("") + "</div>"; }
+    h += sec("Built on open source", [
+      "<p>Asher\u2019s tvOS is built on <b>couch-tv</b> by Seagey, released under the MIT licence.</p>",
+      "<p>This version is developed from the fork <b>realwaikealt/couch-tv-testing</b>.</p>"]);
+    h += sec("Credits", [
+      "<p><b>Fonts.</b> Inter and Antonio, under the SIL Open Font Licence.</p>",
+      "<p><b>Weather.</b> Open-Meteo.</p>",
+      "<p><b>Show data and posters.</b> JustWatch.</p>",
+      "<p><b>Backgrounds.</b> The five Night scenes were generated for couch-tv with an AI image model and are free to use. The Classic photos come from Wikimedia Commons under Creative Commons licences: Thennicke, Diliff, JJ Harrison, Christian Ferrer and Basile Morin.</p>",
+      "<p><b>App logos.</b> The streaming app logos belong to their owners.</p>"]);
+    h += sec("Licence", ['<p class="lic">' + esc(MIT_TEXT) + "</p>"]);
+    return h;
+  }
+  function openAbout() {
+    $("about-body").innerHTML = aboutHtml();
+    $("about-body").scrollTop = 0;
+    zone = "about";
+    $("about").classList.add("on");
+  }
+  function closeAbout() {
+    $("about").classList.remove("on");
+    zone = "settings";
+    paintFocus();
+  }
+  function aboutMove(dy) {
+    var b = $("about-body");
+    b.scrollTop = Math.max(0, Math.min(b.scrollHeight, b.scrollTop + dy * 180));
+  }
   function openSettings() {
+    if (pinNeeded()) { openPin("check", doOpenSettings); return; }
+    doOpenSettings();
+  }
+  function doOpenSettings() {
     zone = "settings"; setI = 0; setFlash = "";
-    $("settings").classList.add("on");
+    enter($("settings"));
     paintFocus();
   }
   function closeSettings() {
-    $("settings").classList.remove("on");
+    pinUnlockedAt = 0;   // opening Settings again (or any guarded action later) asks for the PIN
+    leave($("settings"));
     zone = "quick";
     if (setDirty) { location.reload(); return; }   // the page starts again with what was chosen
     paintFocus();
@@ -771,8 +1089,10 @@
     var at = 0;
     r.opts.forEach(function (o, i) { if (String(o[0]) === String(r.cur)) at = i; });
     var next = r.opts[(at + dir + r.opts.length) % r.opts.length][0];
-    if (r.k === "look") { keep("tvhome.look", next); setDirty = true; }
+    if (r.k === "look") { keep("tvhome.look", next); holdLook(); setDirty = true; }
+    else if (r.k === "auto") { SET.auto = next; keep("tvhome.look.hold", null, true); saveSet(); }
     else if (r.k === "clock" || r.k === "unit" || r.k === "date" || r.k === "secs" || r.k === "dock") { SET[r.k] = next; saveSet(); }
+    else if (r.k.indexOf("arr:") === 0) { arrSet(r.k.slice(4), next); }
     else if (r.k.indexOf("scene:") === 0) {
       var id = r.k.slice(6);
       var on = SCENES.map(function (x) { return x.id; });
@@ -824,6 +1144,16 @@
     });
   }
   function runSetAction(r) {
+    if (PIN_GUARDED.indexOf(r.k) >= 0 && pinNeeded()) { openPin("check", function () { runSetAction(r); }); return; }
+    if (r.k === "!pinset") { openPin("new", function () { setFlash = "PIN is on. Settings will ask for it."; renderSettings(); }); return; }
+    if (r.k === "!pinchg") {
+      openPin("check", function () { openPin("new", function () { setFlash = "PIN changed."; renderSettings(); }); });
+      return;
+    }
+    if (r.k === "!pinoff") {
+      openPin("check", function () { delete SET.pin; keep("tvhome.settings", SET); setFlash = "PIN removed."; renderSettings(); });
+      return;
+    }
     if (r.k === "!rhome") { runRestart("home"); return; }
     if (r.k === "!reboot") {
       if (!rebootAsk) {
@@ -833,9 +1163,12 @@
       } else { rebootAsk = false; clearTimeout(rebootTimer); runRestart("reboot"); }
       return;
     }
+    if (r.k === "!picpage" || r.k === "!game") { closeSettings(); openTvPage(r.k === "!game" ? "game" : "picture"); return; }
+    if (r.k === "!about") { openAbout(); return; }
     if (r.k === "!close") { closeSettings(); return; }
     if (r.k === "!reset") {
       SET = {}; keep("tvhome.settings", SET); keep("tvhome.look", null); setDirty = true;
+      ARR.prefs = Arr.prefs(null); arrSavePrefs();
       closeSettings(); return;
     }
     if (r.k === "!backup") {
@@ -928,7 +1261,7 @@
   }
   function openPop() {
     zone = "pmenu"; pmi = whoIndex(); plift = false;
-    $("people-pop").classList.add("on");
+    enter($("people-pop"));
     renderPop();
   }
   function closePop() {
@@ -1000,6 +1333,101 @@
     shelfEls = Array.prototype.slice.call(track.children);
   }
 
+  // ---------------- auto arrange ----------------
+  // Groups, sort modes and the Hidden tab for the apps. The rules are in arrange-rules.js and the steps
+  // in arrange.js (bridge/arrange.py does the same for the phone). Picked in Settings or on the phone.
+  // Only what the home shows changes; no app is ever disabled or removed from the TV.
+  var Arr = window.Arrange;
+  var ARR = { prefs: Arr.prefs(kept("tvhome.arrange")), usage: kept("tvhome.usage") || {}, headers: false };
+  function arrMode() { return Arr.mode(ARR.prefs, !!(data.order && data.order.saved)); }
+  function arrSavePrefs() {
+    keep("tvhome.arrange", ARR.prefs, true);
+    if (OFFLINE || MOCK || PREVIEW) return;
+    api("POST", "/api/arrange", { prefs: ARR.prefs }).catch(function () {});
+  }
+  function arrSet(k, v) {
+    if (k === "mode") ARR.prefs.mode = v;
+    else if (k === "group") ARR.prefs.group = !!v;
+    else if (k === "hidden") ARR.prefs.show_hidden = !!v;
+    arrSavePrefs();
+    setDirty = true;
+  }
+  // every opening counts: Most used, Recently used and Smart follow what is really watched
+  function arrUsed(pkg) {
+    var u = ARR.usage[pkg] || { n: 0, t: 0 };
+    ARR.usage[pkg] = { n: u.n + 1, t: Math.floor(Date.now() / 1000) };
+    keep("tvhome.usage", ARR.usage, true);
+    if (OFFLINE || MOCK || PREVIEW || data.bridge === false) return;
+    api("POST", "/api/app-used", { package: pkg }).catch(function () {});
+  }
+  // the bridge keeps the settings and counts for the phone and the backup; this TV takes the larger counts
+  function arrLoad() {
+    if (OFFLINE || MOCK) return Promise.resolve();
+    return api("GET", "/api/arrange").then(function (j) {
+      ARR.prefs = Arr.prefs(j.prefs);
+      var back = false, bu = j.usage || {};
+      Object.keys(ARR.usage).forEach(function (p) { if (!bu[p] || bu[p].n < ARR.usage[p].n) back = true; });
+      Object.keys(bu).forEach(function (p) {
+        var l = ARR.usage[p];
+        if (!l || l.n < bu[p].n) ARR.usage[p] = { n: bu[p].n, t: Math.max(bu[p].t, l ? l.t : 0) };
+      });
+      keep("tvhome.arrange", ARR.prefs, true);
+      keep("tvhome.usage", ARR.usage, true);
+      if (back && !PREVIEW) api("POST", "/api/arrange", { usage: ARR.usage }).catch(function () {});
+    });
+  }
+  // All apps with names over each group: the first app of a group carries its name (gstart).
+  // The App Store and Settings lead the Tools group.
+  function arrGroupRows(list) {
+    var by = {};
+    list.forEach(function (it) {
+      var g = it.kind === "screen" ? "screens" : (it.group || "utilities");
+      (by[g] = by[g] || []).push(it);
+    });
+    var out = [];
+    Arr.categories.filter(function (c) { return c !== "hidden"; }).concat(["screens", "hidden"]).forEach(function (g) {
+      var a = by[g];
+      if (!a || !a.length) return;
+      a = a.filter(function (x) { return x.lead; }).concat(a.filter(function (x) { return !x.lead; }));
+      var first = Object.assign({}, a[0], { gstart: g === "screens" ? "Screens" : Arr.label(g) });
+      out.push(first);
+      out = out.concat(a.slice(1));
+    });
+    return out;
+  }
+  // Hold OK on an app while an automatic order is on: in All apps it goes to home (pinned), in the
+  // Hidden tab it comes back; on the dock it means moving by hand, which switches to My order.
+  function arrHold(a, arr, idx) {
+    var P = ARR.prefs;
+    if (idx < 0) {
+      if (!(arr.hidden || []).some(function (x) { return x.package === a.package; })) return false;
+      P.hidden = P.hidden.filter(function (x) { return x !== a.package; });
+      if (Arr.classify(a.package, a.name) === "hidden" && P.shown.indexOf(a.package) < 0) P.shown.push(a.package);
+      arrSavePrefs();
+      renderGrid(); paintFocus();
+      flash(a.name + " is back in All apps.");
+      return true;
+    }
+    if (expanded) {
+      if (idx < arr.line) { flash(a.name + " is already on home."); return true; }
+      P.pinned = P.pinned.filter(function (x) { return x !== a.package; }).concat([a.package]);
+      arrSavePrefs();
+      expanded = false;
+      renderGrid();
+      g = 0;
+      gridItems.forEach(function (it, i) { if (it.package === a.package) g = i; });
+      paintFocus();
+      flash(a.name + " is pinned to home.");
+      return true;
+    }
+    // moving apps by hand: keep what is on screen as the order, and switch to My order
+    data.order = { saved: true, line: arr.line, packages: arr.items.concat(arr.hidden || []).map(function (it) { return it.package; }) };
+    P.mode = "manual";
+    arrSavePrefs();
+    flash("Switched to My order.");
+    return null;
+  }
+
   // ---------------- apps ----------------
   function tucked(a) {
     return TUCKED.indexOf(a.package) >= 0 || TUCKED_NAMES.test(a.name || "");
@@ -1007,8 +1435,15 @@
   function isNew(pkg) { return newApps.indexOf(pkg) >= 0; }
   function gridList() {
     if (NIGHT) return dockList();
-    var list = data.apps.filter(function (a) { return !tucked(a); });
-    var extra = data.apps.filter(tucked);
+    var list, extra;
+    if (arrMode() !== "manual") {   // auto arrange: the Hidden tab goes behind More apps
+      var res = Arr.sort(data.apps, ARR.prefs, ARR.usage, null);
+      list = res.items.filter(function (x) { return !x.hidden; });
+      extra = ARR.prefs.show_hidden ? res.items.filter(function (x) { return x.hidden; }) : [];
+    } else {
+      list = data.apps.filter(function (x) { return !tucked(x); });
+      extra = data.apps.filter(tucked);
+    }
     data.screens.forEach(function (sc) { list.push({ kind: "screen", id: sc.id, name: sc.name, ready: sc.ready, note: sc.note }); });
     if (expanded) return list.concat(extra);
     if (extra.length || list.length > GRID_MAX) {
@@ -1026,6 +1461,12 @@
     var screens = data.screens.map(function (sc) {
       return { kind: "screen", id: sc.id, name: sc.name, ready: sc.ready, note: sc.note, package: "screen:" + sc.id };
     });
+    if (arrMode() !== "manual") {
+      var res = Arr.sort(rest, ARR.prefs, ARR.usage, null);
+      var vis = res.items.filter(function (it) { return !it.hidden; });
+      return { items: vis.concat(screens), line: Math.min(DOCK_APPS, vis.length),
+        hidden: res.items.filter(function (it) { return it.hidden; }), headers: res.headers };
+    }
     var items = rest.filter(function (a) { return !tucked(a); }).concat(screens, rest.filter(tucked));
     var line = Math.min(DOCK_APPS, rest.filter(function (a) { return !tucked(a); }).length);
     var o = data.order;
@@ -1048,6 +1489,15 @@
     var store = data.apps.filter(function (a) { return a.package === STORE_PKG; })[0];
     var arr = arrangeItems();
     var list = expanded ? arr.items.slice() : arr.items.slice(0, arr.line);
+    if (expanded && arr.hidden && ARR.prefs.show_hidden) list = list.concat(arr.hidden);   // the Hidden tab, last
+    ARR.headers = false;
+    if (expanded && arr.headers) {
+      var lead = [];
+      if (store) lead.push({ kind: "app", store: true, name: "App Store", package: STORE_PKG, id: store.id, group: "utilities", lead: true });
+      if (settings) lead.push(Object.assign({}, settings, { group: "utilities", lead: true }));
+      ARR.headers = true;
+      return arrGroupRows(lead.concat(list));
+    }
     if (expanded && store) list.unshift({ kind: "app", store: true, name: "App Store", package: STORE_PKG, id: store.id });
     if (settings) list.push(settings);
     if (!expanded) list.push({ kind: "more", name: "More apps" });
@@ -1062,7 +1512,7 @@
     data.order = null;   // the default order, not the arranged one
     var arr = arrangeItems();
     data.order = saved;
-    var payload = { apps: arr.items.map(function (it) { return { package: it.package, name: it.name }; }), line: arr.line };
+    var payload = { apps: arr.items.concat(arr.hidden || []).map(function (it) { return { package: it.package, name: it.name }; }), line: arr.line };
     var key = JSON.stringify(payload);
     if (key === reported) return;
     api("POST", "/api/home-apps", payload).then(function () { reported = key; }, function () {});
@@ -1072,7 +1522,7 @@
   // The arrangement as it is on screen, written down as a saved order, so it can be changed.
   function materialise() {
     var arr = arrangeItems();
-    data.order = { saved: true, line: arr.line, packages: arr.items.map(function (it) { return it.package; }) };
+    data.order = { saved: true, line: arr.line, packages: arr.items.concat(arr.hidden || []).map(function (it) { return it.package; }) };
     return arr;
   }
   // Saved through the bridge (the phone's Arrange apps reads the same order), or on this TV with no
@@ -1111,6 +1561,10 @@
     if (a.store || a.package === SETTINGS_PKG) { flash(a.name + " always stays where it is."); return true; }
     var arr = arrangeItems();
     var idx = arr.items.map(function (it) { return it.package; }).indexOf(a.package);
+    if (arrMode() !== "manual") {
+      var held = arrHold(a, arr, idx);
+      if (held !== null) return held;
+    }
     if (idx < 0) return false;
     if (!expanded) {
       materialise();
@@ -1176,7 +1630,7 @@
     keep("tvhome.apps.seen", seen.concat(fresh));
     newApps = newApps.concat(fresh.filter(function (p) { return newApps.indexOf(p) < 0; }));
     keep("tvhome.apps.new", newApps);
-    if (!NIGHT) return;
+    if (!NIGHT || arrMode() !== "manual") return;
     materialise();
     var o = data.order;
     fresh.forEach(function (p) {
@@ -1206,7 +1660,7 @@
     else face = '<div class="face word">' + esc(it.name) + "</div>";
     var cls = "tile app dock-ic" + (lift && it.package === lift.pkg ? " lifted" : "");
     return '<div class="' + cls + '">' + face + (isNew(it.package) ? '<i class="dot" aria-label="New"></i>' : "") +
-      '<div class="label">' + esc(it.name) + "</div></div>";
+      '<div class="label">' + esc(it.name) + "</div>" + (it.gstart ? '<b class="ghead">' + esc(it.gstart) + "</b>" : "") + "</div>";
   }
 
   function appHTML(it) {
@@ -1225,6 +1679,7 @@
     document.documentElement.classList.toggle("expanded", expanded);
     document.documentElement.classList.toggle("lifting", !!lift);
     gridItems = gridList();
+    $("grid").classList.toggle("grouped", !!(NIGHT && expanded && ARR.headers));
     if (NIGHT) {
       // the dock is as wide as what is in it; More apps uses all twelve columns
       GRID_COLS = expanded ? 12 : Math.max(1, Math.min(12, gridItems.length));
@@ -1259,7 +1714,9 @@
   function paintFocus() {
     clearFocus();
     renderHint();
+    if (zone === "about") return;
     if (zone === "settings") { renderSettings(); return; }
+    if (zone === "pin") { renderPin(); return; }
     if (zone === "ask") { renderAsk(); return; }
     if (zone === "menu") { renderMenu(); return; }
     if (zone === "pmenu") { renderPop(); $("people").classList.add("focus"); return; }
@@ -1311,7 +1768,9 @@
     if (lift) { moveLift(dx, dy); return; }
     // Night with More apps open: the cards step aside, so up and down skip them
     var cards = NIGHT && expanded ? [] : shelfEls;
+    if (zone === "pin") { pinMove(dx, dy); return; }
     if (zone === "ask") { if (dy) askMove(dy); return; }
+    if (zone === "about") { if (dy) aboutMove(dy); return; }
     if (zone === "settings") {
       if (dy) { setI += dy; setFlash = ""; renderSettings(); }
       else if (dx) changeSet(dx);
@@ -1386,7 +1845,9 @@
   function goHome() {
     if (lift) { dropLift(); return; }   // BACK puts a picked-up app down where it is
     if (zone === "pmenu") { if (plift) dropPeople(); else closePop(); paintFocus(); return; }
+    if (zone === "about") { closeAbout(); return; }
     if (zone === "settings") { closeSettings(); return; }
+    if (zone === "pin") { pinCancel(); return; }
     if (zone === "ask") { closeAsk(); return; }
     if (zone === "menu") { closeMenu(); paintFocus(); return; }   // BACK just closes the sleep choices
     if (expanded) { expanded = false; renderGrid(); }
@@ -1412,7 +1873,9 @@
   function activate() {
     touched = true;
     if (lift) { dropLift(); return; }
+    if (zone === "about") { closeAbout(); return; }
     if (zone === "settings") { changeSet(1); return; }
+    if (zone === "pin") { pinSubmit(); return; }
     if (zone === "ask") { askActivate(); return; }
     if (zone === "menu") { setSleep(SLEEP_CHOICES[menuI]); paintFocus(); return; }
     if (zone === "pmenu") {
@@ -1459,6 +1922,7 @@
       return;
     }
     opened(a.package);
+    arrUsed(a.package);
     if (TV && TV.launch(a.package)) return;
     api("POST", "/api/launch", { app: a.id || a.package }).catch(function (e) { status(e.message); });
   }
@@ -1479,6 +1943,7 @@
 
   // Focus is never lost: after any key, if nothing shows focus, the first dock app gets it.
   function ensureFocus() {
+    if (zone === "pin") return;
     if (document.querySelector(".focus")) return;
     zone = "grid"; g = 0;
     paintFocus();
@@ -1490,6 +1955,7 @@
   var okDown = false, okHeld = false, okTimer = null;
   function okReset() { okDown = false; okHeld = false; clearTimeout(okTimer); }
   document.addEventListener("keydown", function (e) {
+    if (zone === "pin") { var dg = pinDigit(e); if (dg != null) { e.preventDefault(); pinType(dg); return; } }
     if (isOk(e)) {
       e.preventDefault();
       if (e.repeat || okDown) return;   // a held key repeating: the timer is already running
@@ -1591,7 +2057,8 @@
       }),
       (TV || PREVIEW || MOCK) ? Promise.resolve() : api("GET", "/api/apps").then(function (j) { data.bridgeApps = j.apps || []; }),
       // the order arranged on the phone (or with this TV's remote)
-      NIGHT ? api("GET", "/api/app-order").then(bridgeOrder) : Promise.resolve()
+      NIGHT ? api("GET", "/api/app-order").then(bridgeOrder) : Promise.resolve(),
+      NIGHT ? arrLoad() : Promise.resolve()
     ];
     return Promise.all(jobs.map(function (p) { return p.then(function () { return true; }, function () { return false; }); }))
       .then(function (ok) {
@@ -1627,6 +2094,9 @@
     mark("app-start");
     clock();
     setInterval(clock, 15000);
+    refreshSun();
+    setInterval(autoTick, 60000);
+    setInterval(refreshSun, 6 * 3600000);
     if (NIGHT) {
       buildScenes();
       // ?scene=fog starts on that scene, for previews

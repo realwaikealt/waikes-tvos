@@ -1,0 +1,25 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="dark"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><title>Diagnostics</title><style>html,body{background:#0b0b0d;color:#fff;margin:0;font:17px/1.45 -apple-system,system-ui,sans-serif}body{padding:max(24px,env(safe-area-inset-top)) 20px 40px}h1{font-size:26px;margin:0 0 6px}h2{font-size:19px;margin:26px 0 6px}a{color:#8cf}code,pre{background:#1c1c22;border-radius:8px;padding:2px 6px;word-break:break-all}pre{padding:12px;white-space:pre-wrap}.ok{color:#7ddc7d}.bad{color:#ff8a80}li{margin:6px 0}</style></head><body>
+<h1>Remote diagnostics</h1>
+<p>This page works without the app. Screenshot it if something is wrong.</p>
+<pre id="out">Loading… (if this stays like this, JavaScript is off or blocked)</pre>
+<p><button id="r" style="font:inherit;padding:10px 18px;border-radius:20px;border:0">Run again</button> <a href="/">Open the remote</a> · <a href="/install">Help</a></p>
+<script>
+(function(){
+function run(){
+var o=document.getElementById('out'),L=[];function p(k,v){L.push(k+': '+v);o.textContent=L.join('\n');}
+p('time',new Date().toString());
+p('standalone (navigator.standalone)',navigator.standalone);
+p('display-mode standalone',window.matchMedia&&matchMedia('(display-mode: standalone)').matches);
+p('url',location.href);p('userAgent',navigator.userAgent);
+p('window',innerWidth+'x'+innerHeight+' @'+devicePixelRatio);
+p('module scripts','noModule' in HTMLScriptElement.prototype);
+try{localStorage.setItem('t','1');p('localStorage','ok');}catch(e){p('localStorage','FAILED '+e);}
+function chk(path,n){var t0=Date.now();return fetch(path,{cache:'no-store'}).then(function(r){return r.text().then(function(t){p(n,r.status+' '+(Date.now()-t0)+'ms '+t.length+' bytes');return t;});}).catch(function(e){p(n,'FAILED '+e);});}
+chk('/ping','/ping').then(function(){return chk('/api/now','/api/now');})
+.then(function(){return chk('/manifest.webmanifest','manifest');})
+.then(function(){return chk('/','/ (index)').then(function(t){var m=/assets\/index-[^"]+\.js/.exec(t||'');if(m)return chk('/'+m[0],'app script');});})
+.then(function(){p('done','');});
+}
+document.getElementById('r').onclick=run;run();
+})();
+</script></body></html>

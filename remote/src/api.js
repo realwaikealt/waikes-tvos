@@ -60,12 +60,17 @@ export const api = {
   tvs: () => call('GET', '/api/tvs'),
   picture: (mode) => call('POST', '/api/picture', { mode }, 20000),   // a picture switch can take several seconds
   appOrder: () => call('GET', '/api/app-order'),
-  saveAppOrder: (order, line) => call('POST', '/api/app-order', { order, line }),
+  saveAppOrder: (order, line) => call('POST', '/api/app-order', { order, line, manual: true }),
+  arrange: () => call('GET', '/api/arrange'),
+  arrangeSet: (body) => call('POST', '/api/arrange', body),
   getPicture: () => call('GET', '/api/picture'),
+  tvPage: (what) => call('POST', '/api/tvpage', { what }),
   people: () => call('GET', '/api/people'),
   savePeople: (people) => call('POST', '/api/people', { people }),
   backupNow: () => call('POST', '/api/backup/save', {}, 20000),
   restoreLatest: () => call('POST', '/api/restore', { latest: true }, 30000),
+  restart: (what) => call('POST', '/api/restart', { what }, 15000),
+  restartState: () => call('GET', '/api/restart'),
 };
 
 // Live TV state: server-sent events, with a slow poll as the fallback when the stream drops.

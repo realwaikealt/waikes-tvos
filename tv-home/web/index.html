@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Home</title>
+<title>Waike’s tvOS</title>
 <link rel="preload" href="fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="app.css">
 </head>
@@ -53,6 +53,22 @@
   </section>
 </main>
 
+<div class="settings about" id="about" role="dialog" aria-label="About Waike’s tvOS">
+  <div class="settings-panel about-panel">
+    <div class="about-scroll" id="about-body"></div>
+    <p class="settings-help">Up and down to read. OK or Back to close.</p>
+  </div>
+</div>
+
+<div class="pin" id="pin" role="dialog" aria-label="PIN">
+  <div class="pin-panel" id="pin-panel">
+    <h2 id="pin-title">Enter PIN</h2>
+    <div class="pin-boxes" id="pin-boxes"></div>
+    <p class="pin-note" id="pin-note"></p>
+    <p class="pin-help">Up and down change the digit. Left and right move. OK to confirm. Back to cancel. You can also type the numbers.</p>
+  </div>
+</div>
+
 <div class="settings" id="settings" role="dialog" aria-label="Settings">
   <div class="settings-panel">
     <h2>Settings</h2>
@@ -74,6 +90,8 @@
 </div>
 
 <script src="config.js"></script>
+<script src="arrange-rules.js"></script>
+<script src="arrange.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
