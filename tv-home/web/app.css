@@ -49,16 +49,6 @@ body {
   cursor: none; user-select: none; -webkit-user-select: none;
 }
 
-/* ---------- the photo: full screen, drifting slowly, one place at a time ---------- */
-.bg { position: fixed; inset: 0; overflow: hidden; background: var(--bg); }
-.bg img {
-  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
-  opacity: 0; transition: opacity 1600ms ease-in-out;
-}
-.bg img.on { opacity: 1; animation: drift 70s ease-in-out infinite alternate; }
-.bg img.show { animation: none; }
-@keyframes drift { from { transform: scale(1.02) translate(0, 0); } to { transform: scale(1.1) translate(-1.5%, -1%); } }
-.night .bg img { filter: brightness(0.72); }
 /* darker at the top for the clock, much darker at the bottom for the apps */
 .scrim {
   position: fixed; inset: 0; pointer-events: none;
@@ -77,7 +67,6 @@ body {
 .time { font-size: 7rem; line-height: 7rem; font-weight: 250; letter-spacing: -0.035em; font-variant-numeric: tabular-nums; }
 .time small { font-size: 2.25rem; font-weight: 400; letter-spacing: 0; margin-left: 0.5rem; }
 .date { margin-top: 0.75rem; font-size: 1.875rem; line-height: 2.25rem; font-weight: 550; }
-.place { margin-top: 0.625rem; font-size: 1.4375rem; line-height: 1.875rem; color: rgba(255, 255, 255, 0.66); }
 /* quick buttons under the clock, like Apple TV's Control Centre */
 .quick { position: relative; display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.25rem; text-shadow: none; }
 .qbtns { display: flex; gap: 0.75rem; justify-content: flex-end; }
@@ -102,11 +91,6 @@ body {
 .sleep-menu .opt { white-space: nowrap; padding: 0 1.25rem; border-radius: 1.5rem; font-size: 1.4375rem; line-height: 2.75rem; font-weight: 600; color: rgba(255, 255, 255, 0.85); transition: transform var(--d-med) var(--spring), background var(--d-fast) var(--ease), color var(--d-fast) var(--ease); }
 .sleep-menu .opt.focus { background: #fff; color: #111; transform: scale(1.08); }
 .quick-note { margin-top: 0.5rem; font-size: 1.4375rem; color: var(--warn); min-height: 1.875rem; }
-
-.hero { max-width: 62rem; opacity: 0; transform: translateY(0.5rem); transition: opacity 400ms var(--ease), transform 400ms var(--ease); }
-.hero.on { opacity: 1; transform: none; }
-.hero h1 { font-size: 3.75rem; line-height: 4.25rem; font-weight: 700; letter-spacing: -0.025em; }
-.hero p { margin-top: 0.75rem; font-size: 1.8125rem; line-height: 2.25rem; color: rgba(255, 255, 255, 0.8); }
 
 .home { position: relative; z-index: 1; height: 100vh; }
 
@@ -166,30 +150,6 @@ body {
 }
 @keyframes glint { from { background-position: 100% 0; } to { background-position: 0% 0; } }
 
-/* Keep watching tile */
-.show { width: var(--shelf-w); height: var(--shelf-h); }
-.show .face { border-radius: 0.875rem; }
-.show.focus { transform: scale(1.07); }
-.show .badge {
-  position: absolute; left: 1rem; bottom: 1.25rem; width: 3rem; height: 3rem; border-radius: 0.75rem;
-  overflow: hidden; box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.45);
-}
-.show .badge img { width: 100%; height: 100%; object-fit: cover; }
-.show .bar { position: absolute; left: 0; right: 0; bottom: 0; height: 0.375rem; background: rgba(0, 0, 0, 0.45); }
-.show .bar i { display: block; height: 100%; background: var(--text); }
-.show .no-art {
-  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 1.5rem;
-  font-size: 2.25rem; font-weight: 650; text-align: center; color: var(--text-2);
-}
-.caption {
-  position: absolute; left: 0; right: 0; top: calc(100% + 1.25rem); opacity: 0;
-  transition: opacity 200ms var(--ease); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-/* the focused show's title is shown large at the top instead */
-.show .caption { display: none; }
-.caption b { display: block; font-size: 1.8125rem; line-height: 2.25rem; font-weight: 620; color: var(--text); overflow: hidden; text-overflow: ellipsis; }
-.caption span { display: block; font-size: 1.4375rem; line-height: 1.875rem; color: var(--text-2); }
-
 /* ---------- apps ---------- */
 .apps { position: absolute; left: var(--safe-x); right: var(--safe-x); top: 37.5rem; }
 .grid {
@@ -219,8 +179,7 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .tile.focus .face, .tile.focus .face::after { animation: none; }
-  .tile, .shelf-track, .bg img, .hero { transition: none; }
-  .bg img.on { animation: none; }
+  .tile, .shelf-track { transition: none; }
 }
 
 /* ================= Night: the living room's lock screen look =================
@@ -234,7 +193,6 @@ body {
    clock and cut-out; only the one showing and the one coming next are drawn (.ready), to save memory. */
 .scenes { display: none; }
 .theme-night .scenes { display: block; position: fixed; inset: 0; pointer-events: none; }
-.theme-night .bg { display: none; }
 .scene { position: absolute; inset: 0; display: none; opacity: 0; transition: opacity 1600ms ease-in-out; }
 .scene.ready { display: block; }
 .scene.on { opacity: 1; }
@@ -285,7 +243,7 @@ body {
   background: rgba(34, 24, 32, 0.52);
   box-shadow: inset 0 0 0 0.0625rem rgba(255, 210, 220, 0.16), inset 0 0.0625rem 0 rgba(255, 220, 230, 0.14), 0 1.5rem 3.75rem rgba(0, 0, 0, 0.28);
 }
-.theme-night .hero, .theme-night .time, .theme-night .place { display: none; }
+.theme-night .time { display: none; }
 .theme-night .date {
   position: fixed; left: 0; right: 0; top: 6rem; margin: 0; text-align: center;
   font-size: 2.125rem; line-height: 2.5rem; font-weight: 500; color: #fff;
@@ -475,7 +433,6 @@ body {
 @keyframes fade-in { from { opacity: 0; } }
 @keyframes fade-out { to { opacity: 0; } }
 @keyframes rise { from { opacity: 0; transform: translateY(1.5rem) scale(0.985); } }
-@keyframes hero-in { from { opacity: 0; transform: translateY(0.625rem); } }
 @keyframes tick { from { opacity: 0.35; } }
 
 /* panels grow out of the top right, where the buttons that open them sit, and leave the same way */
@@ -496,15 +453,133 @@ body {
 .theme-night .scenes { animation: fade-in 900ms var(--out) both; }
 
 /* a new show, a new minute */
-.hero.re { animation: hero-in var(--d-slow) var(--out) both; }
 .time.tick, .gclock.tick { animation: tick 700ms var(--out); }
 .theme-night .app .face img { transition: filter var(--d-med) var(--ease); }
 
 @media (prefers-reduced-motion: reduce) {
   .settings.on, .settings.on .settings-panel, .sleep-menu.on, .people-pop.on, .theme-night .hint.on,
-  .top, .shelf, .grid, .theme-night .scenes, .hero.re, .time.tick, .gclock.tick { animation: fade-in var(--d-fast) linear both; }
+  .top, .shelf, .grid, .theme-night .scenes, .time.tick, .gclock.tick { animation: fade-in var(--d-fast) linear both; }
   .settings.out .settings-panel, .sleep-menu.out { animation: fade-out var(--d-fast) linear both; }
   .tile, .qbtn, .person, .ncard, .prow, .srow, .sleep-menu .opt, .people.head { transition-property: background, color, box-shadow, opacity; }
   .settings-list, .ask-a { scroll-behavior: auto; }
 }
 .pin.on { animation: fade-in var(--d-med, 0.25s) var(--out, ease-out) both; }
+
+/* ---------- skeletons and reveals: a soft sweep (transform only, no blur, no background animation) ---------- */
+.skel { position: relative; overflow: hidden; background: rgba(255, 255, 255, 0.09); }
+.tile .face.skel { background: rgba(255, 255, 255, 0.09); box-shadow: none; }
+.skel::after {
+  content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 60%;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0));
+  transform: translateX(-100%); animation: sk-sweep 1.5s var(--ease) infinite;
+}
+@keyframes sk-sweep { to { transform: translateX(170%); } }
+.sk-line { display: block; height: 1.25rem; margin-top: 0.625rem; border-radius: 0.5rem; }
+.sk-line.big { height: 2rem; }
+.sk-line.w40 { width: 40%; } .sk-line.w55 { width: 55%; } .sk-line.w60 { width: 60%; } .sk-line.w80 { width: 80%; }
+.tile.sk { pointer-events: none; }
+.wx.wxs { display: inline-block; vertical-align: middle; width: 7.5rem; height: 1.6rem; margin-left: 0.9rem; border-radius: 0.8rem; }
+.sv .sk-val { display: inline-block; width: 8rem; height: 1.4rem; border-radius: 0.7rem; vertical-align: middle; }
+.sk-lines { display: block; margin-bottom: 0.5rem; }
+.sk-lines i { display: block; height: 1.5rem; margin-bottom: 0.75rem; border-radius: 0.6rem; }
+.sk-lines i:last-child { width: 55%; margin-bottom: 0; }
+.reveal > * { animation: sk-in var(--d-slow) var(--out) backwards; }
+.reveal > *:nth-child(2) { animation-delay: 60ms; } .reveal > *:nth-child(3) { animation-delay: 120ms; }
+.reveal > *:nth-child(4) { animation-delay: 180ms; } .reveal > *:nth-child(n+5) { animation-delay: 240ms; }
+.fadein { animation: sk-fade var(--d-med) var(--out) backwards; }
+@keyframes sk-in { from { opacity: 0; transform: translateY(0.75rem); } }
+@keyframes sk-fade { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .skel::after { animation: none; display: none; }
+  .reveal > *, .fadein { animation: none; }
+}
+
+/* ================= live pass: panels are transitions (interruptible), toasts and rows spring ================= */
+.settings, .pin { display: flex; visibility: hidden; opacity: 0; pointer-events: none;
+  transition: opacity var(--d-fast) var(--ease), visibility 0s linear var(--d-fast); }
+.settings.on, .pin.on { visibility: visible; opacity: 1; pointer-events: auto; animation: none;
+  transition: opacity var(--d-med) var(--out), visibility 0s; }
+.settings-panel, .pin-panel { opacity: 0; transform: translateY(-0.75rem) scale(0.94); transform-origin: 92% 0;
+  transition: transform var(--d-fast) var(--ease), opacity var(--d-fast) var(--ease); }
+.settings.ask .settings-panel { transform-origin: 78% 0; }
+.pin-panel { transform-origin: 50% 35%; }
+.settings.about .settings-panel { transform: translateX(4rem) scale(0.97); transform-origin: 50% 50%; }
+.settings.on .settings-panel, .pin.on .pin-panel { opacity: 1; transform: none;
+  transition: transform var(--d-slow) var(--spring), opacity var(--d-med) var(--out); }
+.settings.on .settings-panel { animation: none; }
+.settings.behind .settings-panel { opacity: 0.4; transform: translateX(-3rem) scale(0.96); transform-origin: 50% 50%;
+  transition: transform var(--d-slow) var(--spring), opacity var(--d-med) var(--out); }
+.sleep-menu, .people-pop { visibility: hidden; opacity: 0; pointer-events: none; transform: translateY(-0.5rem) scale(0.94);
+  transition: transform var(--d-fast) var(--ease), opacity var(--d-fast) var(--ease), visibility 0s linear var(--d-fast); }
+.sleep-menu { display: flex; transform-origin: 100% 0; }
+.people-pop { display: block; transform-origin: 0 0; }
+.sleep-menu.on, .people-pop.on { visibility: visible; opacity: 1; pointer-events: auto; transform: none; animation: none;
+  transition: transform var(--d-med) var(--spring), opacity var(--d-fast) var(--out), visibility 0s; }
+/* the toast over the dock */
+.theme-night .hint { display: block; position: absolute; left: 50%; bottom: calc(100% + 2.5rem); white-space: nowrap;
+  padding: 0.625rem 1.5rem; border-radius: 2rem; font-size: 1.4375rem; line-height: 2rem; font-weight: 600; color: #fff;
+  background: rgba(30, 20, 28, 0.66); box-shadow: inset 0 0 0 0.0625rem rgba(255, 210, 220, 0.16), 0 1rem 2.5rem rgba(0, 0, 0, 0.28);
+  opacity: 0; visibility: hidden; pointer-events: none; transform: translateX(-50%) translateY(0.625rem) scale(0.96);
+  transition: opacity var(--d-fast) var(--ease), transform var(--d-fast) var(--ease), visibility 0s linear var(--d-fast); }
+.theme-night .hint.on { opacity: 1; visibility: visible; transform: translateX(-50%); animation: none;
+  transition: opacity var(--d-med) var(--out), transform var(--d-slow) var(--spring), visibility 0s; }
+/* a value changing, a note appearing, a button arriving, an app arriving, the scenes coming back */
+.srow .sv { display: inline-block; }
+.sv.vchg { animation: vchg var(--d-med) var(--spring) both; }
+@keyframes vchg { from { opacity: 0.25; transform: translateY(0.4rem) scale(0.97); } }
+.settings-note.pop, .quick-note.pop { animation: note-in var(--d-med) var(--spring) both; }
+@keyframes note-in { from { opacity: 0; transform: translateY(0.5rem); } }
+.qbtn.fresh, .tile.fresh { animation: pop-in var(--d-med) var(--spring) both; }
+.theme-night .scenes.refade { animation: refade var(--d-slow) var(--out) both; }
+@keyframes refade { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .settings-panel, .pin-panel, .sleep-menu, .people-pop, .settings.behind .settings-panel, .settings.about .settings-panel { transform: none !important; transition: opacity var(--d-fast) linear, visibility 0s linear var(--d-fast) !important; }
+  .theme-night .hint, .theme-night .hint.on { transform: translateX(-50%) !important; transition: opacity var(--d-fast) linear !important; }
+  .sv.vchg, .settings-note.pop, .quick-note.pop, .qbtn.fresh, .tile.fresh { animation: fade-in var(--d-fast) linear both; }
+}
+
+/* ---- Debug page, Developer mode, plainer About ---- */
+.srow.shead { min-height: 2.5rem; margin-top: 0.75rem; transform: none; font-size: 1.125rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255, 255, 255, 0.5); }
+.debug { z-index: 70; }
+.debug-panel { width: 78rem; height: 46rem; max-height: 88vh; }
+.debug-cols { display: flex; gap: 1.5rem; flex: 1 1 auto; min-height: 0; }
+.debug-menu { flex: none; width: 21rem; display: flex; flex-direction: column; gap: 0.25rem; }
+.debug-menu .srow { min-height: 3.125rem; font-size: 1.4375rem; }
+.debug-pane { flex: 1 1 auto; min-width: 0; overflow-y: auto; scrollbar-width: none; padding: 1rem 1.25rem; border-radius: 1.5rem; background: rgba(255, 255, 255, 0.05); font-size: 1.25rem; color: rgba(255, 255, 255, 0.86); }
+.dbg-t { width: 100%; border-collapse: collapse; }
+.dbg-t th { text-align: left; font-weight: 500; color: rgba(255, 255, 255, 0.55); padding: 0.3rem 1rem 0.3rem 0; white-space: nowrap; width: 1%; }
+.dbg-t td { padding: 0.3rem 0; font-weight: 600; word-break: break-word; }
+.dbg-t td.warn { color: #ffc86b; } .dbg-t td.bad { color: #ff8a80; }
+.dbg-sub { margin: 0.9rem 0 0.25rem; font-size: 1.0625rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255, 255, 255, 0.5); }
+.dbg-p { margin-bottom: 0.75rem; line-height: 1.7rem; }
+.dbg-empty { color: rgba(255, 255, 255, 0.55); }
+.dbg-url { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.01em; margin: 0.5rem 0 1rem; word-break: break-all; }
+.dbg-pre { font: 1.0625rem/1.45rem ui-monospace, Menlo, monospace; white-space: pre-wrap; color: rgba(255, 255, 255, 0.8); }
+.dbg-log { font: 1rem/1.5rem ui-monospace, Menlo, monospace; }
+.dbg-log div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: rgba(255, 255, 255, 0.78); }
+.dbg-log b { color: rgba(255, 255, 255, 0.45); font-weight: 500; }
+.dbg-log .warn { color: #ffc86b; } .dbg-log .error { color: #ff8a80; }
+.dbg-res > div { display: flex; align-items: baseline; gap: 0.75rem; padding: 0.22rem 0; }
+.dbg-res b { flex: none; min-width: 11.5rem; font-weight: 700; }
+.dbg-res span:last-child { color: rgba(255, 255, 255, 0.72); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dbg-res .dot { flex: none; width: 0.75rem; height: 0.75rem; border-radius: 50%; background: #6bdc8b; align-self: center; }
+.dbg-res .warn .dot { background: #ffc86b; } .dbg-res .fail .dot { background: #ff6b5e; }
+.dbg-skel { margin-bottom: 0.5rem; }
+.dbg-skel i { display: block; height: 1.1rem; margin: 0.5rem 0; border-radius: 0.55rem; background: rgba(255, 255, 255, 0.12); animation: dbg-pulse 1.1s ease-in-out infinite alternate; }
+.dbg-skel i:nth-child(2) { width: 78%; animation-delay: 0.15s; } .dbg-skel i:nth-child(3) { width: 56%; animation-delay: 0.3s; }
+@keyframes dbg-pulse { from { opacity: 0.35; } to { opacity: 1; } }
+.devbadge { position: fixed; top: 1rem; left: 1rem; z-index: 90; padding: 0.2rem 0.8rem; border-radius: 1rem; background: rgba(255, 200, 107, 0.9); color: #2a1c05; font-size: 1rem; font-weight: 700; opacity: 0; transform: translateY(-0.5rem); transition: opacity var(--d-med) var(--out), transform var(--d-med) var(--spring); pointer-events: none; }
+.devbadge.on { opacity: 1; transform: none; }
+.fpsbox { position: fixed; top: 1rem; right: 1rem; z-index: 90; padding: 0.25rem 0.9rem; border-radius: 0.75rem; background: rgba(0, 0, 0, 0.7); font: 600 1.0625rem ui-monospace, Menlo, monospace; display: none; pointer-events: none; }
+.fpsbox.on { display: block; }
+body.dev-guides::after { content: ""; position: fixed; inset: 5%; z-index: 85; border: 0.125rem dashed rgba(255, 200, 107, 0.7); pointer-events: none; }
+body.dev-guides .focus { outline: 0.1875rem dashed #ffc86b; outline-offset: 0.25rem; }
+.about-ver.focus { background: #fff; color: #111; transform: scale(1.04); }
+.about-ver { transition: background var(--d-fast) var(--ease), color var(--d-fast) var(--ease), transform var(--d-med) var(--spring); }
+.about-dev { min-height: 1.5rem; margin-top: 0.6rem; font-size: 1.125rem; color: #ffc86b; opacity: 0; transition: opacity var(--d-med) var(--out); }
+.about-dev.on { opacity: 1; }
+.about-fine { margin: 2.25rem auto 0.25rem; width: max-content; padding: 0.15rem 0.75rem; border-radius: 0.75rem; font-size: 0.9375rem; color: rgba(255, 255, 255, 0.38); transition: background var(--d-fast) var(--ease), color var(--d-fast) var(--ease); }
+.about-fine.focus { background: rgba(255, 255, 255, 0.14); color: rgba(255, 255, 255, 0.85); }
+
+.settings-note { min-height: 3.25rem; line-height: 1.625rem; }
+.debug-pane::-webkit-scrollbar { display: none; }

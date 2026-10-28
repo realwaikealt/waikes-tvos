@@ -5,13 +5,13 @@
 //
 // Presets for previews, all optional (see docs/CONFIG.md for what each setting means):
 //   people=0..8         that many sample people (default: Person 1 and Person 2)
-//   quick=sleep,look    tvs[].quick, in order (sleep, picture, look, input)
+//   quick=sleep,input   tvs[].quick, in order (sleep, picture, input)
 //   picture=1           this TV has a picture mode switch (Calibrated and Dynamic)
-//   look=classic        home.look       clock=24h   home.clock     dock=6   home.dock_size
+//   clock=24h           home.clock     dock=6   home.dock_size
 //   scenes=fog,dawn     home.scenes     secs=8      home.scene_seconds
 //   newapp=1            an app turns up that this TV has not seen before (the New dot)
 //   down                the bridge is not answering      offline=1   the saved copy, no bridge at all
-//   reset=1             forget everything this preview saved (orders, people, the look)
+//   reset=1             forget everything this preview saved (orders, people)
 (function () {
   var q = location.search;
   var arg = function (name) { var m = q.match(new RegExp("[?&]" + name + "=([^&]*)")); return m ? decodeURIComponent(m[1]) : null; };
@@ -35,7 +35,6 @@
   }
   if (arg("quick") !== null) cfg.tvs[0].quick = arg("quick").split(",").filter(Boolean);
   if (arg("picture")) cfg.tvs[0].picture_modes = ["Calibrated", "Dynamic"];
-  if (arg("look")) cfg.home.look = arg("look");
   if (arg("clock")) cfg.home.clock = arg("clock");
   if (arg("dock")) cfg.home.dock_size = parseInt(arg("dock"), 10);
   if (arg("scenes")) cfg.home.scenes = arg("scenes").split(",");
@@ -102,6 +101,12 @@
     return new Promise(function (resolve, reject) {
       setTimeout(function () {
         if (down) return reject(new Error("The computer isn't answering."));
+        if (path.indexOf("/api/diag/ping") === 0) return resolve({ ok: true, t: Date.now() / 1000 });
+        if (path.indexOf("/api/diag/system") === 0) return resolve({ ok: true, bridge: { uptime_s: 5400, python: "3.14.0", platform: "Windows", port: 5400, claude_cli: true },
+          tv: { adb_ok: true, ip: "192.168.0.9", maker: "TCL", model: "Smart TV Pro", android: "11", sdk: "30", uptime_s: 7260, load: [1.2, 0.9, 0.8], cpu_cores: 4,
+            mem_memtotal_kb: 2900000, mem_memfree_kb: 220000, mem_memavailable_kb: 760000, storage: { size_kb: "9000000", used_kb: "4400000", free_kb: "4600000", use: "49%" },
+            last_wake: { sent: 36, failed: 0, at: Date.now() / 1000 - 3600 } } });
+        if (path.indexOf("/api/diag/report") === 0) return resolve({ ok: true, name: "diag-mock.json", path: "C:\diag\diag-mock.json", url: "/diag/latest" });
         if (path.indexOf("/api/ask/state") === 0) {
           var st = window.MOCK_ASK || null;
           if (st && st.status === "pending" && Date.now() > st.readyAt) { st.status = "done"; st.reply = st.final; st.options = [{ label: "Tell me more", text: "Tell me more" }]; st.ts = Date.now() / 1000; }

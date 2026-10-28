@@ -4,6 +4,7 @@ import { usePushUp } from './gestures.js';
 import { tick } from './haptics.js';
 import { api } from './api.js';
 import { logoFor } from './appLogos.js';
+import { WebAppsBlock } from './WebApps.jsx';
 
 export const Sheet = forwardRef(function Sheet({ open, onClose, title, children, className = '', fromTop = false, closeDrag, extra = null }, ref) {
   return (
@@ -172,6 +173,7 @@ export const AskSheet = forwardRef(function AskSheet({ open, onClose, recs, onAs
             <div key={m.id} className="bubble claude pending" role="status">
               <span className="sr-only">Claude is working on it.</span>
               <span className="dots" aria-hidden="true"><i /><i /><i /></span>
+              <span className="sk-lines" aria-hidden="true"><span className="skeleton sk-line" /><span className="skeleton sk-line" /><span className="skeleton sk-line short" /></span>
               <small>Claude is finding it{secs > 3 ? ` · ${secs}s` : ''}. Usually 5 to 20 seconds.</small>
             </div>
           ) : (
@@ -413,7 +415,7 @@ function BackupBlock({ open }) {
   );
 }
 
-// About: who made this, what it is built on, and the licence it stays under.
+// About: who made this. The open-source licences sit behind the small line at the bottom.
 function AboutBlock() {
   const [more, setMore] = useState(false);
   return (
@@ -433,14 +435,14 @@ function AboutBlock() {
         </div>
       </div>
       <p className="more-note">Designed and developed by Waike.</p>
-      <p className="more-note">Built on couch-tv by Seagey (MIT licence), developed from the fork realwaikealt/couch-tv-testing.</p>
-      <button className="pill glass arrange-open" onClick={() => { tick(); setMore((v) => !v); }}>{more ? 'Hide credits' : 'Credits and licence'}</button>
+      <button className="fine-link" onClick={() => { tick(); setMore((v) => !v); }}>{more ? 'Hide licences' : 'Open-source licences'}</button>
       {more && (
         <div className="about-credits">
+          <p><b>Open source.</b> Includes couch-tv by Seagey, under the MIT licence (text below).</p>
           <p><b>Fonts.</b> Inter and Antonio, under the SIL Open Font Licence.</p>
           <p><b>Weather.</b> Open-Meteo.</p>
           <p><b>Show data and posters.</b> JustWatch.</p>
-          <p><b>Backgrounds.</b> The five Night scenes were generated for couch-tv with an AI image model and are free to use. The Classic photos come from Wikimedia Commons under Creative Commons licences: Thennicke, Diliff, JJ Harrison, Christian Ferrer and Basile Morin.</p>
+          <p><b>Backgrounds.</b> The five scenes were generated for couch-tv with an AI image model and are free to use.</p>
           <p><b>App logos.</b> The streaming app logos belong to their owners.</p>
           <p className="about-lic">MIT License. Copyright (c) 2026 Seagey. Copyright (c) 2026 Waike (changes and additions in Waike’s tvOS). Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: the above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>
         </div>
@@ -547,6 +549,7 @@ export const MoreSheet = forwardRef(function MoreSheet({ open, onClose, sleepEnd
         <button className="list-row" onClick={() => { tick(); onPeople(); }}><span className="row-icon"><Ic.People size={20} /></span><span className="row-text"><b>People</b><small>Who’s watching, and their order</small></span><Ic.Chevron className="row-chev" /></button>
       </section>
 
+      <WebAppsBlock open={open} />
       <BackupBlock open={open} />
       <RestartBlock open={open} />
       <AboutBlock />

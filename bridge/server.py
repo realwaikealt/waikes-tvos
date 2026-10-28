@@ -17,6 +17,7 @@ from zoneinfo import ZoneInfo
 from aiohttp import web
 
 import apps
+import webapps
 import arrange
 import backup
 import config
@@ -1270,6 +1271,31 @@ async def h_app_order_set(request):
     return ok(apps=apps, line=line, saved=saved, dock_max=DOCK_MAX)
 
 
+# ---------- web apps: websites that open full screen on the TV with no popups (see webapps.py) ----------
+async def h_webapps_get(request):
+    return ok(webapps=webapps.get())
+
+
+async def h_webapps_set(request):
+    data = await body(request)
+    action = data.get("action")
+    try:
+        if action == "add":
+            apps = webapps.add(data)
+        elif action == "remove":
+            apps = webapps.remove(str(data.get("id") or ""))
+        elif action == "update":
+            apps = webapps.update(str(data.get("id") or ""), data)
+        else:
+            raise ApiError(400, "action must be add, remove or update")
+    except ValueError as e:
+        raise ApiError(400, str(e))
+    except KeyError:
+        raise ApiError(404, "no such web app")
+    record_action(request, "webapps", {"action": action, "id": data.get("id")}, True)
+    return ok(webapps=apps)
+
+
 # ---------- auto arrange: groups, sort modes, hidden tab (see arrange.py) ----------
 def _arrange_path():
     return os.path.join(store.DATA, f"app-arrange.{_current.get()}.json")
@@ -2044,6 +2070,8 @@ def make_app():
     r.add_post("/api/tv-state", h_tv_state_set)
     r.add_post("/api/pin/reset", h_pin_reset)
     r.add_post("/api/home-apps", h_home_apps)
+    r.add_get("/api/webapps", h_webapps_get)
+    r.add_post("/api/webapps", h_webapps_set)
     r.add_get("/api/app-order", h_app_order_get)
     r.add_post("/api/app-order", h_app_order_set)
     r.add_get("/api/arrange", h_arrange_get)
@@ -2062,6 +2090,8 @@ def make_app():
     r.add_post("/api/volume", h_volume)
     r.add_get("/api/screenshot", h_screenshot)
     agentic.routes(r)
+    import diag  # noqa: E402  (the hidden Debug page's endpoints)
+    diag.routes(r, _sys.modules[__name__])
     r.add_route("OPTIONS", "/api/{tail:.*}", h_options)
     r.add_route("*", "/api/{tail:.*}", h_api_missing)
     r.add_get("/tv", h_tv_redirect)

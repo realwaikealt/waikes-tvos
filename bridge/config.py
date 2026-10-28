@@ -190,7 +190,6 @@ def _home(h):
     return {
         # Android package names never shown on the home or in More apps (a maker's own clutter).
         "hide_packages": [p for p in dict.fromkeys(hide) if isinstance(p, str) and re.fullmatch(r"[A-Za-z0-9_.]{1,200}", p)],
-        "look": h.get("look") if h.get("look") in ("night", "classic") else "night",
         "scenes": scenes or list(SCENE_IDS),
         "scene_seconds": _int(h.get("scene_seconds"), 20, 5, 3600),
         "clock": "24h" if str(h.get("clock")).lower() == "24h" else "12h",
@@ -201,7 +200,7 @@ def _home(h):
 HOME = _home(CONFIG.get("home"))
 
 # ---------- quick settings (per TV) and picture modes ----------
-QUICK_IDS = ["sleep", "picture", "look", "input", "picpage", "game"]
+QUICK_IDS = ["sleep", "picture", "input", "picpage", "game"]
 
 
 def quick_for(tv_cfg):
@@ -257,10 +256,18 @@ def save_tvs():
         f.write("\n")
 
 
+def _webapps():
+    try:
+        import webapps  # lazy: webapps imports this module
+        return webapps.get()
+    except Exception:
+        return []
+
+
 def public():
     """The parts the TV home and the phone remote are allowed to see."""
     return {"people": PEOPLE, "weather": WEATHER, "home": HOME,
             "tvs": [{"id": t["id"], "name": t["name"], "quick": quick_for(t),
                      "picture_modes": [m["name"] for m in picture_modes(t.get("picture"))]} for t in TVS],
             "default_tv": DEFAULT_TV, "ask": {"enabled": ASK_ENABLED}, "phone_remote": PHONE_REMOTE,
-            "country": COUNTRY}
+            "country": COUNTRY, "webapps": _webapps()}

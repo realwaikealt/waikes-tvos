@@ -25,7 +25,6 @@
     { "id": "kids", "name": "Kids", "kid": true }
   ],
   "home": {
-    "look": "night",
     "scenes": ["night", "golden", "water", "fog", "dawn"],
     "scene_seconds": 20,
     "clock": "12h",

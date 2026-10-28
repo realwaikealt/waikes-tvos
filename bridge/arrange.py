@@ -50,6 +50,8 @@ def categories():
 
 def classify(package, name=""):
     """The group id for an app: its exact package first, then package patterns, then its name."""
+    if str(package or "").startswith("web:"):   # web apps (webapps.py) sit with the streaming apps
+        return "streaming"
     r = rules()
     if package in r["packages"]:
         return r["packages"][package]

@@ -55,10 +55,12 @@ class MainActivity : Activity() {
     private val io = Executors.newSingleThreadExecutor()
     private val banners = ConcurrentHashMap<String, ByteArray>()
     private val icons = ConcurrentHashMap<String, ByteArray>()
+    private val webApps = ConcurrentHashMap<String, Triple<String, Int, String>>()   // id -> name, colour, letter
 
     private lateinit var root: FrameLayout
     private var web: WebView? = null
     private var fallback: View? = null
+    private var splash: View? = null   // the logo over the dark ground until the page has painted its own loader
     private var pageReady = false
     private var loadFailed = false
     private var probing = false
@@ -74,6 +76,10 @@ class MainActivity : Activity() {
         WebView.setWebContentsDebuggingEnabled(true)
         root = FrameLayout(this).apply { setBackgroundColor(GROUND) }
         setContentView(root)
+        // Same picture as the window background, so the hand-over from cold start to this view is invisible.
+        splash = View(this).apply { background = getDrawable(R.drawable.splash) }
+        root.addView(splash, MATCH)
+        main.postDelayed({ hideSplash() }, SLOW_MS + 500)   // never stuck on the logo
         hideSystemBars()
         intent?.let { readExtras(it) }
         io.execute { warmApps() }
@@ -247,6 +253,7 @@ class MainActivity : Activity() {
             override fun onPageFinished(view: WebView, url: String) {
                 if (!loadFailed && url.startsWith("http")) {
                     pageReady = true
+                    main.postDelayed({ hideSplash() }, 350)   // let the page paint its own loader first
                     removeFallback()
                     view.visibility = View.VISIBLE
                     view.requestFocus()
@@ -441,6 +448,37 @@ class MainActivity : Activity() {
         @JavascriptInterface
         fun version(): String = BuildConfig.VERSION_NAME
 
+        // Web apps: a website full screen with a remote pointer and no popups (WebAppActivity).
+        // json: {"url":..., "hosts":"a.com,b.com", "desktop":true}
+        @JavascriptInterface
+        fun openWeb(json: String): Boolean = try {
+            val o = JSONObject(json)
+            val url = o.getString("url")
+            if (!Blocklist.isWebScheme(url)) false else start(Intent(this@MainActivity, WebAppActivity::class.java)
+                .putExtra("url", url)
+                .putExtra("hosts", o.optString("hosts", ""))
+                .putExtra("desktop", o.optBoolean("desktop", true)))
+        } catch (e: Exception) {
+            false
+        }
+
+        // The colours and names of the web app tiles, so their banners and icons can be drawn.
+        // json: [{"id":"vidbox","name":"Vidbox","colour":"#7a3cff","letter":"V"}]
+        @JavascriptInterface
+        fun setWebApps(json: String) {
+            try {
+                val a = JSONArray(json)
+                webApps.clear()
+                for (i in 0 until a.length()) {
+                    val o = a.getJSONObject(i)
+                    webApps[o.getString("id")] = Triple(o.optString("name", o.getString("id")),
+                        try { Color.parseColor(o.optString("colour", "#2a2a30")) } catch (e: Exception) { Color.parseColor("#2a2a30") },
+                        o.optString("letter", "").ifEmpty { o.optString("name", "?").take(1) }.uppercase())
+                }
+            } catch (e: Exception) {
+            }
+        }
+
         // The TV's own input list (HDMI and the rest), for the Input quick button when there is no
         // bridge to press the TV_INPUT key. Only where the TV has a screen for it.
         @JavascriptInterface
@@ -491,7 +529,36 @@ class MainActivity : Activity() {
     }
 
     /** The app's TV banner as a JPEG: memory, then disk, then drawn fresh. */
+    /** A web app's tile: its colour, with its letter and name in white. */
+    private fun webTile(pkg: String, w: Int, h: Int, png: Boolean): ByteArray? {
+        val (name, colour, letter) = webApps[pkg.removePrefix("web:")] ?: Triple(pkg.removePrefix("web:"), Color.parseColor("#2a2a30"), pkg.removePrefix("web:").take(1).uppercase())
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val c = Canvas(bmp)
+        c.drawColor(colour)
+        val p = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            textAlign = android.graphics.Paint.Align.CENTER
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+        }
+        if (png) {
+            p.textSize = h * 0.62f
+            c.drawText(letter, w / 2f, h * 0.70f, p)
+        } else {
+            p.textSize = h * 0.42f
+            c.drawText(letter, w / 2f, h * 0.55f, p)
+            p.typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+            p.textSize = h * 0.11f
+            p.alpha = 200
+            c.drawText(name, w / 2f, h * 0.82f, p)
+        }
+        return ByteArrayOutputStream().also {
+            if (png) bmp.compress(Bitmap.CompressFormat.PNG, 100, it) else bmp.compress(Bitmap.CompressFormat.JPEG, 90, it)
+            bmp.recycle()
+        }.toByteArray()
+    }
+
     private fun bannerImage(pkg: String): ByteArray? {
+        if (pkg.startsWith("web:")) return webTile(pkg, 640, 360, false)
         banners[pkg]?.let { return it }
         val ri = tvApps().firstOrNull { it.activityInfo.packageName == pkg } ?: return null
         val version = try { packageManager.getPackageInfo(pkg, 0).lastUpdateTime } catch (e: Exception) { 0L }
@@ -576,6 +643,7 @@ class MainActivity : Activity() {
 
     /** The app's square icon as a PNG, for the small badge on Keep watching tiles. */
     private fun iconImage(pkg: String): ByteArray? {
+        if (pkg.startsWith("web:")) return webTile(pkg, 128, 128, true)
         icons[pkg]?.let { return it }
         val ri = tvApps().firstOrNull { it.activityInfo.packageName == pkg }
         val d = ri?.loadIcon(packageManager)
@@ -590,8 +658,15 @@ class MainActivity : Activity() {
 
     // ---------------------------------------------------------------- never stuck: the native grid
 
+    private fun hideSplash() {
+        val v = splash ?: return
+        splash = null
+        v.animate().alpha(0f).setDuration(320).withEndAction { root.removeView(v) }.start()
+    }
+
     private fun showFallback() {
         if (fallback != null) return
+        hideSplash()
         val dp = resources.displayMetrics.density
         fun px(v: Int) = (v * dp).toInt()
 
@@ -690,7 +765,7 @@ class MainActivity : Activity() {
         private const val SLOW_MS = 2_500L
         private const val MATCH_W = ViewGroup.LayoutParams.MATCH_PARENT
         private val MATCH = FrameLayout.LayoutParams(MATCH_W, MATCH_W)
-        private val GROUND = Color.parseColor("#0D1E19")
+        private val GROUND = Color.parseColor("#120D13")
         private val FLAP = Color.parseColor("#131614")
         private val CREAM = Color.parseColor("#F2EAD8")
         private val CREAM_2 = Color.parseColor("#BDB6A7")

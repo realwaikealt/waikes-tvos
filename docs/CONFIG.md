@@ -38,15 +38,14 @@ The round buttons at the top right of the home. Any of these, in the order you l
 |---|---|---|
 | `sleep` | Sleep timer: 15, 30, 60 or 90 minutes, then the TV turns off. | The bridge |
 | `picture` | Flips between the TV's two picture modes in `picture.modes`. | The bridge, ADB, and a `picture` entry |
-| `look` | Flips the home between the Night scenes and the Classic look. This TV remembers the choice. | Nothing |
 | `input` | Opens the TV's input list (HDMI, a games console, a set top box). With the bridge it presses the TV's Input key (`KEYCODE_TV_INPUT`); with no bridge the launcher opens the TV's own input screen if it has one. | The bridge, or a TV with an input screen |
 
 A button that cannot work right now is left out, the same way the sleep timer always disappeared
-when the computer was off. With no bridge at all (option A), only `look` shows, plus `input` on
+when the computer was off. With no bridge at all (option A), only Settings shows, plus `input` on
 TVs that have an input screen the launcher can open.
 
 ```json
-"quick": ["sleep", "look", "input"]
+"quick": ["sleep", "input"]
 ```
 
 ### Picture mode (`picture`)
@@ -97,11 +96,10 @@ up and down to move it, OK to drop) both change it. To start again from `config.
 With no bridge (option A) there is no phone to edit people, but the order chosen with the TV remote
 is kept on the TV.
 
-## The home's look (`home`)
+## The home (`home`)
 
 ```json
 "home": {
-  "look": "night",
   "scenes": ["night", "golden", "water", "fog", "dawn"],
   "scene_seconds": 20,
   "clock": "12h",
@@ -112,7 +110,6 @@ is kept on the TV.
 
 | Key | What it does |
 |---|---|
-| `look` ["night"] | `night`: the scenes with the big glass clock. `classic`: one photo, a grid of app banners. The `look` quick button overrides this on each TV, and `?theme=` overrides both for a preview. |
 | `scenes` [all five] | Which Night scenes take turns, and in what order. Any of `night`, `golden`, `water`, `fog`, `dawn`. One scene stays put. |
 | `scene_seconds` [20] | How long each scene shows. 5 or more. |
 | `clock` ["12h"] | `12h` (5:30 pm) or `24h` (17:30). |
@@ -135,8 +132,7 @@ remote:
 The order is saved by the bridge (`bridge/data/app-order.<tv>.json`), so the phone and the TV
 always agree; the TV reads it again every time Home is pressed. With no bridge, the TV keeps the
 order itself. An order made on the TV while the computer was off is handed to the bridge the next
-time it answers. Moving apps with the remote works on the Night look; Classic shows the apps in
-their default order.
+time it answers. Moving apps with the remote works from the dock and More apps.
 
 ## The phone remote and the Claude ask
 
@@ -160,6 +156,6 @@ their default order.
 
 Serve the repo folder with any static server and open the home with `?mock=1`, for example
 `python3 -m http.server 8000`, then `http://127.0.0.1:8000/tv-home/web/index.html?mock=1`.
-`tv-home/web/mock.js` lists the preview settings: `people=4`, `quick=sleep,look,input`,
-`picture=1`, `look=classic`, `clock=24h`, `dock=6`, `scenes=fog,dawn`, `secs=8`, `newapp=1`,
+`tv-home/web/mock.js` lists the preview settings: `people=4`, `quick=sleep,input`,
+`picture=1`, `clock=24h`, `dock=6`, `scenes=fog,dawn`, `secs=8`, `newapp=1`,
 `offline=1`, `down`, and `reset=1` to forget what a preview saved.

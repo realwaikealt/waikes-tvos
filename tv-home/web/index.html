@@ -1,15 +1,34 @@
 <!doctype html>
-<html lang="en-AU">
+<html lang="en-AU" class="theme-night">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Waike’s tvOS</title>
 <link rel="preload" href="fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<style id="boot-css">
+/* boot screen: inline so it paints before app.css; same ground and mark as the native splash */
+#boot{position:fixed;left:0;top:0;right:0;bottom:0;z-index:99999;background:#120d13;color:#f5f5f7;font-family:system-ui,sans-serif;opacity:1;transform:scale(1);transition:opacity 480ms cubic-bezier(.22,1,.36,1),transform 480ms cubic-bezier(.22,1,.36,1);pointer-events:none}
+#boot.out{opacity:0;transform:scale(1.03)}
+#boot .boot-mark{position:absolute;left:50%;top:50%;width:12rem;height:12rem;margin:-6rem 0 0 -6rem}
+#boot .boot-mark svg{display:block;width:100%;height:100%}
+#boot .boot-ring{position:absolute;left:50%;top:50%;width:19rem;height:19rem;margin:-9.5rem 0 0 -9.5rem;border-radius:50%;border:.25rem solid rgba(255,255,255,.1);border-top-color:rgba(255,255,255,.75);opacity:0;animation:boot-in 600ms 400ms forwards,boot-spin 1.2s linear infinite}
+#boot .boot-name{position:absolute;left:0;right:0;top:calc(50% + 11.5rem);text-align:center;font-size:1.75rem;font-weight:500;letter-spacing:.01em;opacity:0;animation:boot-in 600ms 250ms forwards}
+#boot .boot-note{position:absolute;left:0;right:0;top:calc(50% + 15rem);text-align:center;font-size:1.375rem;color:rgba(245,245,247,.6);opacity:0;transition:opacity 300ms}
+#boot .boot-note.on{opacity:1}
+@keyframes boot-in{to{opacity:1}}
+@keyframes boot-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){#boot .boot-ring{animation:boot-in 300ms 200ms forwards}#boot,#boot.out{transform:none}}
+</style>
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
-<div class="bg" id="bg" aria-hidden="true"></div>
-<!-- Night look only: five scenes that take turns (photo, glass clock, the cut-out in front), built by app.js -->
+<div id="boot" aria-hidden="true">
+  <div class="boot-mark"><svg viewBox="0 0 120 120"><defs><linearGradient id="blg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff9a5a"/><stop offset=".55" stop-color="#d8467f"/><stop offset="1" stop-color="#4a2f8a"/></linearGradient></defs><rect width="120" height="120" rx="28" fill="url(#blg)"/><rect x="21" y="27" width="78" height="52" rx="10" fill="none" stroke="#fff" stroke-width="5"/><path d="M46 70 L60 41 L74 70 M51.5 60 H68.5" fill="none" stroke="#fff" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M44 93 H76" stroke="#fff" stroke-width="5" stroke-linecap="round"/></svg></div>
+  <div class="boot-ring"></div>
+  <div class="boot-name">Waike’s tvOS</div>
+  <div class="boot-note" id="boot-note"></div>
+</div>
+<!-- Five scenes that take turns (photo, glass clock, the cut-out in front), built by app.js -->
 <div class="scenes" id="scenes" aria-hidden="true"></div>
 <div class="scrim" aria-hidden="true"></div>
 
@@ -20,15 +39,10 @@
       <!-- three or more people: the list the head icon opens -->
       <div class="people-pop" id="people-pop" role="listbox" aria-label="Who is watching"></div>
     </div>
-    <div class="hero" id="hero" aria-live="polite">
-      <h1 id="hero-title"></h1>
-      <p id="hero-sub"></p>
-    </div>
   </div>
   <div class="clock">
     <div class="time" id="time"></div>
     <div class="date" id="date"></div>
-    <div class="place" id="place"></div>
     <div class="quick" id="quick">
       <!-- the quick buttons from tvs[].quick in config.json, drawn by app.js -->
       <div class="qbtns" id="qbtns"></div>
@@ -56,7 +70,7 @@
 <div class="settings about" id="about" role="dialog" aria-label="About Waike’s tvOS">
   <div class="settings-panel about-panel">
     <div class="about-scroll" id="about-body"></div>
-    <p class="settings-help">Up and down to read. OK or Back to close.</p>
+    <p class="settings-help">Up and down to move. Back to close.</p>
   </div>
 </div>
 
@@ -77,6 +91,21 @@
     <p class="settings-help">Up and down to choose. Left and right to change. Back to close.</p>
   </div>
 </div>
+
+<div class="settings debug" id="debug" role="dialog" aria-label="Debug">
+  <div class="settings-panel debug-panel">
+    <h2>Debug</h2>
+    <div class="debug-cols">
+      <div class="debug-menu" id="debug-menu"></div>
+      <div class="debug-pane" id="debug-pane"></div>
+    </div>
+    <p class="settings-note" id="debug-note"></p>
+    <p class="settings-help">Up and down to choose. Left and right to scroll. OK to run or send. Back to close.</p>
+  </div>
+</div>
+
+<div class="devbadge" id="devbadge">Developer mode</div>
+<div class="fpsbox" id="fpsbox"></div>
 
 <div class="settings ask" id="ask" role="dialog" aria-label="Ask Claude">
   <div class="settings-panel ask-panel">

@@ -100,8 +100,15 @@ abstract class BundleTvWeb : DefaultTask() {
             "default_tv" to (c["default_tv"] ?: tvs.firstOrNull()?.get("id")),
             "ask" to mapOf("enabled" to false),
             "phone_remote" to false,
+            "webapps" to (c["webapps"] ?: listOf(mapOf("id" to "vidbox", "name" to "Vidbox", "url" to "https://vidbox.wtf/home",
+                "allowed_hosts" to emptyList<String>(), "colour" to "#6d3df2", "letter" to "V"))),
         )
     }
+}
+
+dependencies {
+    // the blocklist's unit tests (gradlew testReleaseUnitTest)
+    testImplementation("junit:junit:4.13.2")
 }
 
 val repoRoot = rootProject.projectDir.resolve("../..")

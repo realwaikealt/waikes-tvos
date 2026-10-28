@@ -1,7 +1,7 @@
 """One backup that holds everything a person set up, and a restore that puts it back.
 
 A backup is one JSON file: the people, the safe parts of config.json, the bridge's data files
-(history, taste, app order...) and what the TV keeps for itself (Settings, look, orders). Secrets
+(history, taste, app order...) and what the TV keeps for itself (Settings, orders). Secrets
 never go in: no pairing certificates or keys, no tokens, nothing from config.json outside the
 short list below. See README of this file's handlers in server.py (/api/backup, /api/restore).
 """
@@ -21,9 +21,9 @@ MAX_BYTES = 8 * 1024 * 1024
 # Bridge data files that are safe to carry. Everything else in data/ (certs, keys, pairing
 # results, the Claude work folder, caches) stays out.
 DATA_FILES = re.compile(
-    r"(people|who|taste|recs|keep-disabled)\.json|history\.jsonl|(app-order|home-apps|app-arrange)\.[A-Za-z0-9_-]+\.json")
+    r"(people|who|taste|recs|keep-disabled|webapps)\.json|history\.jsonl|(app-order|home-apps|app-arrange)\.[A-Za-z0-9_-]+\.json")
 # What the TV keeps for itself (the page's storage keys), kept on the bridge by /api/tv-state.
-TV_KEYS = ("tvhome.settings", "tvhome.look", "tvhome.people.order", "tvhome.order.tv",
+TV_KEYS = ("tvhome.settings", "tvhome.people.order", "tvhome.order.tv",
            "tvhome.apps.new", "tvhome.apps.seen")
 # The only parts of config.json a backup carries or restores (no addresses, keys or tokens).
 CONFIG_TOP = ("home", "weather", "country")

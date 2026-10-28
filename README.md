@@ -1,15 +1,14 @@
 # Waike’s tvOS
 
-**Waike’s tvOS** is a home screen and phone remote for a Google TV, designed and developed by Waike.
-It is built on [couch-tv](https://github.com/Seagey/couch-tv) by Seagey (MIT licence) and developed from the fork
-`realwaikealt/couch-tv-testing`. The About screen (TV Settings, or the phone remote's TV sheet) lists the credits and
-the licence. The upstream copyright stays in `LICENSE`; new work is credited to Waike alongside it.
+**Waike’s tvOS** is a calm, fast home screen and phone remote for a Google TV, designed and developed by Waike.
+A Night home screen with five scenes and a glass clock, a phone remote, Ask Claude on the TV, backups,
+a Settings PIN and hidden developer tools. The About screen (TV Settings, or the phone remote's TV sheet) shows the version.
 
-What follows is the couch-tv guide, which still applies. Package ids (`app.couchtv.launcher`, `dev.couchtv.ontv`) and API paths keep their couch-tv names so existing installs keep working.
+Package ids (`app.couchtv.launcher`, `dev.couchtv.ontv`) and API paths keep their original names so existing installs keep working.
 
-# couch-tv
+# Using Waike’s tvOS
 
-Your own home screen and phone remote for a Google TV. No ads on the home screen. Open source (MIT).
+Your own home screen and phone remote for a Google TV. No ads on the home screen.
 
 ![The Night home screen](docs/screens/home-night.jpg)
 
@@ -22,8 +21,8 @@ stay put. Start on one with `?scene=<name>`, or swap in your own photos (see
 | Night | Golden hour | Waterline |
 |---|---|---|
 | ![Night](docs/screens/home-night.jpg) | ![Golden hour](docs/screens/home-golden.jpg) | ![Waterline](docs/screens/home-water.jpg) |
-| **Fog** | **Dawn** | **Classic** (`?theme=classic`) |
-| ![Fog](docs/screens/home-fog.jpg) | ![Dawn](docs/screens/home-dawn.jpg) | ![Classic](docs/screens/home-classic.jpg) |
+| **Fog** | **Dawn** | |
+| ![Fog](docs/screens/home-fog.jpg) | ![Dawn](docs/screens/home-dawn.jpg) | |
 
 Shown with sample shows and sample people. On your TV, "keep watching" fills from what you
 actually watch.
@@ -42,6 +41,23 @@ actually watch.
 > - **A:** steps 1, 2 and 6 below.
 > - **B:** steps 1 to 6 below.
 > - **C:** [on-tv/README.md](on-tv/README.md) (it has its own developer mode and install steps).
+
+## Web apps
+
+A web app is a website with a tile on the TV home (Vidbox is the first). It opens full screen in the home app's own
+browser, with a pointer you move with the arrows (OK clicks, up and down at the screen edge scroll, Back goes back and
+then closes, Menu hides the pointer). Add and remove them on the phone remote (TV sheet, Web apps) or remove them in
+TV Settings; the list is kept on the bridge in `data/webapps.json` and is part of the backup.
+
+What is blocked inside a web app: every popup and new window, `window.open`, links that open a new tab, redirects to a
+different site (unless you list it under "Other sites it may open"), `intent://`, `market://` and other non-web
+addresses, downloads, JavaScript alert boxes, full-screen ad layers with no video in them, and every request that
+matches `tv-home/android/app/src/main/assets/blocklist.txt` (well-known ad and popunder networks, adult sites and
+adult words). Edit that file, rebuild the home APK (`scripts/build-apk.sh`) and reinstall to change it.
+
+**No list is perfect.** New ad and adult domains appear every day, and a site can serve something unwanted from its own
+address, which no list can see. This lowers the chance a lot; it does not make a promise. The rules are unit tested
+(`gradlew testReleaseUnitTest` in `tv-home/android`).
 
 ## Will it work on my TV?
 
@@ -213,7 +229,7 @@ Edit `config.json` (it is private, it never gets committed):
 - Option B: `bridge.host`, the name of the computer that runs the bridge, for example
   `my-computer.local`.
 - Optional: `home` (scenes, how long each stays, 12 or 24 hour clock, how many apps in the dock,
-  apps to hide), `quick` per TV (sleep timer, picture mode, look and input buttons), `ask` and
+  apps to hide), `quick` per TV (sleep timer, picture mode and input buttons), `ask` and
   `phone_remote`.
 
 Every key, with its default: [docs/CONFIG.md](docs/CONFIG.md). Which TV remotes work and which
@@ -298,7 +314,7 @@ TV_IP=<your tv address> APK=couch-tv-home.apk BRIDGE_URL=http://my-computer.loca
 This installs the app, switches off the Google TV home (and ambient mode, the setup wizard and any
 ad trackers you name in `EXTRA_OFF`), and makes the new home the TV's home. Other makers' own home
 screens are left alone; the TV's default home is set to couch-tv instead. Nothing is deleted.
-It also hands the app your `config.json` settings (people, weather, clock, look, quick buttons)
+It also hands the app your `config.json` settings (people, weather, clock, quick buttons)
 for its built-in copy. **Read the Undo section before you run it.**
 
 - `KEEP_SETUP=1` leaves the setup wizard on. Use it if the survey warned about the Wi-Fi. On some
@@ -404,11 +420,18 @@ TV home (tv-home/)      --->  bridge (for shows and picks)               (Androi
 ## Credits
 
 - The five scene backgrounds (`scene-*.jpg`) were generated for this project and are free to use.
-  The Classic look's photos are Creative Commons from Wikimedia Commons. Both are listed in
-  `tv-home/web/backgrounds/CREDITS.md`.
+  Listed in `tv-home/web/backgrounds/CREDITS.md`.
 - The streaming app logos in `remote/src/app-logos/` belong to their owners.
 - Fonts: Inter and Antonio (both SIL Open Font Licence).
 - Show data and posters: JustWatch (credit them if you publish anything built on this).
 - Weather: Open-Meteo.
 
 MIT licence, see `LICENSE`.
+
+## Licences and acknowledgements
+
+Waike’s tvOS includes open-source software and content. It started from [couch-tv](https://github.com/Seagey/couch-tv)
+by Seagey (MIT licence) and is developed from the fork `realwaikealt/couch-tv-testing`; the upstream copyright notice stays in
+`LICENSE` next to the notice for the new work, as the licence requires. Also: Inter and Antonio fonts (SIL Open Font Licence),
+weather by Open-Meteo, show data and posters from JustWatch, and the
+streaming app logos belong to their owners. Details: `tv-home/web/backgrounds/CREDITS.md`.

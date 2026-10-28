@@ -49,5 +49,16 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- A website full screen with a remote pointer and no popups (see WebAppActivity). -->
+        <activity
+            android:name=".WebAppActivity"
+            android:exported="false"
+            android:label="Waike’s tvOS web app"
+            android:launchMode="singleTop"
+            android:hardwareAccelerated="true"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|locale" />
     </application>
 </manifest>

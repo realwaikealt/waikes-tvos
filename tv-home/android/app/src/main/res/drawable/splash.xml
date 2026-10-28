@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cold-start window background and the native splash overlay: Night-theme ground with the mark centred. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item><color android:color="@color/ground" /></item>
+    <item android:gravity="center" android:width="96dp" android:height="96dp" android:drawable="@drawable/splash_mark" />
+</layer-list>

@@ -18,6 +18,7 @@
   (R.categories || []).forEach(function (c) { CAT_LABEL[c.id] = c.label; });
 
   function classify(pkg, name) {
+    if (String(pkg || "").indexOf("web:") === 0) return "streaming";   // web apps (bridge/webapps.py)
     if (R.packages && Object.prototype.hasOwnProperty.call(R.packages, pkg)) return R.packages[pkg];
     var i;
     for (i = 0; i < PAT.length; i++) if (PAT[i][0].test(pkg || "")) return PAT[i][1];
