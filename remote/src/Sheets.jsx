@@ -452,6 +452,35 @@ function AboutBlock() {
 }
 
 // Restart: the home screen on its own, or the whole TV (asks twice, then follows the bridge until the TV is back).
+function WebAppControls() {
+  const [msg, setMsg] = useState('');
+  const send = (cmd, label) => { tick(); api.webapp(cmd).then(() => setMsg(label || '')).catch((e) => setMsg(e.message || 'No web app is open on the TV')); };
+  return (
+    <section className="more-block group">
+      <h3>Web app controls</h3>
+      <p className="muted small">For Vidbox and other websites on the TV. Type above to fill the search box.</p>
+      <div className="arrange-pair">
+        <button className="pill glass arrange-open" onClick={() => send('toolbar')}>Tools</button>
+        <button className="pill glass arrange-open" onClick={() => send('enter', 'Searching…')}>Enter</button>
+      </div>
+      <div className="arrange-pair">
+        <button className="pill glass arrange-open" onClick={() => send('zoom-', 'Smaller')}>Zoom −</button>
+        <button className="pill glass arrange-open" onClick={() => send('zoom+', 'Bigger')}>Zoom +</button>
+      </div>
+      <div className="arrange-pair">
+        <button className="pill glass arrange-open" onClick={() => send('pageup')}>Page up</button>
+        <button className="pill glass arrange-open" onClick={() => send('pagedown')}>Page down</button>
+      </div>
+      <div className="arrange-pair">
+        <button className="pill glass arrange-open" onClick={() => send('mode', 'Switched pointer/buttons')}>Pointer / Buttons</button>
+        <button className="pill glass arrange-open" onClick={() => send('ua', 'Switched site')}>Mobile / Desktop</button>
+      </div>
+      {msg && <p className="muted small">{msg}</p>}
+    </section>
+  );
+}
+
+
 function RestartBlock({ open }) {
   const [msg, setMsg] = useState('');
   const [sure, setSure] = useState(false);
@@ -485,6 +514,7 @@ function RestartBlock({ open }) {
 
 export const MoreSheet = forwardRef(function MoreSheet({ open, onClose, sleepEnds, onSleep, onKey, onText, sleepError, tvs, tvId, onTv, picture, pictureInfo, onPicture, onTvPage, onArrange, onPeople }, ref) {
   const [typed, setTyped] = useState('');
+  const liveTimer = useRef(null);
   const sheetEl = useRef(null);
   const setRefs = (el) => { sheetEl.current = el; if (typeof ref === 'function') ref(el); else if (ref) ref.current = el; };
   const closeDrag = usePushUp(sheetEl, onClose);
@@ -538,11 +568,13 @@ export const MoreSheet = forwardRef(function MoreSheet({ open, onClose, sleepEnd
 
       <section className="more-block group">
         <h3><Ic.Keyboard size={16} /> Type on the TV</h3>
-        <form className="ask-field glass" onSubmit={(e) => { e.preventDefault(); if (typed.trim()) { tick(); onText(typed.trim()); setTyped(''); } }}>
-          <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="For a search box on the TV" enterKeyHint="send" aria-label="Text to type on the TV" />
+        <form className="ask-field glass" onSubmit={(e) => { e.preventDefault(); if (typed.trim()) { tick(); onText(typed.trim(), { submit: true }); setTyped(''); } }}>
+          <input value={typed} onChange={(e) => { const v = e.target.value; setTyped(v); clearTimeout(liveTimer.current); liveTimer.current = setTimeout(() => (v ? api.text(v, { live: true }) : api.webapp('clear')).catch(() => {}), 160); }} placeholder="For a search box on the TV" enterKeyHint="send" aria-label="Text to type on the TV" />
           <button type="submit" className="round solid small" aria-label="Send to TV" disabled={!typed.trim()}><Ic.Send size={18} /></button>
         </form>
       </section>
+
+      <WebAppControls />
 
       <section className="more-block group list">
         <button className="list-row" onClick={() => { tick(); onArrange(); }}><span className="row-icon"><Ic.Grid size={20} /></span><span className="row-text"><b>Arrange apps</b><small>Order the TV’s dock</small></span><Ic.Chevron className="row-chev" /></button>

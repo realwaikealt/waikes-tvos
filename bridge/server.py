@@ -305,13 +305,62 @@ async def h_key(request):
     return ok(key=key)
 
 
+WEBAPP_ACTION = "app.couchtv.launcher.WEBAPP"
+
+
+async def webapp_in_front():
+    """True when one of our web apps (Vidbox and friends) is the screen the TV shows."""
+    try:
+        out = await tv.adb("shell", "dumpsys", "activity", "activities", timeout=8)
+    except Exception:
+        return False
+    import re as _re
+    m = _re.search(r"(?:topResumedActivity=|mResumedActivity: )ActivityRecord\{\S+ u0 (\S+)", out)
+    return bool(m and "WebAppActivity" in m.group(1))
+
+
+async def webapp_send(cmd, text=None):
+    """Hand a command (and text, as base64 so no quoting can go wrong) to the web app on the TV."""
+    import base64 as _b64
+    args = ["shell", "am", "broadcast", "-a", WEBAPP_ACTION, "-p", "app.couchtv.launcher", "--es", "cmd", cmd]
+    if text is not None:
+        args += ["--es", "b64", _b64.b64encode(text.encode("utf-8")).decode("ascii")]
+    await tv.adb(*args, timeout=10)
+
+
 async def h_text(request):
     data = await body(request)
     text = data.get("text")
     if not isinstance(text, str) or not text:
         raise ApiError(400, "text is required")
+    if await webapp_in_front():
+        # a web app has its own on-screen keyboard: fill its search box, and press Enter if asked
+        await webapp_send("enter" if data.get("submit") else "text", text)
+        record_action(request, "text", {"text": text, "to": "webapp"}, True)
+        return ok(to="webapp")
+    if data.get("live"):
+        return ok(to="none")      # live typing only means something to a web app's own box
     await tv.text(text)
     record_action(request, "text", {"text": text}, True)
+    return ok()
+
+
+async def h_webapp(request):
+    """Remote control for the web app on the TV: text, enter, backspace, clear, toolbar, zoom+, zoom-,
+    reload, back, mode, ua, up/down/left/right, ok, pageup, pagedown."""
+    data = await body(request)
+    cmd = data.get("cmd")
+    allowed = {"text", "enter", "backspace", "clear", "toolbar", "zoom+", "zoom-", "reload", "back", "mode", "ua",
+               "up", "down", "left", "right", "ok", "pageup", "pagedown", "lite"}
+    if cmd not in allowed:
+        raise ApiError(400, "unknown cmd")
+    text = data.get("text")
+    if text is not None and not isinstance(text, str):
+        raise ApiError(400, "text must be a string")
+    if not await webapp_in_front():
+        raise ApiError(409, "No web app is open on the TV")
+    await webapp_send(cmd, text)
+    record_action(request, "webapp", {"cmd": cmd}, True)
     return ok()
 
 
@@ -2043,6 +2092,7 @@ def make_app():
     r.add_get("/api/events", h_events)
     r.add_post("/api/key", h_key)
     r.add_post("/api/text", h_text)
+    r.add_post("/api/webapp", h_webapp)
     r.add_get("/api/apps", h_apps)
     r.add_post("/api/launch", h_launch)
     r.add_get("/api/find", h_find)
