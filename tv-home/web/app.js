@@ -1275,8 +1275,8 @@
   }
   // About / credits. Every line below is checked against the repo (LICENSE, README credits,
   // backgrounds/CREDITS.md); the phone remote's About block repeats the same facts.
-  var ABOUT = { name: "Asher\u2019s tvOS", version: "1.0", build: "October 2026" };
-  var MIT_TEXT = "MIT License\n\nCopyright (c) 2026 Seagey\nCopyright (c) 2026 Waike (changes and additions in Asher\u2019s tvOS)\n\n" +
+  var ABOUT = { name: "Waike\u2019s tvOS", version: "1.0", build: "October 2026" };
+  var MIT_TEXT = "MIT License\n\nCopyright (c) 2026 Seagey\nCopyright (c) 2026 Waike (changes and additions in Waike\u2019s tvOS)\n\n" +
     "Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \u201cSoftware\u201d), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\n" +
     "The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\n" +
     "THE SOFTWARE IS PROVIDED \u201cAS IS\u201d, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.";
@@ -1285,7 +1285,7 @@
     '<path d="M46 70 L60 41 L74 70 M51.5 60 H68.5" fill="none" stroke="#fff" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>' +
     '<path d="M44 93 H76" stroke="#fff" stroke-width="5" stroke-linecap="round"/></svg>';
   // The licence page, behind the small "Open-source licences" line at the bottom of About.
-  var LIC_NOTES = "Asher\u2019s tvOS includes open-source software and content:\n\n" +
+  var LIC_NOTES = "Waike\u2019s tvOS includes open-source software and content:\n\n" +
     "\u2022 couch-tv by Seagey, MIT licence (text below)\n\u2022 Inter and Antonio fonts, SIL Open Font Licence 1.1\n\u2022 Weather data by Open-Meteo\n" +
     "\u2022 Show data and posters from JustWatch\n" +
     "\u2022 App logos belong to their owners\n\n";
