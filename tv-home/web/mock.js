@@ -114,7 +114,7 @@
         }
         if (path.indexOf("/api/ask") === 0 && method === "POST") {
           var long = /long|joke/.test(body.text) ? new Array(14).join("This is a longer answer that goes on for a while so it has to scroll. ") : "";
-          window.MOCK_ASK = { id: "m" + Date.now(), text: body.text, status: "pending", reply: "", options: [], ts: Date.now() / 1000, readyAt: Date.now() + 2500, final: long || "It is 84 and sunny in Goodyear. Good evening for a movie outside." };
+          window.MOCK_ASK = { id: "m" + Date.now(), text: body.text, status: "pending", reply: "", options: [], ts: Date.now() / 1000, readyAt: Date.now() + 2500, final: long || "It is 84 and sunny out. Good evening for a movie outside." };
           return setTimeout(function () { resolve({ ok: true, say: window.MOCK_ASK.final, reply: window.MOCK_ASK.final, options: [{ label: "Tell me more", text: "Tell me more" }] }); }, 2600);
         }
         if (path.indexOf("/api/continue/open") === 0) return resolve({ ok: true, note: "" });
