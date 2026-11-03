@@ -342,6 +342,15 @@
    "type": "new",
    "title": "Dev log",
    "summary": "This page. A dated history of everything that changed, on the TV in Settings and on the phone."
+  },
+  {
+   "id": "20261103-01",
+   "date": "2026-11-03",
+   "time": "06:37",
+   "version": "1.0.31",
+   "type": "new",
+   "title": "Streaming Vidbox from the PC: groundwork",
+   "summary": "Moonlight is now on the TV and a one-click Sunshine installer is ready on the PC. A real video converter (ffmpeg) is installed for wallpapers."
   }
  ]
 }
