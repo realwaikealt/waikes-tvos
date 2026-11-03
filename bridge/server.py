@@ -1017,8 +1017,10 @@ async def h_options(request):
 
 # ---------- static front ends ----------
 PLACEHOLDER = """<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width">
-<title>{name}</title><body style="font:16px system-ui;background:#111;color:#eee;padding:24px">
-<h1>{name}</h1><p>Not built yet. The bridge API is live at <a style="color:#8cf" href="/api/now">/api/now</a>.</p>"""
+<meta name=theme-color content="#120d13"><title>{name}</title>
+<body style="margin:0;padding:32px 24px;background:#120d13;color:#f5f5f7;font:17px/1.45 -apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased">
+<h1 style="font-size:30px;letter-spacing:-.02em;margin:0 0 8px">{name}</h1>
+<p style="color:rgba(245,245,247,.64)">Not built yet. The bridge is running, and its status is at <a style="color:#f5f5f7" href="/api/now">/api/now</a>.</p>"""
 
 
 def static_handler(folder, name):

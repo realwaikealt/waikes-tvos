@@ -165,7 +165,7 @@ class HomeActivity : Activity() {
     }
 
     companion object {
-        private val GROUND = Color.parseColor("#0D1E19")
-        private val FLAP = Color.parseColor("#131614")
+        private val GROUND = Color.parseColor("#120D13")
+        private val FLAP = Color.parseColor("#1C1C21")
     }
 }

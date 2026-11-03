@@ -102,7 +102,7 @@ main { position: relative; z-index: 1; height: 100%; }
 .now-head { display: flex; align-items: center; gap: 14px; }
 .now-art { flex: none; width: 58px; height: 86px; border-radius: 10px; overflow: hidden; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45); }
 .now-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.art-app { width: 100%; height: 100%; display: grid; place-items: center; padding: 3px; text-align: center; overflow-wrap: anywhere; font: 700 11px/1.15 var(--font); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14); border-radius: inherit; }
+.art-app { width: 100%; height: 100%; display: grid; place-items: center; padding: 3px; text-align: center; overflow-wrap: anywhere; font: 700 12px/1.15 var(--font); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14); border-radius: inherit; }
 .now-text { flex: 1; min-width: 0; }
 .now-title { display: -webkit-box; font: 700 22px/1.14 var(--font-d); letter-spacing: -0.01em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; text-wrap: balance; }
 .now-sub { display: block; color: var(--ink-2); font-size: 15px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -156,7 +156,7 @@ main { position: relative; z-index: 1; height: 100%; }
 .pad-msg p { font-size: 15px; color: var(--ink-2); max-width: 270px; text-wrap: balance; }
 .pad-msg p b { color: var(--ink); }
 .pad-msg .pill { flex: none; padding: 0 24px; }
-.wake-err { color: #ffb4ae !important; }
+.wake-err { color: var(--err-ink) !important; }
 .spinner.dark { border-color: rgba(0, 0, 0, 0.2); border-top-color: #111; }
 .pad .wake { position: relative; height: 52px; padding: 0 22px; border-radius: 26px; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 17px; }
 
@@ -232,7 +232,7 @@ main.single { display: flex; flex-direction: column; padding-left: var(--sa-l); 
 .single .remote-col { width: 100%; padding-bottom: 2px; }
 /* The dock sits outside the pages, so it pages them itself (usePageDrag): touch-action none keeps
    the finger with it, and taps still press Ask and the tabs. */
-.dock { flex: none; display: flex; flex-direction: column; gap: var(--gap); padding: 8px var(--side) calc(var(--sa-b) + 10px); max-width: 560px; width: 100%; margin: 0 auto; touch-action: none; }
+.dock { flex: none; display: flex; flex-direction: column; gap: var(--gap); max-width: 560px; width: 100%; margin: 0 auto; touch-action: none; }
 .pull-zone { display: flex; flex-direction: column; gap: var(--gap); touch-action: pan-x; }
 
 /* Two columns: iPhone Duo inner screen, iPad, landscape */
@@ -309,13 +309,13 @@ main.single { display: flex; flex-direction: column; padding-left: var(--sa-l); 
 .dots i:nth-child(2) { animation-delay: 0.15s; }
 .dots i:nth-child(3) { animation-delay: 0.3s; }
 @keyframes pulse { 0%, 100% { opacity: 0.25; transform: scale(0.8); } 40% { opacity: 1; transform: none; } }
-.thinking p { font-size: 18px; font-weight: 600; }
+.thinking p { font-size: 17px; font-weight: 600; }
 .thinking small { display: block; margin-top: 6px; color: var(--ink-2); font-size: 14px; }
 .reply { font: 600 22px/1.3 var(--font-d); margin-top: 14px; text-wrap: pretty; }
-.reply.err { color: #ffb4ae; }
+.reply.err { color: var(--err-ink); }
 .answer-actions { display: flex; gap: 10px; margin-top: 22px; }
 .pill { height: 50px; padding: 0 20px; border-radius: 25px; font-weight: 600; font-size: 16px; flex: 1; }
-.pill.big { height: 60px; font-size: 19px; }
+.pill.big { height: 60px; font-size: 20px; }
 .more-block { margin-bottom: 20px; }
 .more-block h3 { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; color: var(--ink-2); margin-bottom: 10px; }
 .chips-row { display: flex; gap: 6px; }
@@ -332,7 +332,7 @@ main.single { display: flex; flex-direction: column; padding-left: var(--sa-l); 
 }
 .onboard-inner { width: 100%; max-width: 380px; text-align: center; }
 .onboard-icon { width: 84px; height: 84px; border-radius: 20px; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5); }
-.onboard h1 { font: 700 30px/1.15 var(--font-d); letter-spacing: -0.02em; margin-top: 22px; text-wrap: balance; }
+.onboard h1 { font: 700 28px/1.15 var(--font-d); letter-spacing: -0.02em; margin-top: 22px; text-wrap: balance; }
 .onboard p { color: var(--ink-2); margin-top: 10px; font-size: 16px; text-wrap: pretty; }
 .onboard-pick { display: flex; gap: 12px; margin-top: 28px; }
 .install { margin-top: 28px; padding: 14px 16px; border-radius: 18px; text-align: left; font-size: 15px; line-height: 1.4; display: grid; gap: 4px; }
@@ -414,10 +414,10 @@ main.single { display: flex; flex-direction: column; padding-left: var(--sa-l); 
 .said { font-size: calc(20px * var(--dt, 1)); }
 .chip, .more-block h3, .install, .pad-msg p { font-size: calc(15px * var(--dt, 1)); }
 .chips-row .chip { font-size: calc(14px * var(--dt, 1)); }
-.thinking p { font-size: calc(18px * var(--dt, 1)); }
+.thinking p { font-size: calc(17px * var(--dt, 1)); }
 .thinking small { font-size: calc(14px * var(--dt, 1)); }
 .ask-field input { font-size: max(16px, calc(17px * var(--dt, 1))); }
-.onboard h1 { font-size: calc(30px * var(--dt, 1)); }
+.onboard h1 { font-size: calc(28px * var(--dt, 1)); }
 
 /* Increase Contrast and Reduce Transparency (iOS and Android accessibility settings). */
 @media (prefers-contrast: more) {
@@ -435,7 +435,7 @@ main.single { display: flex; flex-direction: column; padding-left: var(--sa-l); 
 .who-row:active { background: rgba(255, 255, 255, 0.14); }
 .who-row.on { background: rgba(255, 255, 255, 0.1); }
 .who-name { flex: 1; min-width: 0; font-weight: 600; font-size: 17px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.who-tick { flex: none; color: var(--ink-2); font-size: 18px; }
+.who-tick { flex: none; color: var(--ink-2); font-size: 17px; }
 
 /* The on-screen keyboard: bottom sheets ride on top of it (--kb is its height, from visualViewport). */
 /* Only the open sheet rides on the keyboard; closed ones stay parked below the screen. */
@@ -467,7 +467,7 @@ main.single { display: flex; flex-direction: column; padding-left: var(--sa-l); 
 .bubble.me { align-self: flex-end; padding: 9px 14px; border-radius: 20px; background: rgba(255, 255, 255, 0.2); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12); }
 .bubble.claude { align-self: flex-start; max-width: 100%; padding: 2px 4px; font-weight: 500; color: var(--ink); }
 .bubble.claude small, .bubble.pending small { display: block; margin-top: 4px; font-size: calc(13px * var(--dt, 1)); font-weight: 400; color: var(--ink-2); }
-.bubble.err { color: #ffb4ae; }
+.bubble.err { color: var(--err-ink); }
 .bubble.pending { display: flex; flex-direction: column; gap: 2px; padding: 6px 4px; }
 .bubble.pending .dots { margin: 4px 0 6px; gap: 6px; }
 .bubble.pending .dots i { width: 8px; height: 8px; }
@@ -497,21 +497,21 @@ main.single { display: flex; flex-direction: column; padding-left: var(--sa-l); 
 .about-block { margin-top: 18px; }
 .about-head { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
 .about-head .about-logo { width: 56px; height: 56px; flex: none; }
-.about-head strong { display: block; font-size: 19px; font-weight: 700; }
+.about-head strong { display: block; font-size: 20px; font-weight: 700; }
 .about-head span { font-size: 14px; color: var(--ink-2); }
 .about-block .arrange-open { margin-top: 10px; }
 .about-credits { margin-top: 10px; }
 .about-credits p { font-size: 14px; line-height: 1.4; color: var(--ink-2); margin-bottom: 8px; }
 .about-credits p b { color: var(--ink, #fff); }
-.about-credits .about-lic { font-size: 11.5px; opacity: .8; }
+.about-credits .about-lic { font-size: 12px; opacity: .8; }
 .more-note { margin-top: 6px; font-size: 14px; color: var(--ink-2); line-height: 1.35; }
 
 /* ===== Layout pass (Asher's tvOS): status header, quick actions, bottom tab bar ===== */
 :root {
-  --sheet: rgba(34, 24, 32, 0.8);          /* the TV's Night glass */
+  --sheet: rgba(34, 24, 32, 0.95);         /* the TV's Night glass */
   --spring: cubic-bezier(0.34, 1.4, 0.64, 1);
   --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px;   /* one spacing scale */
-  --ok: #34c759; --warn: #ffb340; --bad: #ff6961;
+  --ok: #34c759; --warn: #ffb340; --bad: #ff6961; --err-ink: #ffb4ae;
 }
 
 /* Press feedback: scale down on touch-down, spring back on release. */
@@ -529,7 +529,7 @@ main.single { display: flex; flex-direction: column; padding-left: var(--sa-l); 
 .topbar.status { gap: var(--s2); min-height: 52px; padding-top: 2px; }
 .status-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; }
 .status-text { min-width: 0; line-height: 1.15; }
-.status-text b { display: block; font: 700 21px/1.1 var(--font-d); letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.status-text b { display: block; font: 700 22px/1.1 var(--font-d); letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .status-text span { display: block; margin-top: 2px; font-size: 14px; font-weight: 500; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px rgba(52, 199, 89, 0.22); }
 .dot.warn { background: var(--warn); box-shadow: 0 0 0 3px rgba(255, 179, 64, 0.22); animation: pulse 1.6s infinite var(--ease); }
@@ -542,7 +542,7 @@ main.single { display: flex; flex-direction: column; padding-left: var(--sa-l); 
 /* Quick actions */
 .quick { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--s2); }
 .qa { min-height: 60px; padding: 8px 2px 7px; border-radius: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--ink); }
-.qa span { font-size: 11.5px; font-weight: 600; letter-spacing: 0.005em; color: var(--ink-2); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.qa span { font-size: 12px; font-weight: 600; letter-spacing: 0.005em; color: var(--ink-2); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 .qa.on { background: rgba(255, 255, 255, 0.22); }
 .qa.on span { color: var(--ink); }
 .app.is-off .quick { opacity: 0.4; pointer-events: none; }
@@ -551,7 +551,7 @@ main.single { display: flex; flex-direction: column; padding-left: var(--sa-l); 
 .dock { padding: 6px var(--side) calc(var(--sa-b) + 8px); gap: 0; }
 .tabbar { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; width: 100%; align-self: stretch; padding: 4px; border-radius: 28px; }
 .tabbar .tabs-thumb { width: calc((100% - 8px) / var(--n, 4)); top: 4px; bottom: 4px; left: 4px; border-radius: 24px; background: rgba(255, 255, 255, 0.2); }
-.tabbar button { height: 54px; padding: 0; border-radius: 24px; flex-direction: column; gap: 3px; font-size: 11.5px; font-weight: 600; color: var(--ink-2); }
+.tabbar button { height: 54px; padding: 0; border-radius: 24px; flex-direction: column; gap: 3px; font-size: 12px; font-weight: 600; color: var(--ink-2); }
 .tabbar button.on { color: var(--ink); }
 .tabbar button span { line-height: 1; }
 .tabbar button.act:active { background: rgba(255, 255, 255, 0.14); }
@@ -563,7 +563,6 @@ main.single { display: flex; flex-direction: column; padding-left: var(--sa-l); 
 .shelf.loading .poster-art { animation: shimmer 1.4s ease-in-out infinite; }
 
 /* The TV menu and sheets in Night glass */
-.sheet { background: var(--sheet); }
 .more-block h3 { text-transform: none; }
 
 
@@ -584,7 +583,6 @@ main.single { display: flex; flex-direction: column; padding-left: var(--sa-l); 
 .pill.danger { background: var(--bad); color: #1a0a09; }
 .wake-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; }
 .sheet h2 { letter-spacing: -0.02em; }
-.sheet { background: rgba(34, 24, 32, 0.95); }
 .more-block.group .arrange-open { white-space: nowrap; padding: 0 10px; font-size: 15px; }
 .about-block .more-note { margin-bottom: 10px; }
 
@@ -612,3 +610,53 @@ main.single { display: flex; flex-direction: column; padding-left: var(--sa-l); 
 
 .about-block .fine-link { display: block; margin: 14px auto 0; padding: 4px 8px; background: none; border: 0; font: inherit; font-size: 12px; color: var(--ink-3, rgba(255,255,255,.38)); opacity: .8; }
 .about-block .fine-link:active { opacity: 1; }
+
+
+/* ===== UI audit pass (2 Nov): one token set, and the fixes that go with it =====
+   Type scale (px): 12 caption, 13 footnote, 14 subhead, 15 callout, 16, 17 body, 20 title3, 22 title2, 28 title1, 34 large.
+   Radii: 10 / 16 / 22 / 30. Touch target >= 44. Durations: press .07, fast .2, medium .32, slow .45. */
+:root {
+  --t-cap: 12px; --t-foot: 13px; --t-sub: 14px; --t-call: 15px; --t-body: 17px; --t-t3: 20px; --t-t2: 22px; --t-t1: 28px; --t-lg: 34px;
+  --r-sm: 10px; --r-md: 16px; --r-lg: 22px; --r-xl: 30px;
+  --h-touch: 44px; --h-btn: 50px;
+  --d-press: 0.07s; --d-fast: 0.2s; --d-med: 0.32s; --d-slow: 0.45s;
+  --fill-1: rgba(255, 255, 255, 0.08); --fill-2: rgba(255, 255, 255, 0.12); --fill-3: rgba(255, 255, 255, 0.2);
+  --err-bg: rgba(110, 26, 26, 0.75);
+  --z-pages: 1; --z-banner: 30; --z-toast: 40; --z-sheet: 50; --z-onboard: 60; --z-crash: 70;
+  --ink-3: rgba(255, 255, 255, 0.64);
+}
+.banner { z-index: var(--z-banner); } .toast { z-index: var(--z-toast); } .sheet-layer { z-index: var(--z-sheet); }
+.onboard { z-index: var(--z-onboard); } .crash { z-index: var(--z-crash); }
+.toast.err { background: var(--err-bg); }
+.sheet { transition-duration: var(--d-slow); }
+.sheet-layer .scrim { transition-duration: var(--d-med); }
+
+/* Touch targets: every control at least 44 points */
+.person-remove, .person-name, .who-seg button { min-height: var(--h-touch); }
+.person-remove { width: var(--h-touch); height: var(--h-touch); }
+.person-name { height: var(--h-touch); }
+.who-seg button { height: var(--h-touch); }
+.about-block .fine-link { min-height: var(--h-touch); display: flex; align-items: center; justify-content: center; font-size: var(--t-cap); color: var(--ink-2); opacity: 1; }
+.chip { min-height: var(--h-touch); }
+/* Focus ring is not clipped by the volume pill's rounded overflow */
+.volume button:focus-visible { outline-offset: -4px; }
+/* Press states and no accidental text selection / callouts on controls */
+button, a, .poster, .app-tile { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+/* Keep the sheet's bottom edge clear of the tab bar's rounded corners */
+.sheet-layer.from-top .sheet { max-height: calc(100% - 96px - var(--sa-b)); }
+
+/* Short landscape screens (phone on its side): the remote scrolls instead of clipping the pad */
+@media (max-height: 500px) {
+  .remote-col { overflow-y: auto; scrollbar-width: none; }
+  .remote-col::-webkit-scrollbar { display: none; }
+  .pad { flex: none; min-height: 190px; }
+  .pad .chev.up { top: 8px; } .pad .chev.down { bottom: 8px; }
+  .pad .ring { width: 72px; height: 72px; }
+}
+/* Tablets: the pad stays hand-sized instead of filling the screen */
+@media (min-width: 700px) and (min-height: 800px) { .pad { max-height: 520px; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .pad .chev, .pad .ring, .round, .chip, .pill, .tile, .qa, .tabbar button, .row-btn, .app-tile, .poster, .ask { transform: none !important; transition-duration: 0.01ms !important; }
+  .dot.warn, .scrub-state.playing::before, .dots i { animation: none; }
+}

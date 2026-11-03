@@ -172,12 +172,17 @@ def routes(r, S):
                          f".writeText(document.getElementById('j').textContent).then(()=>this.textContent='Copied')\">Copy all</button>"
                          f"<pre id=j>{html.escape(text)}</pre>")
         page = ("<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1,viewport-fit=cover'>"
-                "<title>Diagnostics</title><style>:root{color-scheme:dark}body{margin:0;padding:max(16px,env(safe-area-inset-top)) 16px 32px;"
-                "background:#140d12;color:#f2e9ef;font:16px/1.45 -apple-system,system-ui,sans-serif}h1{font-size:26px;letter-spacing:-.02em;margin:0 0 12px}"
-                "table{border-collapse:collapse;margin-bottom:14px}th{text-align:left;color:#b9a9b3;font-weight:500;padding:4px 14px 4px 0}"
-                "td{padding:4px 0}button{font:inherit;font-weight:600;border:0;border-radius:12px;padding:12px 18px;background:#fff;color:#111}"
-                "pre{white-space:pre-wrap;word-break:break-word;font:12px/1.5 ui-monospace,Menlo,monospace;background:#221820;border-radius:14px;padding:14px;margin-top:14px}"
-                "</style><h1>Diagnostics from the TV</h1>" + body_html)
+                "<meta name=theme-color content='#120d13'><title>Diagnostics</title><style>"
+                ":root{color-scheme:dark;--ink:#f5f5f7;--ink2:rgba(245,245,247,.64);--panel:#221820;--rim:rgba(255,255,255,.1)}"
+                "*{box-sizing:border-box}body{margin:0 auto;max-width:640px;padding:max(24px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) 40px max(20px,env(safe-area-inset-left));"
+                "background:#120d13;color:var(--ink);font:400 17px/1.45 -apple-system,'SF Pro Text',system-ui,sans-serif;-webkit-font-smoothing:antialiased}"
+                ".brand{font:700 17px/1 -apple-system,system-ui,sans-serif;letter-spacing:-.01em;margin:0 0 22px}"
+                "h1{font:700 30px/1.12 -apple-system,'SF Pro Display',system-ui,sans-serif;letter-spacing:-.02em;margin:0 0 14px}"
+                "p{color:var(--ink2)}table{border-collapse:collapse;margin-bottom:16px}th{text-align:left;color:var(--ink2);font-weight:500;padding:4px 16px 4px 0}"
+                "td{padding:4px 0}button{font:600 16px -apple-system,system-ui,sans-serif;border:0;border-radius:24px;padding:0 22px;min-height:48px;background:#fff;color:#111;"
+                "transition:transform .32s cubic-bezier(.34,1.4,.64,1)}button:active{transform:scale(.94);transition-duration:.07s}"
+                "pre{white-space:pre-wrap;word-break:break-word;font:13px/1.5 ui-monospace,Menlo,monospace;background:var(--panel);border-radius:20px;padding:16px;margin-top:16px;box-shadow:inset 0 0 0 1px var(--rim)}"
+                "</style><div class=brand>Asher’s tvOS</div><h1>Diagnostics from the TV</h1>" + body_html)
         return web.Response(text=page, content_type="text/html", headers={"Cache-Control": "no-store"})
 
     r.add_get("/api/diag/ping", h_ping)

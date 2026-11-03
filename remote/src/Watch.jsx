@@ -71,7 +71,7 @@ export function Watch({ pull, people, who, recs, cont: contIn, apps, screens, se
           <div className="shelf">
             {picks.map((s) => <Poster key={`${s.title}-p`} show={s} onPlay={onPlay} sub={s.reason} />)}
           </div>
-        ) : <p className="empty">{recs === false ? 'Couldn’t load ideas just now.' : recs ? 'No ideas yet. Try Ask for a show.' : 'Loading…'}</p>}
+        ) : <p className="empty">{recs === false ? 'Couldn’t load ideas just now.' : recs ? 'No ideas yet. Try Ask Claude.' : 'Loading…'}</p>}
       </section>
 
       {ready.length > 0 && (

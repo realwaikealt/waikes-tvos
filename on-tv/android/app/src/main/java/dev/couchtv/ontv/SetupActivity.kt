@@ -37,7 +37,7 @@ class SetupActivity : Activity() {
         fun px(v: Int) = (v * dp).toInt()
         val col = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(px(56), px(36), px(56), px(36)) }
         fun text(t: String, size: Float, colour: Int = CREAM, bold: Boolean = false) = TextView(this).apply {
-            text = t; textSize = size; setTextColor(colour); if (bold) typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
+            text = t; textSize = size; setTextColor(colour); if (bold) typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
             setPadding(0, px(4), 0, px(4))
         }
         col.addView(text("Asher’s tvOS", 34f, CREAM, true))
@@ -93,10 +93,10 @@ class SetupActivity : Activity() {
     }
 
     companion object {
-        private val GROUND = Color.parseColor("#0D1E19")
-        private val FLAP = Color.parseColor("#131614")
-        private val CREAM = Color.parseColor("#F2EAD8")
-        private val CREAM_2 = Color.parseColor("#BDB6A7")
-        private val AMBER = Color.parseColor("#FFB52E")
+        private val GROUND = Color.parseColor("#120D13")
+        private val FLAP = Color.parseColor("#1C1C21")
+        private val CREAM = Color.parseColor("#F5F5F7")
+        private val CREAM_2 = Color.parseColor("#A3A3A6")
+        private val AMBER = Color.parseColor("#FFFFFF")
     }
 }

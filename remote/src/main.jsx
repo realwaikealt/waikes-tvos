@@ -26,3 +26,5 @@ window.__tvReady = true;
 try { sessionStorage.removeItem('tv.bootTries'); } catch { /* private mode */ }
 window.__tvMeasure?.();
 watchLifecycle();
+// iOS Safari only applies :active (press states) once some touchstart listener exists.
+document.addEventListener('touchstart', () => {}, { passive: true });

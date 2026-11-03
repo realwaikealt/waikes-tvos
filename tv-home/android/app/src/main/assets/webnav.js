@@ -72,7 +72,7 @@
     if (S.ring && S.ring.isConnected) return S.ring;
     var d = document.createElement('div');
     d.id = '__tvos_ring';
-    d.style.cssText = 'position:fixed;z-index:2147483647;pointer-events:none;border:4px solid #fff;border-radius:12px;box-shadow:0 0 0 3px rgba(0,0,0,.7),0 8px 30px rgba(0,0,0,.6);left:0;top:0;width:0;height:0;display:none;transition:transform 90ms ease-out,width 90ms ease-out,height 90ms ease-out;box-sizing:border-box';
+    d.style.cssText = 'position:fixed;z-index:2147483647;pointer-events:none;border:4px solid #fff;border-radius:16px;box-shadow:0 0 0 3px rgba(18,13,19,.72),0 12px 36px rgba(0,0,0,.55);left:0;top:0;width:0;height:0;display:none;transition:transform 180ms cubic-bezier(.22,1,.36,1),width 180ms cubic-bezier(.22,1,.36,1),height 180ms cubic-bezier(.22,1,.36,1);box-sizing:border-box';
     (document.documentElement || document.body).appendChild(d);
     S.ring = d;
     return d;

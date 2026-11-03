@@ -185,7 +185,6 @@ export function NowPlaying({ tv, appInfo, onKey, roomy }) {
           <button className="round glass" aria-label="Back 10 seconds" onClick={key('rewind')}><Ic.Replay /></button>
           <button className="round glass" aria-label="Forward 10 seconds" onClick={key('fast_forward')}><Ic.Forward /></button>
           <button className="round glass" aria-label="Next episode" onClick={key('next')}><Ic.Next /></button>
-          <button className="round glass" aria-label="Subtitles" onClick={key('captions')}><Ic.Captions /></button>
         </div>
       )}
     </section>
@@ -372,7 +371,7 @@ export function Controls({ tv, onKey, onVolume }) {
 export function AskButton({ onAsk, quiet }) {
   return (
     <button className={`ask ${quiet ? 'quiet' : ''}`} onClick={onAsk}>
-      <Ic.Mic size={22} /> Ask for a show
+      <Ic.Mic size={22} /> Ask Claude
     </button>
   );
 }

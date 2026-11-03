@@ -19,6 +19,7 @@ import android.os.SystemClock
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.MotionEvent
+import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
@@ -108,13 +109,16 @@ class WebAppActivity : Activity() {
         root.addView(cursor, FrameLayout.LayoutParams(-1, -1))
         cursorOn = pointerMode
         note = TextView(this).apply {
-            setTextColor(Color.WHITE)
-            textSize = 16f
-            setPadding(36, 18, 36, 18)
-            setBackgroundColor(0xCC000000.toInt())
+            setTextColor(Ui.TEXT)
+            typeface = Ui.font(this@WebAppActivity, 560)
+            setTextSize(TypedValue.COMPLEX_UNIT_PX, Ui.sp(this@WebAppActivity, 22))
+            gravity = Gravity.CENTER
+            setPadding(Ui.px(this@WebAppActivity, 32), Ui.px(this@WebAppActivity, 16), Ui.px(this@WebAppActivity, 32), Ui.px(this@WebAppActivity, 18))
+            maxWidth = Ui.px(this@WebAppActivity, 1240)
+            background = Ui.panel(this@WebAppActivity, 32, 0xF0221820.toInt())
             visibility = View.GONE
         }
-        root.addView(note, FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply { bottomMargin = 40 })
+        root.addView(note, FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply { bottomMargin = Ui.px(this@WebAppActivity, 48) })
         buildToolbar()
         buildKeyboard()
         setContentView(root)
@@ -209,12 +213,16 @@ class WebAppActivity : Activity() {
 
     private fun blockedPage(url: String): String {
         val host = Blocklist.hostOf(url) ?: ""
-        val safe = host.replace("<", "").replace(">", "").replace("&", "")
-        return "<html><body style=\"margin:0;background:#120d13;color:#f3ece6;font-family:sans-serif;display:flex;" +
-            "align-items:center;justify-content:center;height:100vh;text-align:center\"><div>" +
-            "<div style=\"font-size:64px\">&#128683;</div><h1 style=\"font-weight:500\">Blocked</h1>" +
-            "<p style=\"opacity:.7;font-size:22px\">Asher's tvOS blocked this page" + (if (safe.isEmpty()) "" else " ($safe)") + ".</p>" +
-            "<p style=\"opacity:.5;font-size:18px\">Press Back to return.</p></div></body></html>"
+        val safe = host.replace("<", "").replace(">", "").replace("&", "").replace("\"", "")
+        return "<html><head><meta name=viewport content=\"width=device-width,initial-scale=1\"></head>" +
+            "<body style=\"margin:0;background:#120d13;color:#f5f5f7;font-family:-apple-system,Inter,system-ui,'Segoe UI',Roboto,sans-serif;" +
+            "display:flex;align-items:center;justify-content:center;height:100vh;text-align:center;-webkit-font-smoothing:antialiased\">" +
+            "<div style=\"width:640px;max-width:90vw;padding:44px 40px 36px;border-radius:40px;background:#221820;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),0 32px 80px rgba(0,0,0,.6)\">" +
+            "<svg width=72 height=72 viewBox=\"0 0 72 72\" fill=none stroke=\"#f5f5f7\" stroke-width=5 stroke-linecap=round>" +
+            "<circle cx=36 cy=36 r=28 opacity=.9 /><path d=\"M16 56 56 16\" /></svg>" +
+            "<h1 style=\"margin:22px 0 10px;font-size:40px;line-height:48px;font-weight:700;letter-spacing:-.02em\">Page blocked</h1>" +
+            "<p style=\"margin:0;font-size:22px;line-height:30px;color:rgba(245,245,247,.64)\">Asher\u2019s tvOS stopped this page from loading" + (if (safe.isEmpty()) "" else " ($safe)") + ".</p>" +
+            "<p style=\"margin:22px 0 0;font-size:20px;color:rgba(245,245,247,.42)\">Press Back to return.</p></div></body></html>"
     }
 
     // ------------------------------------------------------------------ the pointer and keys
@@ -414,30 +422,39 @@ class WebAppActivity : Activity() {
 
     // ------------------------------------------------------------------ toolbar
 
-    private fun pill(text: String, size: Float = 17f, action: () -> Unit): TextView {
-        val bg = { on: Boolean -> GradientDrawable().apply { cornerRadius = 90f; setColor(if (on) Color.WHITE else 0xFF2C2C2E.toInt()) } }
+    private fun pill(text: String, size: Float = 22f, action: () -> Unit): TextView {
+        val c = this
         return TextView(this).apply {
             this.text = text
-            textSize = size
+            setTextSize(TypedValue.COMPLEX_UNIT_PX, Ui.sp(c, size))
+            typeface = Ui.font(c, 600)
             gravity = Gravity.CENTER
-            setPadding(34, 20, 34, 20)
-            setTextColor(Color.WHITE)
-            background = bg(false)
+            minHeight = Ui.px(c, 56)
+            setPadding(Ui.px(c, 26), 0, Ui.px(c, 26), 0)
+            setTextColor(Ui.TEXT)
+            background = Ui.pillBg(c, false)
             isFocusable = true
             isClickable = true
             setOnClickListener { action() }
-            setOnFocusChangeListener { _, f -> setTextColor(if (f) Color.BLACK else Color.WHITE); background = bg(f) }
+            setOnFocusChangeListener { v, f ->
+                setTextColor(if (f) Ui.ON_WHITE else Ui.TEXT)
+                background = Ui.pillBg(c, f)
+                Ui.focusScale(v, f, 1.06f)
+            }
         }
     }
 
-    private fun lp(weight: Float = 0f, m: Int = 8) = LinearLayout.LayoutParams(if (weight > 0f) 0 else -2, -2, weight).apply { setMargins(m, m, m, m) }
+    private fun lp(weight: Float = 0f, m: Int = 6) = LinearLayout.LayoutParams(if (weight > 0f) 0 else -2, -2, weight).apply {
+        val g = Ui.px(this@WebAppActivity, m)
+        setMargins(g, g, g, g)
+    }
 
     private fun buildToolbar() {
         toolbar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
-            setPadding(24, 18, 24, 18)
-            background = GradientDrawable().apply { cornerRadius = 70f; setColor(0xF2120D13.toInt()) }
+            setPadding(Ui.px(this@WebAppActivity, 18), Ui.px(this@WebAppActivity, 12), Ui.px(this@WebAppActivity, 18), Ui.px(this@WebAppActivity, 12))
+            background = Ui.panel(this@WebAppActivity, 44, 0xF5221820.toInt())
             visibility = View.GONE
         }
         toolbar.addView(pill("Back") { closeToolbar(); if (web.canGoBack()) web.goBack() }, lp())
@@ -453,19 +470,19 @@ class WebAppActivity : Activity() {
         liteLabel = pill(if (lite) "Smooth: on" else "Smooth: off") { toggleLite() }
         toolbar.addView(liteLabel, lp())
         toolbar.addView(pill("Home") { finish() }, lp())
-        root.addView(toolbar, FrameLayout.LayoutParams(-2, -2, Gravity.TOP or Gravity.CENTER_HORIZONTAL).apply { topMargin = 36 })
+        root.addView(toolbar, FrameLayout.LayoutParams(-2, -2, Gravity.TOP or Gravity.CENTER_HORIZONTAL).apply { topMargin = Ui.px(this@WebAppActivity, 32) })
     }
 
     private fun openToolbar() {
         if (toolbarOpen) return
         toolbarOpen = true
-        toolbar.visibility = View.VISIBLE
+        Ui.enter(toolbar, 0.5f, 0f, 0.94f)
         toolbar.getChildAt(0).requestFocus()
     }
 
     private fun closeToolbar() {
         toolbarOpen = false
-        toolbar.visibility = View.GONE
+        Ui.leave(toolbar, 0.96f)
     }
 
     // ------------------------------------------------------------------ typing
@@ -474,30 +491,37 @@ class WebAppActivity : Activity() {
         kbd = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
-            setPadding(48, 28, 48, 28)
-            background = GradientDrawable().apply { cornerRadii = floatArrayOf(60f, 60f, 60f, 60f, 0f, 0f, 0f, 0f); setColor(0xF5120D13.toInt()) }
+            setPadding(Ui.px(this@WebAppActivity, 40), Ui.px(this@WebAppActivity, 28), Ui.px(this@WebAppActivity, 40), Ui.px(this@WebAppActivity, 32))
+            background = Ui.panel(this@WebAppActivity, 40, 0xFA221820.toInt(), top = true, bottom = false)
             visibility = View.GONE
         }
-        kbdLabel = TextView(this).apply { setTextColor(0xB3FFFFFF.toInt()); textSize = 15f }
+        kbdLabel = TextView(this).apply {
+            setTextColor(Ui.TEXT_2); typeface = Ui.font(this@WebAppActivity, 560)
+            setTextSize(TypedValue.COMPLEX_UNIT_PX, Ui.sp(this@WebAppActivity, 20))
+        }
         kbd.addView(kbdLabel)
         kbdText = TextView(this).apply {
-            setTextColor(Color.WHITE); textSize = 28f; setPadding(30, 14, 30, 14)
-            background = GradientDrawable().apply { cornerRadius = 24f; setColor(0xFF2C2C2E.toInt()) }
-            minWidth = 900
+            setTextColor(Ui.TEXT); typeface = Ui.font(this@WebAppActivity, 600)
+            setTextSize(TypedValue.COMPLEX_UNIT_PX, Ui.sp(this@WebAppActivity, 32))
+            setPadding(Ui.px(this@WebAppActivity, 28), Ui.px(this@WebAppActivity, 12), Ui.px(this@WebAppActivity, 28), Ui.px(this@WebAppActivity, 12))
+            background = Ui.pillBg(this@WebAppActivity, false, 28)
+            minWidth = Ui.px(this@WebAppActivity, 900)
         }
-        kbd.addView(kbdText, LinearLayout.LayoutParams(-2, -2).apply { setMargins(0, 10, 0, 16) })
+        kbd.addView(kbdText, LinearLayout.LayoutParams(-2, -2).apply {
+            val g = Ui.px(this@WebAppActivity, 10); setMargins(0, g, 0, g + Ui.px(this@WebAppActivity, 6))
+        })
         val rows = listOf("1234567890", "qwertyuiop", "asdfghjkl'", "zxcvbnm.-_")
         for (r in rows) {
             val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER }
-            for (ch in r) row.addView(pill(ch.toString(), 22f) { typeChar(ch) }.apply { minWidth = 92; setPadding(8, 14, 8, 14) }, lp(0f, 5))
+            for (ch in r) row.addView(pill(ch.toString(), 28f) { typeChar(ch) }.apply { minWidth = Ui.px(this@WebAppActivity, 84); minHeight = Ui.px(this@WebAppActivity, 64); setPadding(0, 0, 0, 0) }, lp(0f, 4))
             kbd.addView(row)
         }
         val last = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER }
-        last.addView(pill("Space", 18f) { typeChar(' ') }.apply { minWidth = 220 }, lp(0f, 5))
-        last.addView(pill("⌫", 18f) { backspace() }, lp(0f, 5))
-        last.addView(pill("Clear", 18f) { typed.clear(); pushText(false) }, lp(0f, 5))
-        last.addView(pill("Search ↵", 18f) { submit() }, lp(0f, 5))
-        last.addView(pill("Cancel", 18f) { closeKeyboard() }, lp(0f, 5))
+        last.addView(pill("Space", 22f) { typeChar(' ') }.apply { minWidth = Ui.px(this@WebAppActivity, 240) }, lp(0f, 4))
+        last.addView(pill("⌫", 22f) { backspace() }, lp(0f, 4))
+        last.addView(pill("Clear", 22f) { typed.clear(); pushText(false) }, lp(0f, 4))
+        last.addView(pill("Search ↵", 22f) { submit() }, lp(0f, 4))
+        last.addView(pill("Cancel", 22f) { closeKeyboard() }, lp(0f, 4))
         kbd.addView(last)
         root.addView(kbd, FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM))
     }
@@ -507,7 +531,7 @@ class WebAppActivity : Activity() {
         kbdLabel.text = "$label  ·  type on the phone remote too"
         kbdOpen = true
         closeToolbar()
-        kbd.visibility = View.VISIBLE
+        Ui.enter(kbd, 0.5f, 1f, 1f, Ui.pxf(this, 70))
         refreshKbd()
         // start on the first letter row
         (((kbd.getChildAt(3)) as? LinearLayout)?.getChildAt(0))?.requestFocus()
@@ -515,7 +539,7 @@ class WebAppActivity : Activity() {
 
     private fun closeKeyboard() {
         kbdOpen = false
-        kbd.visibility = View.GONE
+        Ui.leave(kbd, 1f, Ui.pxf(this, 70))
     }
 
     private fun refreshKbd() { kbdText.text = typed.toString() + "▏" }
@@ -591,13 +615,13 @@ class WebAppActivity : Activity() {
     private fun flash(text: String, ms: Long) {
         ui.post {
             note.text = text
-            note.visibility = View.VISIBLE
             ui.removeCallbacks(hideNote)
+            if (note.visibility != View.VISIBLE || note.alpha < 1f) Ui.enter(note, 0.5f, 1f, 0.96f, Ui.pxf(this, 14))
             ui.postDelayed(hideNote, ms)
         }
     }
 
-    private val hideNote = Runnable { note.visibility = View.GONE }
+    private val hideNote = Runnable { Ui.leave(note, 0.97f, Ui.pxf(this, 8)) }
 
     private fun hideBars() {
         window.insetsController?.let {

@@ -77,7 +77,7 @@ class ScreenGuard : Service() {
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         nm.createNotificationChannel(NotificationChannel(CHANNEL, "Screen guard", NotificationManager.IMPORTANCE_MIN))
         val n = Notification.Builder(this, CHANNEL)
-            .setContentTitle("Asher's tvOS")
+            .setContentTitle("Asher’s tvOS")
             .setContentText("Keeps the TV from waking itself")
             .setSmallIcon(R.drawable.icon)
             .build()

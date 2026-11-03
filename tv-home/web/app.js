@@ -1064,11 +1064,13 @@
     zone = "debug"; dbgI = 0; dbgFlash = "";
     fpsM.long = 0; fpsM.worst = 0;
     enter($("debug"));
+    $("settings").classList.add("behind");
     renderDebug();
     fpsSync();
   }
   function closeDebug() {
     leave($("debug"));
+    $("settings").classList.remove("behind");
     zone = "settings";
     fpsSync();
     paintFocus();

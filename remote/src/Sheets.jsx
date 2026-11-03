@@ -145,7 +145,7 @@ export const AskSheet = forwardRef(function AskSheet({ open, onClose, recs, onAs
     tick();
     if (listening) { rec.current?.stop(); return; }
     const r = new Speech();
-    r.lang = 'en-AU'; r.interimResults = true; r.maxAlternatives = 1;
+    r.lang = 'en-US'; r.interimResults = true; r.maxAlternatives = 1;
     r.onresult = (e) => { const t = Array.from(e.results).map((x) => x[0].transcript).join(''); setText(t); if (e.results[e.results.length - 1].isFinal) { r.stop(); submit(t); } };
     r.onend = () => setListening(false);
     r.onerror = () => setListening(false);
@@ -154,16 +154,16 @@ export const AskSheet = forwardRef(function AskSheet({ open, onClose, recs, onAs
 
   const first = recs?.continue?.[0]?.title;
   const ideas = [
-    first ? `Keep watching ${first}` : 'Put on Bluey',
-    'Recommend something for tonight',
-    'Something funny, under an hour',
-    'What’s new on Stan?',
+    first ? `Keep watching ${first}` : 'What should we watch tonight?',
+    'What’s the weather?',
+    'Will it rain this week?',
+    'Tell me a joke',
   ];
   const last = thread[thread.length - 1];
   const chips = last && !last.me && !last.pending ? last.options || [] : [];
 
   return (
-    <Sheet open={open} onClose={onClose} title="Ask for a show" className="ask-sheet"
+    <Sheet open={open} onClose={onClose} title="Ask Claude" className="ask-sheet"
       extra={thread.length > 0 && <button type="button" className="pill glass new-chat" onClick={newChat}>New chat</button>}>
       {thread.length > 0 ? (
         <div className="thread" ref={list} role="log" aria-live="polite" aria-label="Conversation with Claude">
@@ -195,7 +195,7 @@ export const AskSheet = forwardRef(function AskSheet({ open, onClose, recs, onAs
       )}
       <form className="ask-field glass" onSubmit={(e) => { e.preventDefault(); submit(); }}>
         <input ref={inputRef} value={text} onChange={onType} onKeyDown={onKey} enterKeyHint="send"
-          placeholder={thread.length ? 'Reply…' : 'Put on…'} aria-label={thread.length ? 'Reply to Claude' : 'What do you want to watch?'} autoComplete="off" autoCorrect="on" />
+          placeholder={thread.length ? 'Reply…' : 'Ask Claude anything…'} aria-label={thread.length ? 'Reply to Claude' : 'Ask Claude'} autoComplete="off" autoCorrect="on" />
         {canListen && <button type="button" className={`round glass ask-mic ${listening ? 'listening' : ''}`} aria-label={listening ? 'Stop listening' : 'Speak'}
           onPointerDown={(e) => e.preventDefault()} onClick={listen}><Ic.Mic size={20} /></button>}
         <button type="submit" className="round solid ask-send" aria-label="Send" disabled={!text.trim() || busy}
@@ -397,7 +397,7 @@ function BackupBlock({ open }) {
   };
   return (
     <section className="more-block group backup-block">
-      <h3>Backup</h3>
+      <h3><Ic.Download size={16} /> Backup</h3>
       <div className="arrange-pair">
         <button className="pill glass arrange-open" disabled={busy} onClick={() => { tick(); setSure(false); run(api.backupNow, (j) => `Saved on the computer: ${j.name}`); }}>Back up now</button>
         <a className="pill glass arrange-open" href="/api/backup" download>Download copy</a>
@@ -420,7 +420,7 @@ function AboutBlock() {
   const [more, setMore] = useState(false);
   return (
     <section className="more-block group about-block">
-      <h3>About</h3>
+      <h3><Ic.Info size={16} /> About</h3>
       <div className="about-head">
         <svg className="about-logo" viewBox="0 0 120 120" aria-hidden="true">
           <defs><linearGradient id="alg-r" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#ff9a5a" /><stop offset=".55" stopColor="#d8467f" /><stop offset="1" stopColor="#4a2f8a" /></linearGradient></defs>
@@ -457,8 +457,8 @@ function WebAppControls() {
   const send = (cmd, label) => { tick(); api.webapp(cmd).then(() => setMsg(label || '')).catch((e) => setMsg(e.message || 'No web app is open on the TV')); };
   return (
     <section className="more-block group">
-      <h3>Web app controls</h3>
-      <p className="muted small">For Vidbox and other websites on the TV. Type above to fill the search box.</p>
+      <h3><Ic.Pointer size={16} /> Web app controls</h3>
+      <p className="note lede">For Vidbox and other websites on the TV. Type above to fill the search box.</p>
       <div className="arrange-pair">
         <button className="pill glass arrange-open" onClick={() => send('toolbar')}>Tools</button>
         <button className="pill glass arrange-open" onClick={() => send('enter', 'Searching…')}>Enter</button>
@@ -475,7 +475,7 @@ function WebAppControls() {
         <button className="pill glass arrange-open" onClick={() => send('mode', 'Switched pointer/buttons')}>Pointer / Buttons</button>
         <button className="pill glass arrange-open" onClick={() => send('ua', 'Switched site')}>Mobile / Desktop</button>
       </div>
-      {msg && <p className="muted small">{msg}</p>}
+      {msg && <p className="more-note" role="status">{msg}</p>}
     </section>
   );
 }
@@ -501,7 +501,7 @@ function RestartBlock({ open }) {
   };
   return (
     <section className="more-block group restart-block">
-      <h3>Restart</h3>
+      <h3><Ic.Power size={16} /> Restart</h3>
       <div className="arrange-pair">
         <button className="pill glass arrange-open" disabled={busy} onClick={() => { tick(); go('home'); }}>Restart home</button>
         <button className={`pill glass arrange-open ${sure ? 'danger' : ''}`} disabled={busy} onClick={() => { tick(); if (!sure) { setSure(true); setMsg('This reboots the whole TV. Tap again to confirm.'); return; } go('reboot'); }}>{sure ? 'Tap to confirm' : 'Reboot the TV'}</button>
@@ -559,11 +559,11 @@ export const MoreSheet = forwardRef(function MoreSheet({ open, onClose, sleepEnd
             })}
           </div>
         )}
-        <div className="chips-row">
-          <button className="chip glass" onClick={() => { tick(); onTvPage?.('picture'); }}>Picture settings</button>
-          <button className="chip glass" onClick={() => { tick(); onTvPage?.('game'); }}>Game mode</button>
+        <div className="arrange-pair">
+          <button className="pill glass arrange-open" onClick={() => { tick(); onTvPage?.('picture'); }}>Picture settings</button>
+          <button className="pill glass arrange-open" onClick={() => { tick(); onTvPage?.('game'); }}>Game mode</button>
         </div>
-        <p className="note">Opens the TV's own picture page (Movie, Game, Sports…) or its game bar.</p>
+        <p className="note">Opens the TV’s own picture page (Movie, Game, Sports…) or its game bar.</p>
       </section>
 
       <section className="more-block group">

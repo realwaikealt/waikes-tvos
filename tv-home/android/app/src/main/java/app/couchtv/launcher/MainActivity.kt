@@ -667,43 +667,46 @@ class MainActivity : Activity() {
     private fun hideSplash() {
         val v = splash ?: return
         splash = null
-        v.animate().alpha(0f).setDuration(320).withEndAction { root.removeView(v) }.start()
+        v.animate().alpha(0f).setDuration(Ui.SLOW).setInterpolator(Ui.OUT).withEndAction { root.removeView(v) }.start()
     }
 
     private fun showFallback() {
         if (fallback != null) return
         hideSplash()
-        val dp = resources.displayMetrics.density
-        fun px(v: Int) = (v * dp).toInt()
+        fun px(v: Int) = Ui.px(this, v)   // design px on a 1920 x 1080 canvas (see docs/DESIGN-TOKENS.md)
 
         val column = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(px(48), px(28), px(48), px(28))
+            setPadding(px(80), px(60), px(80), px(60))   // the page's safe area: 5rem x 3.75rem
         }
         column.addView(TextView(this).apply {
             text = "Home"
-            setTextColor(CREAM)
-            textSize = 34f
-            typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
+            setTextColor(Ui.TEXT)
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, Ui.sp(this@MainActivity, 48))
+            typeface = Ui.font(this@MainActivity, 700)
+            letterSpacing = -0.02f
         })
         column.addView(TextView(this).apply {
-            text = "The bridge isn't answering, so shows and picks are hidden. Your apps still work."
-            setTextColor(CREAM_2)
-            textSize = 17f
-            setPadding(0, px(4), 0, px(18))
+            text = "Can’t reach your computer, so shows and picks are hidden. Your apps still work."
+            setTextColor(Ui.TEXT_2)
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, Ui.sp(this@MainActivity, 24))
+            typeface = Ui.font(this@MainActivity, 500)
+            setPadding(0, px(8), 0, px(36))
         })
-        val grid = GridLayout(this).apply { columnCount = 5 }
+        val grid = GridLayout(this).apply { columnCount = 6 }
         val tiles = tvApps().map { ri -> ri.activityInfo.packageName to ri } + listOf("settings" to null)
         for ((pkg, ri) in tiles) {
             val tile = FrameLayout(this).apply {
                 isFocusable = true
                 isClickable = true
-                background = GradientDrawable().apply { setColor(FLAP); cornerRadius = px(4).toFloat() }
-                foreground = GradientDrawable().apply { cornerRadius = px(6).toFloat() }
+                background = GradientDrawable().apply { setColor(Ui.TILE); cornerRadius = px(20).toFloat() }
+                foreground = GradientDrawable().apply { cornerRadius = px(20).toFloat() }
+                clipToOutline = true
+                outlineProvider = android.view.ViewOutlineProvider.BACKGROUND
                 setOnFocusChangeListener { v, has ->
-                    v.animate().scaleX(if (has) 1.08f else 1f).scaleY(if (has) 1.08f else 1f).setDuration(150).start()
-                    (v.foreground as GradientDrawable).setStroke(if (has) px(3) else 0, AMBER)
-                    v.elevation = if (has) px(8).toFloat() else 0f
+                    Ui.focusScale(v, has, 1.08f)
+                    (v.foreground as GradientDrawable).setStroke(if (has) px(4) else 0, android.graphics.Color.WHITE)
+                    v.elevation = if (has) px(10).toFloat() else 0f
                 }
                 setOnClickListener { if (ri == null) start(Intent(Settings.ACTION_SETTINGS)) else launchPackage(pkg) }
             }
@@ -715,18 +718,18 @@ class MainActivity : Activity() {
                         setImageDrawable(b); scaleType = ImageView.ScaleType.CENTER_CROP
                     } else {
                         setImageDrawable(ri.loadIcon(packageManager)); scaleType = ImageView.ScaleType.CENTER_INSIDE
-                        setPadding(px(30), px(18), px(30), px(30))
+                        setPadding(px(40), px(24), px(40), px(40))
                     }
                 }, MATCH)
                 if (ri.activityInfo.loadBanner(packageManager) == null && ri.activityInfo.applicationInfo.loadBanner(packageManager) == null) {
-                    tile.addView(label(ri.loadLabel(packageManager).toString(), px(8)))
+                    tile.addView(label(ri.loadLabel(packageManager).toString(), px(16)))
                 }
             } else {
-                tile.addView(label("Settings", px(8)))
+                tile.addView(label("Settings", px(16)))
             }
             grid.addView(tile, GridLayout.LayoutParams().apply {
-                width = px(160); height = px(90)
-                setMargins(px(9), px(9), px(9), px(9))
+                width = px(264); height = px(148)   // 16:9, two thirds of the page's app tile
+                setMargins(px(12), px(12), px(12), px(12))
             })
         }
         column.addView(grid)
@@ -738,8 +741,9 @@ class MainActivity : Activity() {
 
     private fun label(text: String, pad: Int) = TextView(this).apply {
         this.text = text
-        setTextColor(CREAM)
-        textSize = 15f
+        setTextColor(Ui.TEXT)
+        setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, Ui.sp(this@MainActivity, 20))
+        typeface = Ui.font(this@MainActivity, 600)
         gravity = Gravity.BOTTOM or Gravity.START
         setPadding(pad, pad, pad, pad)
         layoutParams = FrameLayout.LayoutParams(MATCH_W, MATCH_W)
@@ -771,10 +775,7 @@ class MainActivity : Activity() {
         private const val SLOW_MS = 2_500L
         private const val MATCH_W = ViewGroup.LayoutParams.MATCH_PARENT
         private val MATCH = FrameLayout.LayoutParams(MATCH_W, MATCH_W)
-        private val GROUND = Color.parseColor("#120D13")
-        private val FLAP = Color.parseColor("#131614")
-        private val CREAM = Color.parseColor("#F2EAD8")
-        private val CREAM_2 = Color.parseColor("#BDB6A7")
-        private val AMBER = Color.parseColor("#FFB52E")
+        private val GROUND = Ui.GROUND
+        private val FLAP = Ui.TILE   // the quiet tile colour behind app banners (--tile on the page)
     }
 }
