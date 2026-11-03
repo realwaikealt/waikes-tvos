@@ -37,3 +37,7 @@ platform-tools/
 *.bak-*
 *-backup-*
 .DS_Store
+
+# Wallpaper Engine files converted for the TV live under bridge/data/wallpapers (never committed)
+bridge/data/wallpapers/
+*.part.mp4

@@ -1,0 +1,347 @@
+{
+ "app": "Asher’s tvOS",
+ "entries": [
+  {
+   "id": "20261026-01",
+   "date": "2026-10-26",
+   "time": "17:00",
+   "version": "1.0.0",
+   "type": "internal",
+   "title": "Starting point: couch-tv",
+   "summary": "Asher’s tvOS begins from couch-tv, an open-source home screen, phone remote and bridge for Google TV, set up for the TCL TV.",
+   "details": [
+    "The home screen runs on the TV; a small program on the PC (the bridge) connects the phone remote to it.",
+    "Credit to the original project stays in About > Open-source licences."
+   ]
+  },
+  {
+   "id": "20261026-02",
+   "date": "2026-10-26",
+   "time": "17:55",
+   "version": "1.0.1",
+   "type": "improved",
+   "title": "Smoother on the TV",
+   "summary": "Moving around the home screen got lighter and steadier.",
+   "details": [
+    "Removed the endless focus sway animation.",
+    "The Night glass uses a flat tint instead of live blur, which was slowing the TV down."
+   ]
+  },
+  {
+   "id": "20261026-03",
+   "date": "2026-10-26",
+   "time": "18:37",
+   "version": "1.0.2",
+   "type": "new",
+   "title": "Settings on the TV",
+   "summary": "A Settings screen on the TV itself, so changes don’t need the phone.",
+   "details": [
+    "Look, clock, temperature unit, date style, scene length, dock size and top buttons.",
+    "The country can now be set in the TV config."
+   ]
+  },
+  {
+   "id": "20261026-04",
+   "date": "2026-10-26",
+   "time": "19:17",
+   "version": "1.0.3",
+   "type": "new",
+   "title": "Restart and reboot from Settings",
+   "summary": "Restart just the home screen, or reboot the whole TV, from Settings or from the phone’s TV sheet.",
+   "details": [
+    "Rebooting asks you to press OK twice so it can’t happen by accident."
+   ]
+  },
+  {
+   "id": "20261026-05",
+   "date": "2026-10-26",
+   "time": "19:17",
+   "version": "1.0.4",
+   "type": "fixed",
+   "title": "Wake-on-LAN is more reliable",
+   "summary": "Waking the TV from the phone now works more often.",
+   "details": [
+    "Sends the wake signal in several ways and keeps count of what was sent."
+   ]
+  },
+  {
+   "id": "20261026-06",
+   "date": "2026-10-26",
+   "time": "19:17",
+   "version": "1.0.5",
+   "type": "new",
+   "title": "Back up and restore",
+   "summary": "Save your TV settings and restore the latest backup from Settings.",
+   "details": [
+    "Backups are saved on the PC."
+   ]
+  },
+  {
+   "id": "20261026-07",
+   "date": "2026-10-26",
+   "time": "19:17",
+   "version": "1.0.6",
+   "type": "new",
+   "title": "Ask Claude on the TV",
+   "summary": "Ask a question from the TV and get an answer on screen."
+  },
+  {
+   "id": "20261026-08",
+   "date": "2026-10-26",
+   "time": "19:17",
+   "version": "1.0.7",
+   "type": "improved",
+   "title": "iPhone launch screens",
+   "summary": "The phone remote opens with a proper launch screen when added to an iPhone’s Home Screen."
+  },
+  {
+   "id": "20261026-09",
+   "date": "2026-10-26",
+   "time": "21:21",
+   "version": "1.0.8",
+   "type": "improved",
+   "title": "Ask is a conversation",
+   "summary": "Ask on the phone now works like a chat, and Claude can look things up and act instead of only answering.",
+   "details": [
+    "Chat-style Ask on the phone.",
+    "TV brand guide added so the look stays consistent."
+   ]
+  },
+  {
+   "id": "20261026-10",
+   "date": "2026-10-26",
+   "time": "21:40",
+   "version": "1.0.9",
+   "type": "fixed",
+   "title": "Ask chat stays open",
+   "summary": "The Ask chat no longer closes by itself after an answer."
+  },
+  {
+   "id": "20261026-11",
+   "date": "2026-10-26",
+   "time": "21:59",
+   "version": "1.0.10",
+   "type": "new",
+   "title": "Settings PIN",
+   "summary": "Lock Settings with a 4-digit PIN so nobody changes things by accident.",
+   "details": [
+    "Forgot it? Run reset-pin.cmd on the PC."
+   ]
+  },
+  {
+   "id": "20261026-12",
+   "date": "2026-10-26",
+   "time": "21:59",
+   "version": "1.0.11",
+   "type": "new",
+   "title": "Apps sort themselves",
+   "summary": "Choose how apps are ordered: Smart, Most used, Recent, A–Z, Category or My order.",
+   "details": [
+    "Smart puts streaming apps first."
+   ]
+  },
+  {
+   "id": "20261026-13",
+   "date": "2026-10-26",
+   "time": "21:59",
+   "version": "1.0.12",
+   "type": "improved",
+   "title": "Ask knows the weather and the web",
+   "summary": "Ask can check the weather and search or read web pages, and control the TV, but cannot change files on the PC."
+  },
+  {
+   "id": "20261026-14",
+   "date": "2026-10-26",
+   "time": "21:59",
+   "version": "1.0.13",
+   "type": "new",
+   "title": "About screen",
+   "summary": "A tidy About page with the version and credits."
+  },
+  {
+   "id": "20261026-15",
+   "date": "2026-10-26",
+   "time": "21:59",
+   "version": "1.0.14",
+   "type": "new",
+   "title": "Picture and Game buttons",
+   "summary": "Quick buttons open the TV’s own Picture settings and Game bar.",
+   "details": [
+    "The TV doesn’t let apps change the picture mode directly, so these open its own pages."
+   ]
+  },
+  {
+   "id": "20261026-16",
+   "date": "2026-10-26",
+   "time": "21:59",
+   "version": "1.0.15",
+   "type": "improved",
+   "title": "Phone remote redesign and motion pass",
+   "summary": "The phone remote was redesigned (Remote, Watch, Ask and TV tabs) and movement was made smoother.",
+   "details": [
+    "Live blur removed from the TV home screen for speed."
+   ]
+  },
+  {
+   "id": "20261027-01",
+   "date": "2026-10-27",
+   "time": "20:21",
+   "version": "1.0.16",
+   "type": "new",
+   "title": "Web apps (Vidbox)",
+   "summary": "Websites can be added as apps. Vidbox is the first, with pop-ups blocked and ad and adult sites filtered.",
+   "details": [
+    "Opens full screen in the app’s own browser.",
+    "The block list is editable; no list is perfect."
+   ]
+  },
+  {
+   "id": "20261027-02",
+   "date": "2026-10-27",
+   "time": "20:21",
+   "version": "1.0.17",
+   "type": "new",
+   "title": "Boot screen and skeleton loaders",
+   "summary": "A start-up screen while the home screen loads, and soft placeholders while content is on its way.",
+   "details": [
+    "Shows “Using offline copy” if the PC bridge isn’t reachable."
+   ]
+  },
+  {
+   "id": "20261027-03",
+   "date": "2026-10-27",
+   "time": "20:21",
+   "version": "1.0.18",
+   "type": "improved",
+   "title": "Settings change things live",
+   "summary": "Toggle a setting and the screen behind the panel updates immediately, with no reload."
+  },
+  {
+   "id": "20261027-04",
+   "date": "2026-10-27",
+   "time": "20:21",
+   "version": "1.0.19",
+   "type": "improved",
+   "title": "Springy motion everywhere",
+   "summary": "Panels, menus and re-ordered apps now open, close and move with Apple-style springs."
+  },
+  {
+   "id": "20261027-05",
+   "date": "2026-10-27",
+   "time": "20:21",
+   "version": "1.0.20",
+   "type": "new",
+   "title": "Debug page and Developer mode",
+   "summary": "A hidden page for checking the TV’s health, opened by pressing OK seven times on the version in About.",
+   "details": [
+    "Live frame rate, diagnostics, console and errors.",
+    "“Send diagnostics” saves a file on the PC.",
+    "Developer mode adds extra Settings and switches off after every restart."
+   ]
+  },
+  {
+   "id": "20261027-06",
+   "date": "2026-10-27",
+   "time": "20:21",
+   "version": "1.0.21",
+   "type": "improved",
+   "title": "Night scenes only",
+   "summary": "Classic, the Look button and Auto Night were removed so the TV keeps one polished look."
+  },
+  {
+   "id": "20261027-07",
+   "date": "2026-10-27",
+   "time": "20:21",
+   "version": "1.0.22",
+   "type": "improved",
+   "title": "About shows less",
+   "summary": "About now shows just the name, version and a small licences line."
+  },
+  {
+   "id": "20261027-08",
+   "date": "2026-10-27",
+   "time": "20:22",
+   "version": "1.0.23",
+   "type": "internal",
+   "title": "Old launcher archived, project file added",
+   "summary": "The earlier launcher is stored away, and PROJECT.md became the one living file that explains the whole project."
+  },
+  {
+   "id": "20261027-09",
+   "date": "2026-10-27",
+   "time": "21:55",
+   "version": "1.0.24",
+   "type": "improved",
+   "title": "Vidbox is easier to use",
+   "summary": "Vidbox can now be used with the remote instead of a mouse.",
+   "details": [
+    "D-pad moves between buttons; hold OK for a free pointer.",
+    "A toolbar with Back, Reload, zoom and a smooth mode.",
+    "An on-TV keyboard."
+   ]
+  },
+  {
+   "id": "20261027-10",
+   "date": "2026-10-27",
+   "time": "21:55",
+   "version": "1.0.25",
+   "type": "new",
+   "title": "Type on the phone into web pages",
+   "summary": "Typing on the phone remote now goes straight into a website’s search box on the TV."
+  },
+  {
+   "id": "20261101-01",
+   "date": "2026-11-01",
+   "time": "21:33",
+   "version": "1.0.26",
+   "type": "security",
+   "title": "Home details removed from public files",
+   "summary": "The home IP address and city were scrubbed from the install page and sample data."
+  },
+  {
+   "id": "20261102-01",
+   "date": "2026-11-02",
+   "time": "20:27",
+   "version": "1.0.27",
+   "type": "fixed",
+   "title": "The TV no longer wakes itself into Prime Video",
+   "summary": "After turning the TV off it sometimes switched back on into Prime Video. That no longer happens.",
+   "details": [
+    "Cause: Prime Video’s leftover process was restarted by Android in standby and asked the screen to turn on.",
+    "Fix: Home is brought to the front when the screen turns off, and the bridge presses Home before power-off.",
+    "The Debug page has a screen on/off log."
+   ]
+  },
+  {
+   "id": "20261102-02",
+   "date": "2026-11-02",
+   "time": "20:29",
+   "version": "1.0.28",
+   "type": "internal",
+   "title": "Branding settled",
+   "summary": "The app says Asher’s tvOS everywhere; GitHub files use the Waike name."
+  },
+  {
+   "id": "20261102-03",
+   "date": "2026-11-02",
+   "time": "21:45",
+   "version": "1.0.29",
+   "type": "improved",
+   "title": "UI audit: one look everywhere",
+   "summary": "Colours, text sizes, panels and buttons now come from one shared set of design values.",
+   "details": [
+    "Phone remote: clearer Ask tab, bigger touch targets, better contrast.",
+    "Native screens (web app toolbar, keyboard, Blocked page) match the TV’s look."
+   ]
+  },
+  {
+   "id": "20261102-04",
+   "date": "2026-11-02",
+   "time": "22:10",
+   "version": "1.0.30",
+   "type": "new",
+   "title": "Dev log",
+   "summary": "This page. A dated history of everything that changed, on the TV in Settings and on the phone."
+  }
+ ]
+}

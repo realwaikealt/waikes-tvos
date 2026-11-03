@@ -1,0 +1,21 @@
+/* Settings > AirPods & Bluetooth audio. Tokens only; transform/opacity animation; no backdrop-filter. */
+.airpods { z-index: 63; }
+.ap-panel { width: 56rem; }
+.ap-out { display: flex; align-items: center; gap: 0.9rem; margin-bottom: 1rem; padding: 0.9rem 1.4rem; border-radius: var(--r-md); background: rgba(255, 255, 255, 0.06);
+  font-size: var(--fs-callout); color: var(--ink-2); }
+.ap-out b { color: #fff; font-weight: 700; }
+.ap-dot { flex: none; width: 0.9rem; height: 0.9rem; border-radius: 50%; background: rgba(255, 255, 255, 0.35); }
+.ap-dot.on { background: #6fe39a; }
+.ap-dot.off { background: #ff9f8a; }
+.ap-steps { margin: 0 0 1rem; padding: 0; list-style: none; }
+.ap-steps li { display: flex; align-items: center; gap: 1.1rem; padding: 0.55rem 0.25rem; font-size: var(--fs-body); color: var(--ink-1); }
+.ap-steps i { flex: none; display: grid; place-items: center; width: 2.4rem; height: 2.4rem; border-radius: 50%; background: rgba(255, 255, 255, 0.14);
+  font-style: normal; font-weight: 700; font-size: var(--fs-callout); color: #fff; }
+.ap-status { margin: 0.5rem 0 1.1rem; padding: 1rem 1.4rem; border-radius: var(--r-md); background: rgba(255, 255, 255, 0.06); font-size: var(--fs-callout); line-height: 1.85rem; color: var(--ink-2); }
+.ap-status b { display: block; font-size: var(--fs-body); color: #fff; }
+.ap-status.connected b { color: #aef0c1; }
+.ap-status.failed b { color: var(--warn); }
+.ap-btns { display: flex; gap: 0.9rem; justify-content: center; }
+.ap-btn { padding: 0.7rem 2.6rem; border-radius: var(--r-xl); background: rgba(255, 255, 255, 0.12); color: var(--ink-1); font-size: var(--fs-body); font-weight: 650;
+  transition: background var(--d-fast) var(--ease), color var(--d-fast) var(--ease), transform var(--d-med) var(--spring); }
+.ap-btn.focus { background: #fff; color: #111; transform: scale(1.06); }

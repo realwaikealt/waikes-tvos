@@ -63,6 +63,7 @@ class ScreenGuard : Service() {
             addAction(Intent.ACTION_SCREEN_ON)
         })
         record(this, "guard started", topPackage(this))
+        RemoteAppKeys.ensureEnabled(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY

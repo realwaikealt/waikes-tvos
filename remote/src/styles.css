@@ -660,3 +660,46 @@ button, a, .poster, .app-tile { -webkit-user-select: none; user-select: none; -w
   .pad .chev, .pad .ring, .round, .chip, .pill, .tile, .qa, .tabbar button, .row-btn, .app-tile, .poster, .ask { transform: none !important; transition-duration: 0.01ms !important; }
   .dot.warn, .scrub-state.playing::before, .dots i { animation: none; }
 }
+
+/* Connection help (net.js / ConnectionHelp.jsx) */
+.conn-help { display: flex; flex-direction: column; gap: 10px; align-items: stretch; text-align: left; margin-top: 12px; }
+.conn-detail { font-size: 13px; line-height: 1.35; color: rgba(255,255,255,.64); word-break: break-word; margin: 0; }
+.conn-ios { font-size: 14px; line-height: 1.4; } .conn-ios p { margin: 0 0 8px; } .conn-ios ol { margin: 0 0 8px; padding-left: 20px; }
+.conn-link { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; text-decoration: none; color: inherit; }
+.conn-test { min-height: 44px; padding: 0 18px; }
+.conn-report { font: 12px/1.4 ui-monospace, Menlo, monospace; white-space: pre-wrap; word-break: break-all; background: rgba(255,255,255,.08); border-radius: 14px; padding: 12px; margin: 0; user-select: text; -webkit-user-select: text; }
+.banner-help { padding: 0 16px 12px; }
+
+/* Messages (TV sheet) */
+.messages-block .msg-dot { display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: #4aa3ff; vertical-align: middle; }
+.messages-block .msg-detail { padding: 4px 12px 12px; font-size: 15px; line-height: 1.45; color: var(--text-2, rgba(255,255,255,.7)); }
+.messages-block .msg-detail p { margin: 0 0 8px; white-space: pre-line; }
+.messages-block .msg-detail ul { margin: 0; padding-left: 20px; }
+
+/* ---- Dev log sheet (DevLog.jsx) ---- */
+.dl-ver { margin: 0 0 10px; }
+.dl-chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 10px; }
+.dl-chip { flex: none; min-height: 44px; padding: 0 16px; border-radius: 22px; border: 0; background: rgba(255, 255, 255, .08); color: rgba(245, 245, 247, .64); font-weight: 600; font-size: 15px; }
+.dl-chip i { font-style: normal; opacity: .65; margin-left: 4px; }
+.dl-chip[aria-pressed="true"] { background: #fff; color: #111; }
+.dl-scroll { max-height: 60vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.dl-day { margin: 16px 4px 8px; font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: rgba(245, 245, 247, .56); }
+.dl-item { display: block; width: 100%; text-align: left; margin: 0 0 8px; padding: 12px 14px; border: 0; border-radius: 18px; background: rgba(255, 255, 255, .06); color: inherit; font: inherit; }
+.dl-item strong { display: block; font-size: 17px; line-height: 1.25; }
+.dl-sum { display: block; margin-top: 2px; color: rgba(245, 245, 247, .64); font-size: 15px; }
+.dl-item ul { margin: 8px 0 2px 18px; padding: 0; color: rgba(245, 245, 247, .64); font-size: 14px; }
+.dl-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; font-size: 13px; color: rgba(245, 245, 247, .56); }
+.dl-v { margin-left: auto; font-variant-numeric: tabular-nums; }
+.dl-type { padding: 1px 9px; border-radius: 7px; font-weight: 700; background: rgba(255, 255, 255, .12); color: #fff; }
+.dl-type.t-new { background: rgba(120, 200, 140, .25); color: #aef0c1; }
+.dl-type.t-improved { background: rgba(120, 170, 255, .25); color: #bcd3ff; }
+.dl-type.t-fixed { background: rgba(255, 190, 110, .25); color: #ffd9a3; }
+.dl-type.t-security { background: rgba(255, 140, 130, .25); color: #ffc3bd; }
+.dl-sk { height: 76px; border-radius: 18px; margin-bottom: 8px; }
+
+/* Wallpaper picker (TV sheet) */
+.wp-strip { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 10px; max-height: 340px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.wp-tile { display: block; text-align: left; padding: 0; border-radius: 14px; overflow: hidden; background: var(--glass, rgba(255,255,255,.08)); border: 2px solid transparent; min-height: 44px; }
+.wp-tile.on { border-color: var(--solid, #fff); }
+.wp-tile img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; background: #2a2029; }
+.wp-tile span { display: block; padding: 6px 8px 8px; font-size: 13px; line-height: 16px; height: 32px; overflow: hidden; color: var(--ink-2); }

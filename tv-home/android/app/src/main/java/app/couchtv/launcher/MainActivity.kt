@@ -66,6 +66,7 @@ class MainActivity : Activity() {
     private var probing = false
     private var offline = false   // showing the saved copy because the computer is off
     private var resumed = false
+    private var airpods: AirPodsWatcher? = null   // AirPods pop-up and Bluetooth audio (AirPodsWatcher.kt)
     private val retry = Runnable { if (!pageReady || offline) connect() }
 
     private val prefs by lazy { getSharedPreferences("home", MODE_PRIVATE) }
@@ -76,9 +77,13 @@ class MainActivity : Activity() {
         WebView.setWebContentsDebuggingEnabled(true)
         root = FrameLayout(this).apply { setBackgroundColor(GROUND) }
         setContentView(root)
+        airpods = AirPodsWatcher(this, root)
         // Same picture as the window background, so the hand-over from cold start to this view is invisible.
-        splash = View(this).apply { background = getDrawable(R.drawable.splash) }
+        splash = buildSplash()
+        splashT0 = android.os.SystemClock.uptimeMillis()
         root.addView(splash, MATCH)
+        (splashMark?.drawable as? android.graphics.drawable.Animatable)?.start()
+        registerReceiver(wakeReceiver, android.content.IntentFilter(Intent.ACTION_SCREEN_ON))
         main.postDelayed({ hideSplash() }, SLOW_MS + 500)   // never stuck on the logo
         hideSystemBars()
         intent?.let { readExtras(it) }
@@ -105,6 +110,8 @@ class MainActivity : Activity() {
             return
         }
         if (intent.hasExtra("guard")) return   // the screen guard bringing Home forward while the TV is off
+        // test hook (adb): am start -n app.couchtv.launcher/.MainActivity --ei airpods_demo 3616   (model id, decimal)
+        if (intent.hasExtra("airpods_demo")) { airpods?.demo(intent.getIntExtra("airpods_demo", 0x0E20)); return }
         // HOME pressed while we are already in front: back to the first tile.
         js("window.tv && tv.home()")
     }
@@ -112,6 +119,8 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         resumed = true
+        airpods?.onResume()
+        maybeWake()
         ScreenGuard.start(this)
         hideSystemBars()
         if (pageReady && offline && alone()) {
@@ -130,9 +139,11 @@ class MainActivity : Activity() {
     override fun onPause() {
         super.onPause()
         resumed = false
+        airpods?.onPause()
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (airpods?.handleKey(event) == true) return true   // the AirPods sheet is up
         // Every kind of remote: game controller A, Select and the number pad's Enter count as OK,
         // controller B and Escape as BACK. The page then only has to know OK and BACK.
         val same = when (event.keyCode) {
@@ -501,6 +512,37 @@ class MainActivity : Activity() {
 
         @JavascriptInterface
         fun kept(key: String): String? = getSharedPreferences("page", MODE_PRIVATE).getString(key, null)
+
+        // AirPods and Bluetooth audio (AirPodsWatcher): the page's Settings > AirPods & Bluetooth audio
+        @JavascriptInterface
+        fun btStatus(): String = airpods?.statusJson() ?: "{}"
+
+        @JavascriptInterface
+        fun btSet(key: String, value: String) {
+            val a = airpods ?: return
+            main.post {
+                when (key) {
+                    "on" -> a.enabled = value == "1"
+                    "sens" -> a.sensitivity = value.toIntOrNull() ?: 1
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun btPair() { airpods?.startPairing() }
+
+        @JavascriptInterface
+        fun btCancel() { airpods?.cancelFlowFromPage() }
+
+        @JavascriptInterface
+        fun btAllow() { airpods?.askPermission() }
+
+        @JavascriptInterface
+        fun btSettings(): Boolean = airpods?.openBluetoothSettings() ?: false
+
+        // test hook: show the pop-up as if AirPods Pro had been heard
+        @JavascriptInterface
+        fun btDemo(model: Int): Boolean = airpods?.demo(model) ?: false
     }
 
     /**
@@ -664,8 +706,49 @@ class MainActivity : Activity() {
 
     // ---------------------------------------------------------------- never stuck: the native grid
 
+    // The startup splash: the dark ground, a soft glow and the mark springing in with its lines drawn on
+    // (splash_mark_avd). The page's own startup screen (startup.js) shows the same mark and takes over.
+    private var splashT0 = 0L
+    private var splashMark: ImageView? = null
+    private var woke = false
+    private val wakeReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(c: android.content.Context?, i: Intent?) { woke = true; if (resumed) maybeWake() }
+    }
+    override fun onDestroy() {
+        try { unregisterReceiver(wakeReceiver) } catch (e: Exception) {}
+        super.onDestroy()
+    }
+    private fun buildSplash(): View {
+        fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
+        val f = FrameLayout(this).apply { setBackgroundColor(GROUND) }
+        val glow = View(this).apply {
+            background = GradientDrawable().apply {
+                gradientType = GradientDrawable.RADIAL_GRADIENT
+                gradientRadius = dp(176).toFloat()
+                colors = intArrayOf(0x57D8467F, 0x294A2F8A, 0x00120D13)
+                setGradientCenter(0.5f, 0.5f)
+            }
+            alpha = 0f; scaleX = 0.6f; scaleY = 0.6f
+            animate().alpha(1f).scaleX(1f).scaleY(1f).setStartDelay(100).setDuration(1100).setInterpolator(Ui.OUT).start()
+        }
+        f.addView(glow, FrameLayout.LayoutParams(dp(352), dp(352), Gravity.CENTER))
+        val mark = ImageView(this).apply { setImageResource(R.drawable.splash_mark_avd) }
+        splashMark = mark
+        f.addView(mark, FrameLayout.LayoutParams(dp(96), dp(96), Gravity.CENTER))
+        return f
+    }
+
+    // the TV woke from standby: the page plays its short startup animation
+    private fun maybeWake() {
+        if (!woke || !pageReady) return
+        woke = false
+        js("window.tv && tv.wake && tv.wake()")
+    }
+
     private fun hideSplash() {
         val v = splash ?: return
+        val left = 900L - (android.os.SystemClock.uptimeMillis() - splashT0)   // let the drawing-on finish
+        if (left > 0) { main.postDelayed({ hideSplash() }, left); return }
         splash = null
         v.animate().alpha(0f).setDuration(Ui.SLOW).setInterpolator(Ui.OUT).withEndAction { root.removeView(v) }.start()
     }

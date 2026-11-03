@@ -1,0 +1,42 @@
+/* Dev log (Settings > Dev log). Tokens only; transform/opacity animation; no backdrop-filter. */
+.devlog { z-index: 62; }
+.dl-panel { width: 62rem; height: 86vh; padding-bottom: 1.25rem; }
+.dl-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 1.5rem; margin-bottom: 1rem; }
+.dl-head h2 { margin: 0; }
+.dl-badge { display: flex; flex-direction: column; align-items: flex-end; gap: 0.15rem; text-align: right; }
+.dl-ver { font-size: var(--fs-callout); font-weight: 700; color: var(--ink-1); }
+.dl-when { font-size: var(--fs-fine); color: var(--ink-3); }
+.dl-filters { display: flex; gap: 0.625rem; margin-bottom: 0.875rem; }
+.dl-chip { padding: 0.35rem 1.1rem; border-radius: var(--r-md); background: rgba(255, 255, 255, 0.08); color: var(--ink-2); font-size: var(--fs-caption); font-weight: 600;
+  transition: background var(--d-fast) var(--ease), color var(--d-fast) var(--ease), transform var(--d-med) var(--spring); }
+.dl-chip i { font-style: normal; opacity: 0.7; margin-left: 0.25rem; }
+.dl-chip.on { background: rgba(255, 255, 255, 0.2); color: #fff; }
+.dl-chip.focus { background: #fff; color: #111; transform: scale(1.06); }
+.dl-list { position: relative; flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: none; scroll-behavior: smooth; padding-bottom: 2rem;
+  -webkit-mask-image: linear-gradient(#000 calc(100% - 2.25rem), transparent); mask-image: linear-gradient(#000 calc(100% - 2.25rem), transparent); }
+.dl-list::-webkit-scrollbar { display: none; }
+.dl-day { position: sticky; top: 0; z-index: 2; padding: 0.6rem 0.25rem 0.5rem; background: var(--panel-bg); font-size: var(--fs-caption); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+.dl-item { margin: 0.25rem 0.25rem 0.5rem; padding: 0.9rem 1.25rem 1rem; border-radius: var(--r-md); background: rgba(255, 255, 255, 0.05);
+  transition: background var(--d-fast) var(--ease), color var(--d-fast) var(--ease), transform var(--d-med) var(--spring); }
+.dl-meta { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.3rem; font-size: var(--fs-fine); color: var(--ink-3); }
+.dl-type { padding: 0.05rem 0.65rem; border-radius: var(--r-xs); font-weight: 700; font-size: var(--fs-fine); background: rgba(255, 255, 255, 0.12); color: var(--ink-1); }
+.dl-type.t-new { background: rgba(120, 200, 140, 0.25); color: #aef0c1; }
+.dl-type.t-improved { background: rgba(120, 170, 255, 0.25); color: #bcd3ff; }
+.dl-type.t-fixed { background: rgba(255, 190, 110, 0.25); color: #ffd9a3; }
+.dl-type.t-security { background: rgba(255, 140, 130, 0.25); color: #ffc3bd; }
+.dl-v { margin-left: auto; font-variant-numeric: tabular-nums; }
+.dl-title { font-size: var(--fs-body); font-weight: 700; line-height: 2.1rem; color: #fff; }
+.dl-sum { font-size: var(--fs-callout); line-height: 1.85rem; color: var(--ink-1); }
+.dl-det { margin: 0.75rem 0 0.1rem 1.25rem; padding: 0; font-size: var(--fs-callout); line-height: 1.85rem; color: var(--ink-2); animation: dl-rise var(--d-slow) var(--spring) both; }
+.dl-det li { margin-bottom: 0.25rem; }
+.dl-item.focus { background: #fff; transform: scale(1.015); }
+.dl-item.focus .dl-title { color: #111; }
+.dl-item.focus .dl-sum { color: rgba(0, 0, 0, 0.78); }
+.dl-item.focus .dl-meta, .dl-item.focus .dl-det { color: rgba(0, 0, 0, 0.66); }
+.dl-item.focus .dl-type { background: rgba(0, 0, 0, 0.1); color: #222; }
+.dl-skel { margin: 0.25rem 0.25rem 0.75rem; padding: 1rem 1.25rem; border-radius: var(--r-md); background: rgba(255, 255, 255, 0.04); }
+.dl-skel i { display: block; height: 1.1rem; margin: 0.6rem 0; border-radius: var(--r-xs); }
+.dl-empty { padding: 4rem 2rem; text-align: center; font-size: var(--fs-callout); color: var(--ink-2); }
+.dl-empty b { display: block; margin-bottom: 0.4rem; font-size: var(--fs-body); color: #fff; }
+@keyframes dl-rise { from { opacity: 0; transform: translateY(0.5rem); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .dl-det { animation: none; } }

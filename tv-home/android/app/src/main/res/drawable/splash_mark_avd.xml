@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Startup: the tile springs in, then the screen, the A and the stand are drawn on. Plays once. -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/splash_mark_vec">
+    <target android:name="all" android:animation="@animator/mark_pop" />
+    <target android:name="screen" android:animation="@animator/mark_draw_screen" />
+    <target android:name="letter" android:animation="@animator/mark_draw_letter" />
+    <target android:name="stand" android:animation="@animator/mark_draw_stand" />
+</animated-vector>

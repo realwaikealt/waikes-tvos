@@ -8,5 +8,6 @@ import android.content.Intent
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         ScreenGuard.start(context)
+        RemoteAppKeys.ensureEnabled(context)
     }
 }

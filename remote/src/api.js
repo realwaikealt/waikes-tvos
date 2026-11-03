@@ -1,4 +1,5 @@
 // Thin client for the bridge (../../bridge/API.md). Relative URLs, so it works from any phone at home.
+import { request, noteError, noteOk } from './net.js';
 
 export class ApiError extends Error {
   constructor(message, status) { super(message); this.status = status; }
@@ -14,23 +15,17 @@ const withTv = (path) => (tvId ? `${path}${path.includes('?') ? '&' : '?'}tv=${e
 // Ask and play wait longer: Claude thinks first, and waking a TV takes up to 25 s.
 async function call(method, path, body, ms = 12000) {
   let res;
-  const ctl = new AbortController();
-  const t = setTimeout(() => ctl.abort(), ms);
   if (tvId) { if (method === 'GET') path = withTv(path); else body = { ...(body || {}), tv: tvId }; }
   try {
-    res = await fetch(path, {
-      method,
-      headers: body ? { 'content-type': 'application/json' } : undefined,
-      body: body ? JSON.stringify(body) : undefined,
-      signal: ctl.signal,
-    });
+    res = await request(method, path, body ? JSON.stringify(body) : undefined, ms);
   } catch (e) {
+    noteError({ name: e.name, message: e.message, url: path, via: e.via });
     throw e.name === 'AbortError' ? new ApiError('The bridge is taking too long. Try again.', 408) : new ApiError('Can’t reach the bridge', 0);
-  } finally {
-    clearTimeout(t);
   }
+  res.ok = res.status >= 200 && res.status < 300;
+  noteOk();
   let data = null;
-  try { data = await res.json(); } catch { /* non-JSON */ }
+  try { data = JSON.parse(res.text); } catch { /* non-JSON */ }
   if (!res.ok || !data || data.ok === false) {
     const msg = data?.error || (res.status === 503 ? 'TV not connected' : res.status === 404 ? 'Not found' : 'Something went wrong');
     throw new ApiError(msg, res.status);
@@ -70,6 +65,9 @@ export const api = {
   savePeople: (people) => call('POST', '/api/people', { people }),
   webapps: () => call('GET', '/api/webapps'),
   webappsSet: (body) => call('POST', '/api/webapps', body),
+  wallpapers: () => call('GET', '/api/wallpapers', null, 20000),
+  wallpaperNow: () => call('GET', '/api/wallpaper'),
+  wallpaperSet: (id) => call('POST', '/api/wallpaper', { id, t: Date.now() }, 20000),
   backupNow: () => call('POST', '/api/backup/save', {}, 20000),
   restoreLatest: () => call('POST', '/api/restore', { latest: true }, 30000),
   restart: (what) => call('POST', '/api/restart', { what }, 15000),
@@ -83,6 +81,12 @@ export function subscribeNow(onNow, onReach) {
     if (closed) return;
     clearTimeout(retry);
     es?.close();
+    if (typeof EventSource !== 'function' || fails >= 2) {
+      // The live stream does not work here (or keeps dropping): ask for the state every 2 s instead.
+      const tickPoll = () => { if (closed) return; api.now().then((d) => { onReach(true); onNow(d); }).catch((err) => onReach(!(err.status === 0 || err.status === 408))).finally(() => { retry = setTimeout(tickPoll, 2000); }); };
+      tickPoll();
+      return;
+    }
     es = new EventSource(withTv('/api/events'));
     es.addEventListener('now', (e) => { fails = 0; onReach(true); try { onNow(JSON.parse(e.data)); } catch { /* ignore */ } });
     es.onerror = () => {

@@ -18,6 +18,7 @@ from aiohttp import web
 
 import apps
 import webapps
+import wallpapers
 import arrange
 import backup
 import config
@@ -25,6 +26,9 @@ import finder
 import history_import
 import store
 import taste
+import homeapi
+import imgproxy
+import tvassets
 from tv import TV, TVUnavailable, intent_to_link
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -1041,6 +1045,10 @@ def static_handler(folder, name):
                     return web.Response(text=PLACEHOLDER.format(name=name), content_type="text/html")
                 raise web.HTTPNotFound()
             target = index
+        if folder == LAUNCHER_DIR:   # the TV: minified, gzipped, cached (bridge/tvassets.py)
+            fast = tvassets.serve(folder, request, os.path.relpath(target, folder))
+            if fast is not None:
+                return fast
         ctype = mimetypes.guess_type(target)[0] or "application/octet-stream"
         if target.endswith(".webmanifest"):
             ctype = "application/manifest+json"
@@ -1872,6 +1880,7 @@ async def h_picture_get(request):
 TV_PAGES = {
     "picture": ("android.settings.DISPLAY_SETTINGS", "the TV's picture settings"),
     "game": ("com.tcl.gamebar.main", "the TV's game bar"),
+    "bluetooth": ("com.android.tv.settings/.accessories.AddAccessoryActivity", "Bluetooth pairing page (for AirPods and other headphones)"),
 }
 
 
@@ -1884,7 +1893,7 @@ async def h_tvpage(request):
         raise ApiError(400, "what must be " + " or ".join(TV_PAGES))
     if not (tv.paired and tv.connected and await tv.adb_ready()):
         raise ApiError(503, "TV not connected")
-    out = await tv.adb("shell", "am", "start", "-a", page[0], timeout=10)
+    out = await tv.adb("shell", "am", "start", "-n" if "/" in page[0] else "-a", page[0], timeout=10)
     if "Error" in out or "unable to resolve" in out.lower():
         raise ApiError(404, f"this TV has no {page[1]}")
     record_action(request, "tvpage", {"what": data.get("what")}, True)
@@ -2098,7 +2107,16 @@ async def h_tvs(request):
 def make_app():
     app = web.Application(middlewares=[middleware])
     r = app.router
+    try:
+        tvassets.warm(LAUNCHER_DIR)
+    except Exception as e:
+        log.warning("tv asset warm-up failed: %s", e)
     r.add_get("/api/health", h_health)
+    r.add_get("/img", imgproxy.h_img)
+    homeapi.register_perf(app)
+    homeapi.register(app, {"people": h_people_get, "continue": h_continue, "screens": h_screens, "webapps": h_webapps_get,
+                           "who": h_who_get, "apps": h_apps, "app-order": h_app_order_get, "arrange": h_arrange_get,
+                           "weather": h_weather})
     r.add_get("/api/tvs", h_tvs)
     r.add_get("/api/now", h_now)
     r.add_get("/api/events", h_events)
@@ -2147,6 +2165,7 @@ def make_app():
     r.add_post("/api/screens/open", h_screens_open)
     r.add_post("/api/power", h_power)
     r.add_post("/api/wake", h_wake)
+    wallpapers.register(r)   # Wallpaper Engine backgrounds: /api/wallpapers, /api/wallpaper, /wp/<id>.mp4
     r.add_get("/api/restart", h_restart_get)
     r.add_post("/api/restart", h_restart)
     r.add_post("/api/volume", h_volume)
@@ -2154,6 +2173,10 @@ def make_app():
     agentic.routes(r)
     import diag  # noqa: E402  (the hidden Debug page's endpoints)
     diag.routes(r, _sys.modules[__name__])
+    import devlog  # noqa: E402  (the Dev log list: /api/devlog and /devlog)
+    devlog.routes(r, _sys.modules[__name__])
+    import notify  # noqa: E402  (TV messages: "work finished" popups)
+    notify.routes(r, _sys.modules[__name__])
     r.add_route("OPTIONS", "/api/{tail:.*}", h_options)
     r.add_route("*", "/api/{tail:.*}", h_api_missing)
     r.add_get("/tv", h_tv_redirect)

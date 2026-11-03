@@ -7,6 +7,7 @@ import { TopBar, QuickActions, NowPlaying, Pad, Controls, AskButton } from './Re
 import { Watch } from './Watch.jsx';
 import { AskSheet, MoreSheet, ArrangeSheet, PeopleSheet, Onboarding } from './Sheets.jsx';
 import { usePullDown, usePageDrag } from './gestures.js';
+import { ConnectionHelp } from './ConnectionHelp.jsx';
 
 const store = {
   get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
@@ -250,7 +251,7 @@ export default function App() {
     setPictureInfo(null);
     if (sheet === 'more' && thisTv?.picture) api.getPicture().then(setPictureInfo).catch(() => {});
   }, [sheet, tvId]);
-  const onTvPage = async (what) => { try { await api.tvPage(what); say(what === 'game' ? 'Opening the TV game bar' : 'Opening the TV picture settings'); } catch (e) { say(e.message, 'err'); } };
+  const onTvPage = async (what) => { try { await api.tvPage(what); say(what === 'game' ? 'Opening the TV game bar' : what === 'bluetooth' ? 'Opening Bluetooth on the TV' : 'Opening the TV picture settings'); } catch (e) { say(e.message, 'err'); } };
   const onPicture = async (mode) => {
     try { const r = await api.picture(mode); setPictureInfo((i) => ({ ...(i || {}), ...r })); setTv((t) => t && { ...t, picture: r.mode }); say(`Picture: ${pictureInfo?.modes?.find((m) => m.id === r.mode)?.name || r.mode}`); } catch (e) { say(e.message, 'err'); }
   };
@@ -340,6 +341,7 @@ export default function App() {
         <div className="banner glass" role="status"><Ic.Wifi size={18} /><span><b>Can’t reach the TV.</b> Is your phone on the home Wi-Fi?</span>
           <button onClick={() => { tick(); onRetry(); }}>Try again</button></div>
       )}
+      {reach === false && !wide && tab === 'watch' && <div className="banner-help"><ConnectionHelp /></div>}
       {wide ? (
         <main className="split">{remote}<div className="watch-col">{watch}</div></main>
       ) : (

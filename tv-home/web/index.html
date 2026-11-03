@@ -6,27 +6,63 @@
 <title>Asher’s tvOS</title>
 <link rel="preload" href="fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <style id="boot-css">
-/* boot screen: inline so it paints before app.css; same ground and mark as the native splash */
-#boot{position:fixed;left:0;top:0;right:0;bottom:0;z-index:99999;background:#120d13;color:#f5f5f7;font-family:system-ui,sans-serif;opacity:1;transform:scale(1);transition:opacity 480ms cubic-bezier(.22,1,.36,1),transform 480ms cubic-bezier(.22,1,.36,1);pointer-events:none}
-#boot.out{opacity:0;transform:scale(1.03)}
-#boot .boot-mark{position:absolute;left:50%;top:50%;width:12rem;height:12rem;margin:-6rem 0 0 -6rem}
+/* startup screen: inline so it paints before app.css; same ground and mark as the native splash. Driven by startup.js. Transform and opacity only. */
+#boot{position:fixed;left:0;top:0;right:0;bottom:0;z-index:99999;background:#120d13;color:#f5f5f7;font-family:system-ui,sans-serif;opacity:1;pointer-events:none;overflow:hidden;--sp:cubic-bezier(.3,1.15,.4,1);--out:cubic-bezier(.22,1,.36,1)}
+#boot .b-core{position:absolute;left:0;top:0;right:0;bottom:0;transform-origin:50% 46%}
+#boot .b-glow{position:absolute;left:50%;top:50%;width:44rem;height:44rem;margin:-22rem 0 0 -22rem;border-radius:50%;background:radial-gradient(circle,rgba(216,70,127,.34),rgba(74,47,138,.16) 45%,rgba(18,13,19,0) 70%);opacity:0;animation:bt-glow 1100ms var(--out) 100ms both}
+#boot .boot-mark{position:absolute;left:50%;top:50%;width:12rem;height:12rem;margin:-6rem 0 0 -6rem;animation:bt-pop 760ms var(--sp) both}
 #boot .boot-mark svg{display:block;width:100%;height:100%}
-#boot .boot-ring{position:absolute;left:50%;top:50%;width:19rem;height:19rem;margin:-9.5rem 0 0 -9.5rem;border-radius:50%;border:.25rem solid rgba(255,255,255,.1);border-top-color:rgba(255,255,255,.75);opacity:0;animation:boot-in 600ms 400ms forwards,boot-spin 1.2s linear infinite}
-#boot .boot-name{position:absolute;left:0;right:0;top:calc(50% + 11.5rem);text-align:center;font-size:1.75rem;font-weight:500;letter-spacing:.01em;opacity:0;animation:boot-in 600ms 250ms forwards}
-#boot .boot-note{position:absolute;left:0;right:0;top:calc(50% + 15rem);text-align:center;font-size:1.375rem;color:rgba(245,245,247,.6);opacity:0;transition:opacity 300ms}
+#boot .dr{stroke-dasharray:1;stroke-dashoffset:0;animation:bt-draw 820ms var(--out) 160ms both}
+#boot .boot-name{position:absolute;left:0;right:0;top:calc(50% + 11.5rem);text-align:center;font-size:1.75rem;font-weight:500;letter-spacing:.01em;white-space:nowrap}
+#boot .boot-name i{font-style:normal;display:inline-block;opacity:0;animation:bt-letter 560ms var(--sp) calc(380ms + var(--i)*42ms) both}
+#boot .b-bar{position:absolute;left:50%;top:calc(50% + 15.25rem);width:18rem;margin-left:-9rem;height:.25rem;border-radius:.125rem;background:rgba(255,255,255,.12);overflow:hidden;opacity:0;animation:bt-in 400ms ease-out 800ms both}
+#boot .b-bar b{display:block;width:100%;height:100%;background:rgba(255,255,255,.82);transform:scaleX(var(--p,.06));transform-origin:0 50%;transition:transform 520ms var(--out)}
+#boot .boot-note{position:absolute;left:0;right:0;top:calc(50% + 16.5rem);text-align:center;font-size:1.25rem;color:rgba(255,255,255,.62);opacity:0;transition:opacity 300ms}
 #boot .boot-note.on{opacity:1}
-@keyframes boot-in{to{opacity:1}}
-@keyframes boot-spin{to{transform:rotate(360deg)}}
-@media (prefers-reduced-motion:reduce){#boot .boot-ring{animation:boot-in 300ms 200ms forwards}#boot,#boot.out{transform:none}}
+/* the logo is already drawn by the native splash: no pop, no draw-on, just carry on */
+#boot.pre .boot-mark{animation:none}
+#boot.pre .dr{animation:none}
+#boot.pre .b-glow{animation-delay:0ms}
+#boot.pre:not(.replay) .boot-name i{animation-delay:calc(120ms + var(--i)*42ms)}
+/* short, wake, off */
+#boot.k-short .boot-name i{animation-duration:360ms;animation-delay:calc(60ms + var(--i)*14ms)}
+#boot.k-short .dr,#boot.k-short .boot-mark{animation-duration:480ms}
+#boot.k-short .b-bar,#boot.k-wake .b-bar,#boot.k-wake .boot-note,#boot.k-short .boot-note{display:none}
+#boot.k-wake{animation:bt-in 160ms ease-out both}
+#boot.k-wake .boot-name i{animation-duration:320ms;animation-delay:calc(30ms + var(--i)*10ms)}
+#boot.k-wake .dr,#boot.k-wake .boot-mark{animation-duration:420ms;animation-delay:0ms}
+#boot.k-wake .b-glow{animation-duration:600ms}
+#boot.k-off .b-glow,#boot.k-off .b-bar,#boot.k-off .boot-note,#boot.k-reduced .b-glow,#boot.k-reduced .b-bar{display:none}
+#boot.k-off .boot-mark,#boot.k-off .dr,#boot.k-reduced .boot-mark,#boot.k-reduced .dr{animation:none}
+#boot.k-off .boot-name i,#boot.k-reduced .boot-name i{opacity:1;animation:none}
+/* the door opens: the mark and name zoom past you and the ground fades away, Home arrives behind it */
+#boot.open{opacity:0;transition:opacity 560ms cubic-bezier(.4,0,.2,1) 110ms}
+#boot.open .b-core{opacity:0;transform:scale(1.45);transition:transform 640ms var(--out),opacity 380ms ease-out}
+#boot.k-off.open,#boot.k-reduced.open{transition:opacity 300ms ease-out}
+#boot.k-off.open .b-core,#boot.k-reduced.open .b-core{transform:none;transition:none}
+/* Home waits (hidden) until the door opens, then its own arrival animations run */
+html.booting .top,html.booting .shelf,html.booting .grid,html.booting .scenes{animation:none;opacity:0}
+@keyframes bt-in{from{opacity:0}to{opacity:1}}
+@keyframes bt-pop{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+@keyframes bt-draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes bt-glow{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
+@keyframes bt-letter{from{opacity:0;transform:translateY(.7rem) scale(.92)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){#boot *{animation:none!important}#boot .boot-name i{opacity:1}#boot.open .b-core{transform:none}}
 </style>
 <link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="messages.css">
+<link rel="stylesheet" href="devlog.css">
+<link rel="stylesheet" href="airpods.css">
 </head>
 <body>
-<div id="boot" aria-hidden="true">
-  <div class="boot-mark"><svg viewBox="0 0 120 120"><defs><linearGradient id="blg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff9a5a"/><stop offset=".55" stop-color="#d8467f"/><stop offset="1" stop-color="#4a2f8a"/></linearGradient></defs><rect width="120" height="120" rx="28" fill="url(#blg)"/><rect x="21" y="27" width="78" height="52" rx="10" fill="none" stroke="#fff" stroke-width="5"/><path d="M46 70 L60 41 L74 70 M51.5 60 H68.5" fill="none" stroke="#fff" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M44 93 H76" stroke="#fff" stroke-width="5" stroke-linecap="round"/></svg></div>
-  <div class="boot-ring"></div>
-  <div class="boot-name">Asher’s tvOS</div>
-  <div class="boot-note" id="boot-note"></div>
+<div id="boot" aria-hidden="true" class="k-full">
+  <div class="b-core">
+    <div class="b-glow"></div>
+    <div class="boot-mark"><svg viewBox="0 0 120 120"><defs><linearGradient id="blg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff9a5a"/><stop offset=".55" stop-color="#d8467f"/><stop offset="1" stop-color="#4a2f8a"/></linearGradient></defs><rect width="120" height="120" rx="28" fill="url(#blg)"/><rect class="dr" pathLength="1" x="21" y="27" width="78" height="52" rx="10" fill="none" stroke="#fff" stroke-width="5"/><path class="dr" pathLength="1" d="M46 70 L60 41 L74 70 M51.5 60 H68.5" fill="none" stroke="#fff" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/><path class="dr" pathLength="1" d="M44 93 H76" stroke="#fff" stroke-width="5" stroke-linecap="round"/></svg></div>
+    <div class="boot-name">Asher’s tvOS</div>
+    <div class="b-bar"><b></b></div>
+    <div class="boot-note" id="boot-note"></div>
+  </div>
 </div>
 <!-- Five scenes that take turns (photo, glass clock, the cut-out in front), built by app.js -->
 <div class="scenes" id="scenes" aria-hidden="true"></div>
@@ -118,9 +154,16 @@
   </div>
 </div>
 
+<script src="perf.js"></script>
 <script src="config.js"></script>
+<script src="home-prime.js"></script>
 <script src="arrange-rules.js"></script>
 <script src="arrange.js"></script>
+<script src="startup.js"></script>
+<script src="devlog.js"></script>
 <script src="app.js"></script>
+<script src="airpods.js"></script>
+<script src="wallpaper.js"></script>
+<script src="messages.js"></script>
 </body>
 </html>

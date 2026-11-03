@@ -20,7 +20,12 @@ function chk(path,n){var t0=Date.now();return fetch(path,{cache:'no-store'}).the
 chk('/ping','/ping').then(function(){return chk('/api/now','/api/now');})
 .then(function(){return chk('/manifest.webmanifest','manifest');})
 .then(function(){return chk('/','/ (index)').then(function(t){var m=/assets\/index-[^"]+\.js/.exec(t||'');if(m)return chk('/'+m[0],'app script');});})
-.then(function(){p('done','');});
+.then(function(){return new Promise(function(res){var t0=Date.now(),x=new XMLHttpRequest();x.open('GET','/api/now',true);x.timeout=8000;x.onload=function(){p('XHR /api/now (what the app falls back to)',x.status+' '+(Date.now()-t0)+'ms');res();};x.onerror=function(){p('XHR /api/now','FAILED (status 0)');res();};x.ontimeout=function(){p('XHR /api/now','FAILED timeout');res();};x.send();});})
+.then(function(){return new Promise(function(res){var t0=Date.now(),es,done=false;function fin(m){if(done)return;done=true;try{es.close();}catch(e){}p('live stream (EventSource /api/events)',m+' '+(Date.now()-t0)+'ms');res();}try{es=new EventSource('/api/events');}catch(e){fin('FAILED '+e);return;}es.addEventListener('now',function(){fin('ok, first event');});es.onerror=function(){fin('FAILED (the app then polls every 2 s)');};setTimeout(function(){fin('FAILED no event in 6 s');},6000);});})
+.then(function(){
+var bad=/FAILED/.test(document.getElementById('out').textContent);
+p('verdict',bad?(navigator.standalone?'Something is blocked. This is a Home Screen app: open Settings > Privacy & Security > Local Network and turn on the switch for this app (or Safari).':'Something is blocked or slow. Check the FAILED lines above.'):'All paths the app uses work.');
+p('done','');});
 }
 document.getElementById('r').onclick=run;run();
 })();

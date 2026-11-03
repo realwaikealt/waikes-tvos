@@ -3,6 +3,7 @@ import * as Ic from './icons.jsx';
 import { tick } from './haptics.js';
 import { logoFor } from './appLogos.js';
 import { Sheet, personColour } from './Sheets.jsx';
+import { ConnectionHelp } from './ConnectionHelp.jsx';
 
 const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
 
@@ -278,6 +279,7 @@ export function Pad({ onKey, offState, wakeError, onWake, onRetry, tvName, onLiv
       <div className="pad-msg" aria-live="polite">
         <p><b>Can’t reach the TV.</b> Is your phone on the home Wi-Fi?</p>
         <button className="pill glass" onClick={() => { tick(); onRetry(); }}>Try again</button>
+        <ConnectionHelp />
       </div>
     );
   } else if (offState) {

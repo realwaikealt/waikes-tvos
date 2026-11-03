@@ -5,6 +5,9 @@ import { tick } from './haptics.js';
 import { api } from './api.js';
 import { logoFor } from './appLogos.js';
 import { WebAppsBlock } from './WebApps.jsx';
+import { WallpaperBlock } from './Wallpapers.jsx';
+import { DevLogBlock } from './DevLog.jsx';
+import { MessagesBlock } from './Messages.jsx';
 
 export const Sheet = forwardRef(function Sheet({ open, onClose, title, children, className = '', fromTop = false, closeDrag, extra = null }, ref) {
   return (
@@ -563,7 +566,10 @@ export const MoreSheet = forwardRef(function MoreSheet({ open, onClose, sleepEnd
           <button className="pill glass arrange-open" onClick={() => { tick(); onTvPage?.('picture'); }}>Picture settings</button>
           <button className="pill glass arrange-open" onClick={() => { tick(); onTvPage?.('game'); }}>Game mode</button>
         </div>
-        <p className="note">Opens the TV’s own picture page (Movie, Game, Sports…) or its game bar.</p>
+        <div className="arrange-pair">
+          <button className="pill glass arrange-open" onClick={() => { tick(); onTvPage?.('bluetooth'); }}>Bluetooth audio (AirPods)</button>
+        </div>
+        <p className="note">Opens the TV’s own picture page (Movie, Game, Sports…), its game bar, or Bluetooth for AirPods.</p>
       </section>
 
       <section className="more-block group">
@@ -581,9 +587,12 @@ export const MoreSheet = forwardRef(function MoreSheet({ open, onClose, sleepEnd
         <button className="list-row" onClick={() => { tick(); onPeople(); }}><span className="row-icon"><Ic.People size={20} /></span><span className="row-text"><b>People</b><small>Who’s watching, and their order</small></span><Ic.Chevron className="row-chev" /></button>
       </section>
 
+      <MessagesBlock open={open} />
       <WebAppsBlock open={open} />
+      <WallpaperBlock open={open} />
       <BackupBlock open={open} />
       <RestartBlock open={open} />
+      <DevLogBlock />
       <AboutBlock />
     </Sheet>
   );

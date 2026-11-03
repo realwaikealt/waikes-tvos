@@ -245,7 +245,15 @@
   }
   function mark(name) { try { performance.mark(name); } catch (e) {} }
 
+  // the first burst of GETs when the home starts is answered by one /api/home call (home-prime.js)
   function api(method, path, body, timeoutMs) {
+    if (method === "GET" && !body && !MOCK && !OFFLINE && !PREVIEW && window.HomePrime) {
+      var hp = window.HomePrime.get(path, function () { return apiNet("GET", "/api/home", null, 9000); });
+      if (hp) return hp.catch(function () { return apiNet(method, path, body, timeoutMs); });
+    }
+    return apiNet(method, path, body, timeoutMs);
+  }
+  function apiNet(method, path, body, timeoutMs) {
     if (TV_ID) {
       if (method === "GET") path += (path.indexOf("?") < 0 ? "?" : "&") + "tv=" + TV_ID;
       else body = Object.assign({ tv: TV_ID }, body || {});
@@ -1207,11 +1215,14 @@
       { k: "unit", label: "Temperature", cur: tempUnit(), opts: [["F", "Fahrenheit"], ["C", "Celsius"]] },
       { k: "date", label: "Date style", cur: dateStyle(), opts: [["us", "Monday, October 26"], ["intl", "Monday 26 October"]] },
       { k: "secs", label: "Each scene lasts", cur: Math.round(SCENE_MS / 1000), opts: [[10, "10 seconds"], [20, "20 seconds"], [30, "30 seconds"], [60, "1 minute"], [120, "2 minutes"]] },
+      { k: "startup", label: "Startup animation", cur: SET.startup || "full", opts: [["full", "Full"], ["short", "Short"], ["off", "Off"]] },
+      { k: "!startplay", label: "Play the startup animation now", action: "Play" },
       { k: "dock", label: "Apps in the dock", cur: DOCK_APPS, opts: [4, 5, 6, 7, 8, 9, 10].map(function (n) { return [n, String(n)]; }) },
       { k: "arr:mode", label: "Arrange apps", cur: arrMode(), opts: Arr.MODES.map(function (m) { return [m, Arr.LABELS[m]]; }) },
       { k: "arr:group", label: "Group apps", cur: ARR.prefs.group ? 1 : 0, opts: [[1, "On"], [0, "Off"]] },
       { k: "arr:hidden", label: "Hidden apps tab", cur: ARR.prefs.show_hidden ? 1 : 0, opts: [[1, "Shown"], [0, "Off"]] }
     ];
+    if (window.TVOS_WP) rows.push({ k: "!wp", label: "Wallpaper", action: window.TVOS_WP.label() });
     SCENES_ALL.forEach(function (sc) {
       rows.push({ k: "scene:" + sc.id, label: "Scene: " + (SCENE_NAMES[sc.id] || sc.id), cur: sceneOn(sc.id) ? 1 : 0, opts: [[1, "On"], [0, "Off"]] });
     });
@@ -1235,10 +1246,14 @@
       rows.push({ k: "!web:" + w.id, label: "Web app: " + w.name, action: setConfirm === "!web:" + w.id ? "Press OK to remove" : "Remove" });
     });
     rows.push({ k: "!webadd", label: "Add a web app", action: "On your phone" });
+    if (TV && TV.btStatus && window.TVOS_AP) rows.push({ k: "!airpods", label: "AirPods & Bluetooth audio", action: window.TVOS_AP.label() });
+    rows.push({ k: "!devlog", label: "Dev log (what changed and when)", action: "Open" });
+    rows.push({ k: "!messages", label: "Messages", action: (window.TVOS_MSG && window.TVOS_MSG.unread() ? window.TVOS_MSG.unread() + " new" : "Open") });
     rows.push({ k: "!about", label: "About Asher’s tvOS", action: "Open" });
     if (DEV) {
       rows.push({ k: "#dev", head: true, label: "Developer" });
       rows.push({ k: "!debug", label: "Debug page", action: "Open" });
+      rows.push({ k: "!startreplay", label: "Replay startup animation (full)", action: "Replay" });
       rows.push({ k: "dev:fps", label: "FPS overlay", cur: DEVS.fps ? 1 : 0, opts: [[1, "On"], [0, "Off"]] });
       rows.push({ k: "dev:guides", label: "Safe area and focus outlines", cur: DEVS.guides ? 1 : 0, opts: [[1, "Shown"], [0, "Hidden"]] });
       rows.push({ k: "dev:level", label: "Log level", cur: DEVS.level, opts: [["error", "Errors"], ["warn", "Warnings"], ["all", "Everything"]] });
@@ -1364,6 +1379,21 @@
     setI = rows[n] ? n : (n < 0 ? 0 : rows.length - 1);
   }
   function saveSet() { keep("tvhome.settings", SET); }
+  // What wallpaper.js (Wallpaper Engine backgrounds) needs from this page.
+  window.TVOS_HOME = {
+    get: function (k) { return SET[k]; },
+    set: function (k, v) { if (v == null) delete SET[k]; else SET[k] = v; saveSet(); },
+    base: function () { return API; },
+    online: function () { return !OFFLINE && !MOCK; },   // API is "" when the page is served by the bridge itself
+    api: function (m, p, b, t) { return api(m, p, b, t); },
+    freezeScenes: function (on) {
+      if (on) { clearInterval(sceneTimer); sceneTimer = null; if (scene !== 0 && sceneEls.length) showScene(0); }
+      else restartSceneTimer();
+    },
+    flash: function (m) { setFlash = m || ""; if (zone === "settings") renderSettings(); },
+    settings: function () { if (zone === "settings") renderSettings(); },
+    isOk: isOk, isBack: isBack, arrowOf: arrowOf
+  };
   function changeSet(dir) {
     var r = setRows()[setI];
     if (!r || r.head) return;
@@ -1372,7 +1402,7 @@
     r.opts.forEach(function (o, i) { if (String(o[0]) === String(r.cur)) at = i; });
     var next = r.opts[(at + dir + r.opts.length) % r.opts.length][0];
     if (r.k.indexOf("dev:") === 0) { devChange(r, next); return; }
-    if (r.k === "clock" || r.k === "unit" || r.k === "date" || r.k === "secs" || r.k === "dock") { SET[r.k] = next; saveSet(); }
+    if (r.k === "clock" || r.k === "unit" || r.k === "date" || r.k === "secs" || r.k === "dock" || r.k === "startup") { SET[r.k] = next; saveSet(); }
     else if (r.k.indexOf("arr:") === 0) { arrSet(r.k.slice(4), next); }
     else if (r.k.indexOf("scene:") === 0) {
       var id = r.k.slice(6);
@@ -1395,6 +1425,7 @@
     else if (r.k === "secs") { SCENE_MS = next * 1000; restartSceneTimer(); }
     else if (r.k === "dock") { DOCK_APPS = next; liveRender(); }
     else if (r.k.indexOf("scene:") === 0) rebuildScenes();
+    if (r.k === "startup" && window.TVSTART) TVSTART.setMode(next);
     if (LIVE_HOOKS[r.k]) { try { LIVE_HOOKS[r.k](next); } catch (e) {} }
     r.cur = next;
     setFlash = "";
@@ -1438,6 +1469,11 @@
       return;
     }
     if (r.k === "!rhome") { runRestart("home"); return; }
+    if (r.k === "!wp") { if (window.TVOS_WP) TVOS_WP.open(); return; }
+    if (r.k === "!startplay" || r.k === "!startreplay") {
+      if (window.TVSTART) TVSTART.play(r.k === "!startreplay" ? "full" : null);
+      return;
+    }
     if (r.k === "!reboot") {
       if (!rebootAsk) {
         rebootAsk = true; setFlash = "Press OK again within 6 seconds to reboot the TV."; renderSettings();
@@ -1456,6 +1492,9 @@
       }, function (e) { setFlash = "Couldn't remove it: " + e.message; renderSettings(); });
       return;
     }
+    if (r.k === "!airpods") { if (window.TVOS_AP) TVOS_AP.open(); return; }
+    if (r.k === "!devlog") { zone = "devlog"; window.DevLog.open(function () { zone = "settings"; paintFocus(); }); return; }
+    if (r.k === "!messages") { if (window.TVOS_MSG) window.TVOS_MSG.openList(); return; }
     if (r.k === "!about") { openAbout(); return; }
     if (r.k === "!debug") { openDebug(); return; }
     if (r.k === "!reloadhome") { location.reload(); return; }
@@ -1995,7 +2034,7 @@
   function paintFocus() {
     clearFocus();
     renderHint();
-    if (zone === "about") return;
+    if (zone === "about" || zone === "devlog") return;
     if (zone === "debug") { renderDebug(); return; }
     if (zone === "settings") { renderSettings(); return; }
     if (zone === "pin") { renderPin(); return; }
@@ -2039,6 +2078,7 @@
     var cards = expanded ? [] : shelfEls;
     if (zone === "pin") { pinMove(dx, dy); return; }
     if (zone === "ask") { if (dy) askMove(dy); return; }
+    if (zone === "devlog") { window.DevLog.move(dx, dy); return; }
     if (zone === "about") { if (dy) aboutMove(dy); return; }
     if (zone === "debug") { if (dy) debugMove(dy); else if (dx) $("debug-pane").scrollTop += dx * 170; return; }
     if (zone === "settings") {
@@ -2116,6 +2156,7 @@
     if (lift) { dropLift(); return; }   // BACK puts a picked-up app down where it is
     if (zone === "pmenu") { if (plift) dropPeople(); else closePop(); paintFocus(); return; }
     if (zone === "debug") { closeDebug(); return; }
+    if (zone === "devlog") { window.DevLog.back(); return; }
     if (zone === "about") { aboutBack(); return; }
     if (zone === "settings") { closeSettings(); return; }
     if (zone === "pin") { pinCancel(); return; }
@@ -2145,6 +2186,7 @@
     touched = true;
     if (lift) { dropLift(); return; }
     if (zone === "debug") { debugOk(); return; }
+    if (zone === "devlog") { window.DevLog.ok(); return; }
     if (zone === "about") { aboutOk(); return; }
     if (zone === "settings") { changeSet(1); return; }
     if (zone === "pin") { pinSubmit(); return; }
@@ -2380,13 +2422,13 @@
 
   // the native side calls these
   // Home on the remote also re-reads the lists, so an order arranged on the phone shows straight away
-  window.tv = { back: goHome, home: function () { goHome(); refresh(); },
+  window.tv = { wake: function () { if (window.TVSTART && !(bootEl && bootEl.parentNode)) TVSTART.wake(); }, back: goHome, home: function () { goHome(); refresh(); },
     resume: function () { okReset(); syncDown().then(function (changed) { if (changed) reapplyAll(); }); refresh(); if (!OFFLINE) refreshQuick(); refreshWeather(); } };
 
   // ---------------- boot screen and skeletons ----------------
   var NOBOOT = /[?&]noboot\b/.test(Q);
   var bootEl = $("boot"), bootT0 = Date.now(), bootDone = false;
-  var BOOT_MIN = 900, BOOT_MAX = 7000;   // never a flash, never stuck
+  var BOOT_MIN = window.TVSTART ? TVSTART.min() : 900, BOOT_MAX = 7000;   // never a flash, never stuck
   var syncing = true, wxPending = true;
   var skelOn = { shelf: false, grid: false };
   function bootNote(t) { var n = $("boot-note"); if (n) { n.textContent = t; n.classList.add("on"); } }
@@ -2394,8 +2436,9 @@
     if (bootDone || !bootEl) return;
     bootDone = true;
     var el = bootEl;
+    if (window.TVSTART) { TVSTART.finish(el); return; }   // startup.js: the door opens, Home arrives
     el.classList.add("out");
-    setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 650);   // also stops the ring
+    setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 650);
   }
   function bootWhen(ready) {
     if (!bootEl) return;
@@ -2462,7 +2505,13 @@
     renderQuick();
     if (!OFFLINE) refreshQuick();
     var liveP = refresh().then(function () { mark("home-painted-live"); });
-    bootWhen(Promise.all([settled(liveP), settled(wxP), settled(fontP), settled(syncP)]));
+    // the progress bar on the startup screen follows what really finished
+    function bs(p, f, t) { return Promise.resolve(p).then(function () { if (window.TVSTART) TVSTART.stage(f, typeof t === "function" ? t() : t); }, function () {}); }
+    bs(syncP, 0.3, function () { return OFFLINE || data.bridge === false ? "Using the saved copy" : "Connected to your computer"; });
+    bs(fontP, 0.45, "Getting the look ready");
+    bs(liveP, 0.8, "Shows and apps ready");
+    bs(wxP, 0.95, "Weather ready");
+    bootWhen(Promise.all([settled(liveP), settled(wxP), settled(fontP), settled(syncP)]).then(function () { if (window.TVSTART) TVSTART.stage(1, "Ready"); }));
   }
 
   if (MOCK || PREVIEW) {

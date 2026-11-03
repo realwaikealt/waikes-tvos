@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Same mark as splash_mark.xml, with named parts so splash_mark_avd.xml can animate it (pop in, strokes drawn on). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="96dp" android:height="96dp"
+    android:viewportWidth="120" android:viewportHeight="120">
+    <group android:name="all" android:pivotX="60" android:pivotY="60">
+        <path android:name="tile" android:pathData="M28,0h64a28,28 0 0 1 28,28v64a28,28 0 0 1 -28,28h-64a28,28 0 0 1 -28,-28v-64a28,28 0 0 1 28,-28z">
+            <aapt:attr name="android:fillColor">
+                <gradient android:startX="0" android:startY="0" android:endX="120" android:endY="120" android:type="linear">
+                    <item android:color="#FFFF9A5A" android:offset="0" />
+                    <item android:color="#FFD8467F" android:offset="0.55" />
+                    <item android:color="#FF4A2F8A" android:offset="1" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path android:name="screen" android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="5"
+            android:pathData="M31,27h58a10,10 0 0 1 10,10v32a10,10 0 0 1 -10,10h-58a10,10 0 0 1 -10,-10v-32a10,10 0 0 1 10,-10z" />
+        <path android:name="letter" android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="5.5"
+            android:strokeLineCap="round" android:strokeLineJoin="round"
+            android:pathData="M46,70L60,41L74,70M51.5,60H68.5" />
+        <path android:name="stand" android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="5"
+            android:strokeLineCap="round" android:pathData="M44,93H76" />
+    </group>
+</vector>
