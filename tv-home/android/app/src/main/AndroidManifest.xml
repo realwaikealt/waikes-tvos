@@ -28,7 +28,7 @@
     </queries>
 
     <application
-        android:label="Waike’s tvOS"
+        android:label="Asher’s tvOS"
         android:icon="@drawable/icon"
         android:banner="@drawable/banner"
         android:theme="@style/Home"
@@ -61,7 +61,7 @@
         <activity
             android:name=".WebAppActivity"
             android:exported="false"
-            android:label="Waike’s tvOS web app"
+            android:label="Asher’s tvOS web app"
             android:launchMode="singleTop"
             android:hardwareAccelerated="true"
             android:screenOrientation="landscape"

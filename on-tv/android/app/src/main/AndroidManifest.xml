@@ -25,7 +25,7 @@
 
     <application
         android:name=".App"
-        android:label="Waike’s tvOS"
+        android:label="Asher’s tvOS"
         android:icon="@drawable/icon"
         android:banner="@drawable/banner"
         android:theme="@style/Couch"

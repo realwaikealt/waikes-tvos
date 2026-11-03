@@ -1,4 +1,4 @@
-# Waike's tvOS web-app blocklist. One rule per line; blank lines and lines starting with # are ignored.
+# Asher's tvOS web-app blocklist. One rule per line; blank lines and lines starting with # are ignored.
 # Edit this file, rebuild the home APK (scripts/build-apk.sh) and reinstall to change what is blocked.
 # No list is perfect: new ad and adult domains appear every day. This catches the well-known ones
 # and the obvious words; it cannot promise a page will never show something unwanted.

@@ -213,7 +213,7 @@ class WebAppActivity : Activity() {
         return "<html><body style=\"margin:0;background:#120d13;color:#f3ece6;font-family:sans-serif;display:flex;" +
             "align-items:center;justify-content:center;height:100vh;text-align:center\"><div>" +
             "<div style=\"font-size:64px\">&#128683;</div><h1 style=\"font-weight:500\">Blocked</h1>" +
-            "<p style=\"opacity:.7;font-size:22px\">Waike's tvOS blocked this page" + (if (safe.isEmpty()) "" else " ($safe)") + ".</p>" +
+            "<p style=\"opacity:.7;font-size:22px\">Asher's tvOS blocked this page" + (if (safe.isEmpty()) "" else " ($safe)") + ".</p>" +
             "<p style=\"opacity:.5;font-size:18px\">Press Back to return.</p></div></body></html>"
     }
 

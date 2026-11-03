@@ -40,7 +40,7 @@ class SetupActivity : Activity() {
             text = t; textSize = size; setTextColor(colour); if (bold) typeface = Typeface.create("sans-serif-condensed", Typeface.BOLD)
             setPadding(0, px(4), 0, px(4))
         }
-        col.addView(text("Waike’s tvOS", 34f, CREAM, true))
+        col.addView(text("Asher’s tvOS", 34f, CREAM, true))
         col.addView(text("The phone remote runs on this TV. No computer needed.", 16f, CREAM_2))
         address = text("", 22f, AMBER, true); col.addView(address)
         code = text("", 44f, CREAM, true); col.addView(code)

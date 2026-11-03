@@ -1,4 +1,4 @@
-/* Waike's tvOS web-app helper: TV-style focus jumping, typing into fields, page width. Injected on every page. */
+/* Asher's tvOS web-app helper: TV-style focus jumping, typing into fields, page width. Injected on every page. */
 (function () {
   if (window.__tvos) return;
   var S = { cur: null, mode: 'focus', target: null, ring: null, cache: null, cacheAt: 0, timer: 0 };

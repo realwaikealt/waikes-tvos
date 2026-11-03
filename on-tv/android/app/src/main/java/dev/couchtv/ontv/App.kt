@@ -120,7 +120,7 @@ class BridgeService : Service() {
         super.onCreate()
         val nm = getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(NotificationChannel("bridge", "Couch TV remote", NotificationManager.IMPORTANCE_LOW))
-        val n = Notification.Builder(this, "bridge").setContentTitle("Waike’s tvOS").setContentText("Phone remote is on")
+        val n = Notification.Builder(this, "bridge").setContentTitle("Asher’s tvOS").setContentText("Phone remote is on")
             .setSmallIcon(R.drawable.icon).setOngoing(true).build()
         startForeground(1, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         val wm = applicationContext.getSystemService(WifiManager::class.java)

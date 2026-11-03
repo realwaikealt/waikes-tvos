@@ -430,11 +430,11 @@ function AboutBlock() {
           <path d="M44 93 H76" stroke="#fff" strokeWidth="5" strokeLinecap="round" />
         </svg>
         <div>
-          <strong>Waike’s tvOS</strong>
+          <strong>Asher’s tvOS</strong>
           <span>Version 1.0 · October 2026</span>
         </div>
       </div>
-      <p className="more-note">Designed and developed by Waike.</p>
+      <p className="more-note">Designed and developed by Asher.</p>
       <button className="fine-link" onClick={() => { tick(); setMore((v) => !v); }}>{more ? 'Hide licences' : 'Open-source licences'}</button>
       {more && (
         <div className="about-credits">
@@ -444,7 +444,7 @@ function AboutBlock() {
           <p><b>Show data and posters.</b> JustWatch.</p>
           <p><b>Backgrounds.</b> The five scenes were generated for couch-tv with an AI image model and are free to use.</p>
           <p><b>App logos.</b> The streaming app logos belong to their owners.</p>
-          <p className="about-lic">MIT License. Copyright (c) 2026 Seagey. Copyright (c) 2026 Waike (changes and additions in Waike’s tvOS). Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: the above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>
+          <p className="about-lic">MIT License. Copyright (c) 2026 Seagey. Copyright (c) 2026 Asher Butler (changes and additions in Asher’s tvOS). Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions: the above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software. THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>
         </div>
       )}
     </section>
