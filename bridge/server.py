@@ -733,6 +733,14 @@ async def h_power(request):
         tv.require()
         cur = tv.is_on
         if state == "toggle" or (state == "off" and cur):
+            if cur:
+                # Home first: the app open when the TV goes off stays the top task, and if the system
+                # later kills it Android relaunches it and the TV wakes itself (Prime Video does this).
+                try:
+                    await tv.key("home")
+                    await asyncio.sleep(0.7)
+                except Exception:
+                    pass
             await tv.key("power")
             target = not cur
             for _ in range(20):
@@ -1195,6 +1203,8 @@ async def _sleep_fire():
             await tv.key("pause")
             await asyncio.sleep(1.5)
             if tv.is_on:
+                await tv.key("home")   # so no app stays the top task through standby (see h_power)
+                await asyncio.sleep(0.7)
                 await tv.key("power")
     except Exception as e:
         log.warning("sleep timer could not turn the TV off: %s", e)

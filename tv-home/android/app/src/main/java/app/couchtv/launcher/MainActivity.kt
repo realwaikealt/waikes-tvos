@@ -104,6 +104,7 @@ class MainActivity : Activity() {
             connect()
             return
         }
+        if (intent.hasExtra("guard")) return   // the screen guard bringing Home forward while the TV is off
         // HOME pressed while we are already in front: back to the first tile.
         js("window.tv && tv.home()")
     }
@@ -111,6 +112,7 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         resumed = true
+        ScreenGuard.start(this)
         hideSystemBars()
         if (pageReady && offline && alone()) {
             js("window.tv && tv.resume()")   // option A: the built-in copy is the home, keep it fresh
@@ -447,6 +449,10 @@ class MainActivity : Activity() {
 
         @JavascriptInterface
         fun version(): String = BuildConfig.VERSION_NAME
+
+        // The screen guard's log of screen on/off events (a JSON array), for the Debug page.
+        @JavascriptInterface
+        fun screenLog(): String = ScreenGuard.log(this@MainActivity)
 
         // Web apps: a website full screen with a remote pointer and no popups (WebAppActivity).
         // json: {"url":..., "hosts":"a.com,b.com", "desktop":true}

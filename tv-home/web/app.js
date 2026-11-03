@@ -986,7 +986,7 @@
     return (base || "the computer's address:5400").replace(/^https?:\/\//, "") + "/diag/latest";
   }
 
-  var DBG_MENU = [["live", "Live"], ["run", "Run diagnostics"], ["console", "Console"], ["errors", "Errors"], ["storage", "Storage"],
+  var DBG_MENU = [["live", "Live"], ["run", "Run diagnostics"], ["console", "Console"], ["errors", "Errors"], ["screen", "Screen on/off log"], ["storage", "Storage"],
     ["settings", "Settings"], ["page", "This page"], ["send", "Send diagnostics"], ["phone", "Open on a phone"], ["close", "Close"]];
   var dbgI = 0, dbgFlash = "", dbgSent = null, diagR = { running: false, items: [] };
   function dbgTable(rows) {
@@ -1024,6 +1024,15 @@
       h += '<div class="dbg-sub">Recent calls</div>' + (last.length ? dbgTable(last.map(function (c) { return [c.m + " " + c.p, (c.ok ? "" : "failed \u00b7 ") + c.ms + " ms", c.ok ? "" : "bad"]; })) : '<p class="dbg-empty">None yet.</p>');
     } else if (key === "run") h = dbgResults();
     else if (key === "console") h = '<div class="dbg-sub">Console \u00b7 level: ' + esc(DEVS.level) + "</div>" + dbgLines(DBG.logs);
+    else if (key === "screen") {
+      var sl = [];
+      try { sl = JSON.parse(window.TVOS && TVOS.screenLog ? TVOS.screenLog() : "[]"); } catch (e) {}
+      h = '<div class="dbg-sub">When the screen went off and on, and which app was in front (? = usage access not granted)</div>' +
+        (sl.length ? '<div class="dbg-log">' + sl.slice(-13).map(function (x) {
+          var d = new Date(x.t);
+          return '<div class="info"><b>' + dpad(d.getMonth() + 1) + "/" + dpad(d.getDate()) + " " + dpad(d.getHours()) + ":" + dpad(d.getMinutes()) + ":" + dpad(d.getSeconds()) + "</b> " + esc(x.e + " " + (x.d || "")) + "</div>";
+        }).join("") + "</div>" : '<p class="dbg-empty">Nothing recorded yet (needs the new app version).</p>');
+    }
     else if (key === "errors") h = '<div class="dbg-sub">Errors since this page started</div>' + dbgLines(DBG.errs.map(function (x) { return x; }));
     else if (key === "storage") {
       var st = storageInfo();
