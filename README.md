@@ -1,12 +1,12 @@
-# Asher’s tvOS
+# Waike’s tvOS
 
-**Asher’s tvOS** is a calm, fast home screen and phone remote for a Google TV, designed and developed by Asher.
+**Waike’s tvOS** is a calm, fast home screen and phone remote for a Google TV, designed and developed by Waike.
 A Night home screen with five scenes and a glass clock, a phone remote, Ask Claude on the TV, backups,
 a Settings PIN and hidden developer tools. The About screen (TV Settings, or the phone remote's TV sheet) shows the version.
 
 Package ids (`app.couchtv.launcher`, `dev.couchtv.ontv`) and API paths keep their original names so existing installs keep working.
 
-# Using Asher’s tvOS
+# Using Waike’s tvOS
 
 Your own home screen and phone remote for a Google TV. No ads on the home screen.
 
@@ -430,7 +430,7 @@ MIT licence, see `LICENSE`.
 
 ## Licences and acknowledgements
 
-Asher’s tvOS includes open-source software and content. It started from [couch-tv](https://github.com/Seagey/couch-tv)
+Waike’s tvOS includes open-source software and content. It started from [couch-tv](https://github.com/Seagey/couch-tv)
 by Seagey (MIT licence) and is developed from the fork `realwaikealt/couch-tv-testing`; the upstream copyright notice stays in
 `LICENSE` next to the notice for the new work, as the licence requires. Also: Inter and Antonio fonts (SIL Open Font Licence),
 weather by Open-Meteo, show data and posters from JustWatch, and the
