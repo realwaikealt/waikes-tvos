@@ -301,6 +301,48 @@ def _kill_kiosk_edge():
         return 0
 
 
+def _wake_screen():
+    """Dismiss the screensaver / wake the display: a 1-pixel mouse nudge and back (counts as real input)."""
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+        u = ctypes.windll.user32
+        u.mouse_event(0x0001, 1, 0, 0, 0)
+        u.mouse_event(0x0001, -1, 0, 0, 0)
+    except Exception as e:  # noqa: BLE001
+        log.warning("wake screen failed: %s", e)
+
+
+_awake = {"thread": None}
+
+
+def _awake_loop():
+    """While a stream is on, tell Windows the display is in use so the screensaver and screen-off timer stay away."""
+    import ctypes
+    ES_CONTINUOUS, ES_SYSTEM_REQUIRED, ES_DISPLAY_REQUIRED = 0x80000000, 0x00000001, 0x00000002
+    k = ctypes.windll.kernel32
+    try:
+        while _state.get("app"):
+            k.SetThreadExecutionState(ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED)
+            time.sleep(20)
+    finally:
+        k.SetThreadExecutionState(ES_CONTINUOUS)
+        _awake["thread"] = None
+
+
+def _keep_awake():
+    if sys.platform != "win32":
+        return
+    th = _awake.get("thread")
+    if th is not None and th.is_alive():
+        return
+    import threading
+    th = threading.Thread(target=_awake_loop, name="pc-awake", daemon=True)
+    _awake["thread"] = th
+    th.start()
+
+
 async def stream_start(S, app):
     """Start the Moonlight stream of `app` on the TV (the shortcut skips Moonlight's own menus)."""
     if app not in APPS:
@@ -308,6 +350,7 @@ async def stream_start(S, app):
     sun = await sunshine(0)
     if not sun["up"] or not sun["uuid"]:
         raise S.ApiError(409, "Sunshine isn't running on the computer. Double-click START-SUNSHINE.cmd in the streaming folder.")
+    await asyncio.to_thread(_wake_screen)
     cmd = ("am start -n %s/.ShortcutTrampoline --es UUID %s --es Name %s --es AppName %s"
            % (MOONLIGHT, sun["uuid"], (sun["name"] or "PC").replace(" ", "-"), app))
     try:
@@ -315,6 +358,7 @@ async def stream_start(S, app):
     except Exception as e:  # noqa: BLE001
         raise S.ApiError(503, "Couldn't reach the TV to start the stream (%s)." % str(e)[:80])
     _state["app"] = app
+    _keep_awake()
     return {"app": app}
 
 
