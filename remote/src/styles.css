@@ -703,3 +703,20 @@ button, a, .poster, .app-tile { -webkit-user-select: none; user-select: none; -w
 .wp-tile.on { border-color: var(--solid, #fff); }
 .wp-tile img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; background: #2a2029; }
 .wp-tile span { display: block; padding: 6px 8px 8px; font-size: 13px; line-height: 16px; height: 32px; overflow: hidden; color: var(--ink-2); }
+
+/* PC mode: touchpad and keyboard for the computer that streams to the TV */
+.pc-sheet { padding-bottom: calc(var(--sa-b) + 14px); }
+.pc-sheet .pill { height: 46px; font-size: 15px; }
+.pc-sheet .ask-field { margin-bottom: 12px; }
+.pc-pad { position: relative; height: min(30vh, 230px); min-height: 160px; border-radius: 22px; margin: 6px 0 12px; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  background: var(--glass, rgba(255,255,255,.08)); border: 1px solid var(--rim); display: flex; align-items: flex-end; justify-content: center; }
+.pc-pad-hint { padding: 0 16px 12px; font-size: 13px; line-height: 17px; color: var(--ink-3, rgba(255,255,255,.55)); text-align: center; pointer-events: none; }
+.pc-row, .pc-keys { display: flex; gap: 8px; margin-bottom: 12px; }
+.pc-keys { flex-wrap: wrap; }
+.pc-keys .pill { flex: 1 1 calc(50% - 8px); min-width: 0; }
+.pc-arrows { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-width: 260px; margin: 0 auto 12px; }
+.pc-arrows .pill { padding: 0; }
+.pc-warn { margin: 0 0 8px; }
+.pc-warn .link { text-decoration: underline; color: inherit; font: inherit; padding: 0; min-height: 0; }
+.pc-note { margin: 4px 0 0; text-align: center; font-size: 14px; color: var(--ink-2); }
+.pc-block .row { display: flex; gap: 8px; margin-bottom: 10px; }

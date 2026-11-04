@@ -107,7 +107,9 @@ asks = {}  # ask id -> list of actions Claude took through the MCP tools
 
 # Extra screens the TV can open (for example a computer through Moonlight). Empty by default;
 # see "screens" in config.example.json. Each: {"id", "name", "kind": "moonlight", "package"}.
-SCREENS = [dict({"package": "com.limelight", "kind": "moonlight"}, **s) for s in config.SCREENS]
+import pcinput  # PC mode + the streaming tiles
+SCREENS = [dict({"package": "com.limelight", "kind": "moonlight"}, **s)
+           for s in (config.SCREENS or pcinput.screens_default())]
 
 
 def now_iso():
@@ -694,7 +696,7 @@ async def screens_list():
         app = apps.BY_PACKAGE.get(s["package"])
         inst = is_installed(app) if app else None
         ready = inst is True
-        out.append({"id": s["id"], "name": s["name"], "kind": s["kind"], "ready": ready,
+        out.append({"id": s["id"], "name": s["name"], "kind": s["kind"], "ready": ready, "fallback": s.get("fallback"),
                     "note": None if ready else "Needs Sunshine on the computer and Moonlight on the TV."})
     return out
 
@@ -712,6 +714,10 @@ async def h_screens_open(request):
     listed = next(s for s in await screens_list() if s["id"] == sid)
     if not listed["ready"]:
         raise ApiError(409, listed["note"])
+    if screen.get("app"):   # a PC stream: start Vidbox/Desktop on the PC and show it (needs Sunshine running)
+        res = await pcinput.stream_start(_sys.modules[__name__], screen["app"])
+        record_action(request, "screens_open", {"id": sid}, True)
+        return ok(id=sid, note="Starting %s from the computer." % screen["name"], **res)
     got, _ = await launch_app(apps.BY_PACKAGE[screen["package"]])
     record_action(request, "screens_open", {"id": sid}, bool(got))
     return ok(id=sid, note=f"Opened Moonlight. Pick the {screen['name']} on the TV.")
@@ -2177,6 +2183,7 @@ def make_app():
     devlog.routes(r, _sys.modules[__name__])
     import notify  # noqa: E402  (TV messages: "work finished" popups)
     notify.routes(r, _sys.modules[__name__])
+    pcinput.routes(r, _sys.modules[__name__])   # PC mode: /api/pc/status, /mode, /input, /stream
     r.add_route("OPTIONS", "/api/{tail:.*}", h_options)
     r.add_route("*", "/api/{tail:.*}", h_api_missing)
     r.add_get("/tv", h_tv_redirect)

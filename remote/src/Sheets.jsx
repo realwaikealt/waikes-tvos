@@ -8,6 +8,7 @@ import { WebAppsBlock } from './WebApps.jsx';
 import { WallpaperBlock } from './Wallpapers.jsx';
 import { DevLogBlock } from './DevLog.jsx';
 import { MessagesBlock } from './Messages.jsx';
+import { PcModeBlock } from './PcMode.jsx';
 
 export const Sheet = forwardRef(function Sheet({ open, onClose, title, children, className = '', fromTop = false, closeDrag, extra = null }, ref) {
   return (
@@ -581,6 +582,8 @@ export const MoreSheet = forwardRef(function MoreSheet({ open, onClose, sleepEnd
       </section>
 
       <WebAppControls />
+
+      <PcModeBlock open={open} />
 
       <section className="more-block group list">
         <button className="list-row" onClick={() => { tick(); onArrange(); }}><span className="row-icon"><Ic.Grid size={20} /></span><span className="row-text"><b>Arrange apps</b><small>Order the TV’s dock</small></span><Ic.Chevron className="row-chev" /></button>

@@ -351,6 +351,20 @@
    "type": "new",
    "title": "Streaming Vidbox from the PC: groundwork",
    "summary": "Moonlight is now on the TV and a one-click Sunshine installer is ready on the PC. A real video converter (ffmpeg) is installed for wallpapers."
+  },
+  {
+   "id": "20261103-02",
+   "date": "2026-11-03",
+   "time": "17:26",
+   "version": "1.0.32",
+   "type": "new",
+   "title": "Phone touchpad and stream tiles for the PC",
+   "summary": "Your phone can now be a touchpad and keyboard for the computer while Vidbox streams to the TV, and the TV gets Vidbox on PC and PC Desktop tiles.",
+   "details": [
+    "Phone: More controls > Computer > Open touchpad (move, tap, right-click, scroll, hold to drag, type, arrow keys, play/pause, fullscreen)",
+    "Safe by design: only the home network, only while a stream runs or PC mode is switched on, no Windows key or Alt+F4",
+    "If the PC isn't streaming, the Vidbox tile opens the site in the TV's own browser instead"
+   ]
   }
  ]
 }

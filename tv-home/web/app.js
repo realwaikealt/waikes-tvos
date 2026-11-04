@@ -1767,7 +1767,7 @@
   function arrangeItems() {
     var rest = data.apps.filter(function (a) { return a.package !== SETTINGS_PKG && a.package !== STORE_PKG; });
     var screens = data.screens.map(function (sc) {
-      return { kind: "screen", id: sc.id, name: sc.name, ready: sc.ready, note: sc.note, package: "screen:" + sc.id };
+      return { kind: "screen", id: sc.id, name: sc.name, ready: sc.ready, note: sc.note, fallback: sc.fallback, package: "screen:" + sc.id };
     });
     if (arrMode() !== "manual") {
       var res = Arr.sort(rest, ARR.prefs, ARR.usage, null);
@@ -2229,7 +2229,10 @@
       api("POST", "/api/screens/open", { id: a.id }, 10000)
         .then(function (res) { status(res.note || ""); })
         .catch(function (e) {
-          if (TV && TV.launch("com.limelight")) { status(""); return; }
+          // a PC stream that can't start (Sunshine off, PC asleep) falls back to the same site in our own browser
+          var fb = a.fallback && WEB.filter(function (w) { return w.id === a.fallback; })[0];
+          if (fb) { status("The computer isn't streaming, opening " + fb.name + " here."); openWebApp({ name: fb.name, package: "web:" + fb.id, web: fb }); return; }
+          if (e && e.status !== 409 && TV && TV.launch("com.limelight")) { status(""); return; }
           status(e.message);
         })
         .then(function () { el.classList.remove("busy"); });
