@@ -365,6 +365,15 @@
     "Safe by design: only the home network, only while a stream runs or PC mode is switched on, no Windows key or Alt+F4",
     "If the PC isn't streaming, the Vidbox tile opens the site in the TV's own browser instead"
    ]
+  },
+  {
+   "id": "20261103-03",
+   "date": "2026-11-03",
+   "time": "17:54",
+   "version": "1.0.33",
+   "type": "improved",
+   "title": "Streaming parked, Vidbox tile removed",
+   "summary": "The PC streaming controls and the Vidbox tile are hidden for now. Everything is saved in the archive and can come back with one setting."
   }
  ]
 }
