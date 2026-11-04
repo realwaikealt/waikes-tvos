@@ -205,6 +205,9 @@ export function PcModeBlock({ open }) {
     : status.mode ? `PC mode is on for about ${Math.ceil(status.mode_left / 60)} more minutes.`
     : 'Ready. Nothing is streaming.';
 
+  // parked feature: the bridge says enabled:false (or has no /api/pc), so show nothing at all
+  if (!status || status.enabled === false) return null;
+
   return (
     <section className="more-block group pc-block">
       <h3><Ic.Screen size={16} /> Computer (stream to the TV)</h3>

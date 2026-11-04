@@ -40,6 +40,18 @@ log = logging.getLogger("pcinput")
 SUNSHINE_INFO = "http://127.0.0.1:47989/serverinfo"
 MOONLIGHT = "com.limelight"
 APPS = ("Vidbox", "Desktop")
+
+
+def enabled():
+    """Parked feature: off unless config.json has "pc_streaming": true (or PC_STREAMING=1). Off hides the TV tiles, the phone
+    Computer block and every /api/pc route. See archive/streaming-2026-11/README.md in the workspace."""
+    if os.environ.get("PC_STREAMING") == "1":
+        return True
+    try:
+        import config
+        return bool(config.CONFIG.get("pc_streaming"))
+    except Exception:  # noqa: BLE001
+        return False
 DRY = bool(os.environ.get("PCINPUT_DRYRUN"))
 MODE_MAX_MIN = 120
 EVENTS_MAX = 40
@@ -281,7 +293,7 @@ def sunshine_installed():
 
 def screens_default():
     """The two PC tiles for the TV home screen, but only on a computer that has Sunshine installed."""
-    if not sunshine_installed():
+    if not enabled() or not sunshine_installed():
         return []
     return [{"id": "pc-vidbox", "name": "Vidbox on PC", "kind": "moonlight", "app": "Vidbox", "fallback": "vidbox"},
             {"id": "pc-desktop", "name": "PC Desktop", "kind": "moonlight", "app": "Desktop"}]
@@ -397,6 +409,8 @@ def _take(n=1.0):
 
 def routes(r, S):
     def guard(request):
+        if not enabled():
+            raise S.ApiError(404, "PC streaming is switched off.")
         if not _lan(request):
             raise S.ApiError(403, "PC mode only works from the home network.")
 
@@ -409,6 +423,8 @@ def routes(r, S):
                 "moonlight_pc": sun["name"]}
 
     async def h_status(request):
+        if not enabled():
+            return S.ok(enabled=False)
         guard(request)
         s = await status()
         if DRY:
