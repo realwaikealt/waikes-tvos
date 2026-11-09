@@ -33,7 +33,7 @@ export function DevLogSheet({ open, onClose }) {
   const shown = (rows || []).filter((e) => !FILTERS[fi][1] || e.type === FILTERS[fi][1]).reverse();
   let day = '';
   return (
-    <Sheet open={open} onClose={onClose} title="Dev log" className="devlog-sheet">
+    <Sheet open={open} onClose={onClose} title="Dev log" className="devlog-sheet" portal>
       {last && <p className="more-note dl-ver">Asher’s tvOS {last.version} · latest update {parse(last.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, {clock(last.time)}</p>}
       <div className="dl-chips" role="group" aria-label="Filter">
         {FILTERS.map(([label, type], i) => (

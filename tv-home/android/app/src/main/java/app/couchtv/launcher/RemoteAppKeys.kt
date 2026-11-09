@@ -71,7 +71,15 @@ object RemoteAppKeys {
             val me = ComponentName(c, RemoteKeyService::class.java).flattenToString()
             val cr = c.contentResolver
             val cur = Settings.Secure.getString(cr, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: ""
-            if (cur.split(':').contains(me)) return
+            val listed = cur.split(':').contains(me)
+            val on = Settings.Secure.getInt(cr, Settings.Secure.ACCESSIBILITY_ENABLED, 0) == 1
+            if (listed && on) return
+            if (listed) {
+                // Listed but Android's master switch is off (this is what left the buttons dead): just switch it on.
+                Settings.Secure.putInt(cr, Settings.Secure.ACCESSIBILITY_ENABLED, 1)
+                ScreenGuard.record(c, "remote app keys", "accessibility master switch was off, switched on")
+                return
+            }
             val next = if (cur.isBlank()) me else "$cur:$me"
             Settings.Secure.putString(cr, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, next)
             Settings.Secure.putInt(cr, Settings.Secure.ACCESSIBILITY_ENABLED, 1)

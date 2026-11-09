@@ -1,4 +1,5 @@
 import { forwardRef, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import * as Ic from './icons.jsx';
 import { usePushUp } from './gestures.js';
 import { tick } from './haptics.js';
@@ -10,8 +11,10 @@ import { DevLogBlock } from './DevLog.jsx';
 import { MessagesBlock } from './Messages.jsx';
 import { PcModeBlock } from './PcMode.jsx';
 
-export const Sheet = forwardRef(function Sheet({ open, onClose, title, children, className = '', fromTop = false, closeDrag, extra = null }, ref) {
-  return (
+export const Sheet = forwardRef(function Sheet({ open, onClose, title, children, className = '', fromTop = false, closeDrag, extra = null, portal = false }, ref) {
+  // portal: for a sheet opened from inside another sheet. The outer sheet's blur makes it the containing block for
+  // position:fixed, so a nested sheet would draw inside it (over its blocks) instead of over the screen.
+  const layer = (
     <div className={`sheet-layer ${open ? 'open' : ''} ${fromTop ? 'from-top' : ''}`} aria-hidden={!open} inert={!open}
       onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}>
       <div className="scrim" onClick={onClose} />
@@ -27,6 +30,7 @@ export const Sheet = forwardRef(function Sheet({ open, onClose, title, children,
       </div>
     </div>
   );
+  return portal && typeof document !== 'undefined' ? createPortal(layer, document.body) : layer;
 });
 
 const Speech = typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition);
