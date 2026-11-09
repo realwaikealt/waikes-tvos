@@ -1246,7 +1246,7 @@
       rows.push({ k: "!web:" + w.id, label: "Web app: " + w.name, action: setConfirm === "!web:" + w.id ? "Press OK to remove" : "Remove" });
     });
     rows.push({ k: "!webadd", label: "Add a web app", action: "On your phone" });
-    if (TV && TV.btStatus && window.TVOS_AP) rows.push({ k: "!airpods", label: "AirPods & Bluetooth audio", action: window.TVOS_AP.label() });
+    if (TV && TV.btStatus && window.TVOS_AP && TV.btStatus() !== "{}") rows.push({ k: "!airpods", label: "AirPods & Bluetooth audio", action: window.TVOS_AP.label() });
     rows.push({ k: "!devlog", label: "Dev log (what changed and when)", action: "Open" });
     rows.push({ k: "!messages", label: "Messages", action: (window.TVOS_MSG && window.TVOS_MSG.unread() ? window.TVOS_MSG.unread() + " new" : "Open") });
     rows.push({ k: "!classicpeek", label: "Peek at the old Classic styles (until restart)", action: document.documentElement.classList.contains("theme-night") ? "Show" : "Hide" });

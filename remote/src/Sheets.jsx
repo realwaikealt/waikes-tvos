@@ -571,10 +571,7 @@ export const MoreSheet = forwardRef(function MoreSheet({ open, onClose, sleepEnd
           <button className="pill glass arrange-open" onClick={() => { tick(); onTvPage?.('picture'); }}>Picture settings</button>
           <button className="pill glass arrange-open" onClick={() => { tick(); onTvPage?.('game'); }}>Game mode</button>
         </div>
-        <div className="arrange-pair">
-          <button className="pill glass arrange-open" onClick={() => { tick(); onTvPage?.('bluetooth'); }}>Bluetooth audio (AirPods)</button>
-        </div>
-        <p className="note">Opens the TV’s own picture page (Movie, Game, Sports…), its game bar, or Bluetooth for AirPods.</p>
+        <p className="note">Opens the TV’s own picture page (Movie, Game, Sports…), or its game bar.</p>
       </section>
 
       <section className="more-block group">

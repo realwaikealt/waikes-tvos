@@ -77,7 +77,8 @@ class MainActivity : Activity() {
         WebView.setWebContentsDebuggingEnabled(true)
         root = FrameLayout(this).apply { setBackgroundColor(GROUND) }
         setContentView(root)
-        airpods = AirPodsWatcher(this, root)
+        // AirPods is parked (owner: "just archive this"). Flip Features.AIRPODS to true and rebuild to bring it back.
+        airpods = if (Features.AIRPODS) AirPodsWatcher(this, root) else null
         // Same picture as the window background, so the hand-over from cold start to this view is invisible.
         splash = buildSplash()
         splashT0 = android.os.SystemClock.uptimeMillis()
