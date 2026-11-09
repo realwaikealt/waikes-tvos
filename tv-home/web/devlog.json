@@ -374,6 +374,33 @@
    "type": "improved",
    "title": "Streaming parked, Vidbox tile removed",
    "summary": "The PC streaming controls and the Vidbox tile are hidden for now. Everything is saved in the archive and can come back with one setting."
+  },
+  {
+   "id": "20261108-01",
+   "date": "2026-11-08",
+   "time": "22:58",
+   "version": "1.0.34",
+   "type": "improved",
+   "title": "AirPods parked, Classic peek button",
+   "summary": "AirPods is switched off and archived. Settings has a button to peek at the old Classic styles."
+  },
+  {
+   "id": "20261108-02",
+   "date": "2026-11-08",
+   "time": "22:58",
+   "version": "1.0.34",
+   "type": "fixed",
+   "title": "Phone TV menu layout",
+   "summary": "The Dev log panel no longer draws over the TV menu on the phone."
+  },
+  {
+   "id": "20261108-03",
+   "date": "2026-11-08",
+   "time": "22:58",
+   "version": "1.0.34",
+   "type": "fixed",
+   "title": "Remote app buttons switched back on",
+   "summary": "The Netflix, Prime Video, YouTube and Apple TV buttons were dead because Android's accessibility switch was off. It now turns itself back on."
   }
  ]
 }
