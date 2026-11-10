@@ -105,6 +105,7 @@
     if (!window.TVOS_HOME) { setTimeout(init, 200); return; }
     H = window.TVOS_HOME;
     wrapTv(0);
+    try { window.TVOS && TVOS.keep && TVOS.keep("tvhome.saver_on", featOn() ? "1" : "0"); } catch (e) {}   // the native idle watcher reads this
     idleT = setInterval(idleCheck, 15000);
     document.addEventListener("visibilitychange", function () { if (document.hidden) stop(); else last = Date.now(); });
   }

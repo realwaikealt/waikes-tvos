@@ -42,7 +42,9 @@ object RemoteAppKeys {
             PRIME -> Intent("com.amazon.amazonvideo.livingroom.AMAZON_BUTTON").setPackage(pkg)
             else -> null
         }
-        val intent = base?.takeIf { pm.resolveActivity(it, 0) != null }
+        // Prime's button action has no DEFAULT category, so startActivity cannot resolve it by action: target the activity by name.
+        base?.let { b -> pm.resolveActivity(b, 0)?.activityInfo?.let { b.setClassName(it.packageName, it.name) } }
+        val intent = base?.takeIf { it.component != null }
             ?: pm.getLeanbackLaunchIntentForPackage(pkg)
             ?: pm.getLaunchIntentForPackage(pkg)
             ?: return null

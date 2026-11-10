@@ -15,6 +15,7 @@ class RemoteKeyService : AccessibilityService() {
 
     override fun onKeyEvent(event: KeyEvent): Boolean {
         android.util.Log.d("TvosKeys", "key ${event.keyCode} action ${event.action} src ${event.source} dev ${event.deviceId}")
+        IdleSaver.touch()
         val pkg = RemoteAppKeys.packageFor(event.keyCode) ?: return false
         if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
             ScreenGuard.record(this, "remote app key", "key ${event.keyCode}")

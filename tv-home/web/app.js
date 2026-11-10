@@ -1229,6 +1229,7 @@
     var c = window.COUCH_CONFIG = window.COUCH_CONFIG || {};
     c.features = c.features || {};
     c.features[id] = !!on;
+    if (id === "screensaver") { try { window.TVOS && TVOS.keep("tvhome.saver_on", on ? "1" : "0"); } catch (e) {} }
     api("POST", "/api/features", { id: id, on: !!on }).catch(function (e) { setFlash = "Couldn't save that: " + e.message; renderSettings(); });
     // Rows, popups and the animation read the switch when they run; tiles and the Ask button are built at start.
     setFlash = (id === "ask" || id === "webapps" || id === "streaming") ? "Saved. Restart the home to see it on the dock (Settings > Developer, or restart from the phone)." : "";

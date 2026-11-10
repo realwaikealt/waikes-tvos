@@ -509,6 +509,24 @@
    "details": [
     "Pick the delay in Settings > Screensaver (off, 5, 10, 20, 30 minutes). Any button closes it. It can be switched off under Features."
    ]
+  },
+  {
+   "id": "20261109-10",
+   "date": "2026-11-09",
+   "time": "20:40",
+   "version": "1.0.37",
+   "type": "improved",
+   "title": "Screensaver inside apps",
+   "summary": "The screensaver can now start after the idle time while another app is open, unless something is playing sound."
+  },
+  {
+   "id": "20261109-11",
+   "date": "2026-11-09",
+   "time": "20:40",
+   "version": "1.0.37",
+   "type": "fixed",
+   "title": "Prime Video remote button",
+   "summary": "The Prime Video button now opens the app; it was being sent to an activity Android refused to start by action."
   }
  ],
  "board": [

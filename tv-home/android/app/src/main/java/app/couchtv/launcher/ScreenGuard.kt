@@ -64,6 +64,7 @@ class ScreenGuard : Service() {
         })
         record(this, "guard started", topPackage(this))
         RemoteAppKeys.ensureEnabled(this)
+        IdleSaver.start(this)
         MessageBanner.start(this)   // notice over other apps when a TV message arrives
     }
 
