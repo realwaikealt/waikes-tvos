@@ -89,10 +89,10 @@
     if (Date.now() - last >= m * 60000) start();
   }
 
-  function wrapTv(n) {   // the TV's Home, Back and Resume reach the page through window.tv, not as key presses
+  function wrapTv(n) {   // the TV's Home and Back (resume is left alone: bringing the launcher forward to start the saver also resumes the page) reach the page through window.tv, not as key presses
     var T = window.tv;
     if (!T || !T.back) { if (n < 50) setTimeout(function () { wrapTv(n + 1); }, 200); return; }
-    ["back", "home", "resume"].forEach(function (k) {
+    ["back", "home"].forEach(function (k) {
       var o = T[k];
       if (typeof o !== "function") return;
       T[k] = function () { if (on) { stop(); return; } last = Date.now(); return o.apply(this, arguments); };
