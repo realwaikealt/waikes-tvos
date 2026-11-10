@@ -41,6 +41,7 @@ export const api = {
   setWho: (who) => call('POST', '/api/who', { who }),
   openContinue: (id, who) => call('POST', '/api/continue/open', { id, who }, 60000),
   config: () => call('GET', '/api/config'),
+  screensaver: () => call('POST', '/api/screensaver'),
   screens: () => call('GET', '/api/screens'),
   sleep: () => call('GET', '/api/sleep'),
   key: (key, hold = false) => call('POST', '/api/key', hold ? { key, hold: true } : { key }),

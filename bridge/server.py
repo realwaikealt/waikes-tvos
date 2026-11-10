@@ -927,6 +927,19 @@ async def h_restart(request):
     return ok(started=what)
 
 
+async def h_screensaver(request):
+    """Start the TV's screensaver now (the launcher is told over ADB; the page shows the clock)."""
+    import features
+    if not features.is_on("screensaver"):
+        raise ApiError(409, "The screensaver is switched off (Settings > Features).")
+    tv.require()
+    if not await tv.adb_ready():
+        raise ApiError(503, "ADB is not on; can't reach the TV from here")
+    await tv.adb("shell", f"am start -n {HOME_ACT} --ez screensaver true")
+    record_action(request, "screensaver", {}, True)
+    return ok(started=True)
+
+
 async def h_wake(request):
     data = await body(request)
     info = await tv.wake(dry_run=bool(data.get("dry_run")))
@@ -2172,6 +2185,7 @@ def make_app():
     r.add_post("/api/screens/open", h_screens_open)
     r.add_post("/api/power", h_power)
     r.add_post("/api/wake", h_wake)
+    r.add_post("/api/screensaver", h_screensaver)
     wallpapers.register(r)   # Wallpaper Engine backgrounds: /api/wallpapers, /api/wallpaper, /wp/<id>.mp4
     r.add_get("/api/restart", h_restart_get)
     r.add_post("/api/restart", h_restart)

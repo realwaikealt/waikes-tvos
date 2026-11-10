@@ -63,7 +63,7 @@
     cur = boot; started = Date.now();
   }
 
-  function minFor(k) { return k === "full" ? 1600 : k === "short" ? 900 : k === "wake" ? 450 : 0; }
+  function minFor(k) { return k === "full" ? 1300 : k === "short" ? 800 : k === "wake" ? 450 : 0; }
 
   function stage(frac, text) {
     if (!cur) return;

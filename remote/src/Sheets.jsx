@@ -596,6 +596,11 @@ export const MoreSheet = forwardRef(function MoreSheet({ open, onClose, sleepEnd
         <button className="list-row" onClick={() => { tick(); onPeople(); }}><span className="row-icon"><Ic.People size={20} /></span><span className="row-text"><b>People</b><small>Who’s watching, and their order</small></span><Ic.Chevron className="row-chev" /></button>
       </section>
 
+      {fon('screensaver') && (
+        <section className="more-block group list">
+          <button className="list-row" onClick={() => { tick(); api.screensaver().catch(() => {}); onClose(); }}><span className="row-icon"><Ic.Moon size={20} /></span><span className="row-text"><b>Screensaver</b><small>Start the big clock on the TV now</small></span><Ic.Chevron className="row-chev" /></button>
+        </section>
+      )}
       {fon('webapps') && <WebAppsBlock open={open} />}
       {fon('wallpaper') && <WallpaperBlock open={open} />}
 

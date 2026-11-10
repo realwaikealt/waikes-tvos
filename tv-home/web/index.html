@@ -17,7 +17,7 @@
 #boot .boot-name i{font-style:normal;display:inline-block;opacity:0;animation:bt-letter 560ms var(--sp) calc(380ms + var(--i)*42ms) both}
 #boot .b-bar{position:absolute;left:50%;top:calc(50% + 15.25rem);width:18rem;margin-left:-9rem;height:.25rem;border-radius:.125rem;background:rgba(255,255,255,.12);overflow:hidden;opacity:0;animation:bt-in 400ms ease-out 800ms both}
 #boot .b-bar b{display:block;width:100%;height:100%;background:rgba(255,255,255,.82);transform:scaleX(var(--p,.06));transform-origin:0 50%;transition:transform 520ms var(--out)}
-#boot .boot-note{position:absolute;left:0;right:0;top:calc(50% + 16.5rem);text-align:center;font-size:1.25rem;color:rgba(255,255,255,.62);opacity:0;transition:opacity 300ms}
+#boot .boot-note{display:none!important;position:absolute;left:0;right:0;top:calc(50% + 16.5rem);text-align:center;font-size:1.25rem;color:rgba(255,255,255,.62);opacity:0;transition:opacity 300ms}
 #boot .boot-note.on{opacity:1}
 /* the logo is already drawn by the native splash: no pop, no draw-on, just carry on */
 #boot.pre .boot-mark{animation:none}
@@ -165,5 +165,6 @@ html.booting .top,html.booting .shelf,html.booting .grid,html.booting .scenes{an
 <script src="airpods.js"></script>
 <script src="wallpaper.js"></script>
 <script src="messages.js"></script>
+<script src="screensaver.js"></script>
 </body>
 </html>

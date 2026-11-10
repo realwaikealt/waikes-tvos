@@ -16,6 +16,11 @@
 
   function $(id) { return document.getElementById(id); }
   function esc(v) { return String(v == null ? "" : v).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function isJanky(id) {
+    var v = lsGet(JANKY) || "";
+    var p = v.split("|");
+    return p[0] === id && p[1] && Date.now() - (+p[1]) < 20 * 60 * 1000;
+  }
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) {} }
   function get(path) { return H.api("GET", path, null, 8000); }
@@ -39,7 +44,7 @@
     "#wpick .wp-sheet{position:absolute;left:0;right:0;bottom:0;height:35rem;padding:1.75rem 4rem 0;background:linear-gradient(180deg,rgba(18,13,19,0) 0,rgba(18,13,19,.92) 3.5rem,rgba(18,13,19,.97) 100%);transform:translateY(100%);transition:transform 420ms var(--spring,cubic-bezier(.2,.9,.25,1.1))}" +
     "#wpick.on .wp-sheet{transform:none}" +
     "#wpick h2{font-size:var(--fs-headline,2.1rem);font-weight:700;letter-spacing:-.02em;margin:1.4rem 0 .8rem}" +
-    "#wpick .wp-note{position:absolute;right:4rem;top:2.4rem;font-size:var(--fs-callout,1.4rem);color:var(--ink-3,rgba(255,255,255,.55))}" +
+    "#wpick .wp-note{position:absolute;left:4rem;right:4rem;top:1.6rem;text-align:right;font-size:var(--fs-callout,1.4rem);color:var(--ink-2,rgba(255,255,255,.8))}" +
     "#wpick .wp-chips{display:flex;gap:.75rem;margin-bottom:1rem}" +
     "#wpick .wp-chip{padding:.45rem 1.3rem;border-radius:999px;font-size:var(--fs-callout,1.4rem);background:rgba(255,255,255,.1);color:var(--ink-2,rgba(255,255,255,.8))}" +
     "#wpick .wp-chip.sel{background:rgba(255,255,255,.22);color:#fff}" +
@@ -92,7 +97,7 @@
   }
   function fallback(msg) {   // the video isn't smooth: keep the still picture and remember that for this wallpaper
     if (!cur || cur.kind !== "video") return;
-    lsSet(JANKY, cur.id);
+    lsSet(JANKY, cur.id + "|" + Date.now());
     stopVideo();
     if (cur.poster) showStill(cur.poster);
     H.flash(msg + " A still picture is shown instead.");
@@ -131,7 +136,7 @@
       stopVideo(); showStill(s.url);
     } else if (s.kind === "video") {
       if (s.poster) showStill(s.poster);
-      if (s.state === "ready" && lsGet(JANKY) !== s.id) {
+      if (s.state === "ready" && !isJanky(s.id)) {
         var src = BASE + s.url;
         if (vid.getAttribute("src") !== src) { stopVideo(); vid.setAttribute("src", src); }
         if (!Object.keys(hold).length) { var p = vid.play(); if (p && p.catch) p.catch(function () { fallback("The video wouldn't start."); }); }
@@ -142,7 +147,7 @@
         prepT = setTimeout(recheck, 4000);
       } else if (s.state === "error") {
         stopVideo(); H.flash(s.detail || "That video isn't available."); 
-      } else if (lsGet(JANKY) === s.id) stopVideo();
+      } else if (isJanky(s.id)) stopVideo();
     }
     H.settings();
   }
@@ -183,7 +188,7 @@
   // ---------------- the picker ----------------
   var P = { open: false, items: [], view: [], filter: "all", row: "grid", ci: 0, gi: 0, top: 0, loaded: false, prev: null, prevT: null, note: "" };
   var COLS = 5, CW = 21.4, CH = 12.4, VISROWS = 2;
-  var CHIPS = [["all", "All"], ["video", "Videos"], ["picture", "Pictures"]];
+  var CHIPS = [["video", "Videos that play"], ["picture", "Still pictures only"], ["all", "Everything"]];
 
   function allItems() {
     var scenes = { id: "scenes", title: "Built-in scenes", type: "scenes", video: false, preview: null };
@@ -202,10 +207,27 @@
     d.innerHTML = '<div class="wp-sheet"><h2>Wallpaper</h2><div class="wp-note" id="wp-note"></div><div class="wp-chips" id="wp-chips"></div><div class="wp-view" id="wp-view"><div class="wp-list" id="wp-list"></div></div></div>';
     document.body.appendChild(d);
   }
-  function badge(x) { return x.id === "scenes" ? "" : (x.video ? "Video" : "Picture"); }
+  function badge(x) { return x.id === "scenes" ? "" : (x.video ? "Video" : "Still only"); }
+  function nowText() {   // what the current wallpaper is doing, in plain words
+    if (!cur || !cur.id || cur.id === "scenes") return "Now: the built-in scenes";
+    var t = (meta[cur.id] && meta[cur.id].title) || "Wallpaper Engine";
+    if (cur.kind !== "video") return "Now: " + t + " (still picture)";
+    if (isJanky(cur.id)) return "Now: " + t + " is showing a still because it was choppy. Pick it again to retry.";
+    if (cur.state === "preparing") return "Now: getting " + t + " ready for the TV";
+    if (vid && !vid.paused && vid.classList.contains("on")) return "Now playing: " + t;
+    return "Now: " + t;
+  }
+  function hintText() {
+    var x = P.view[P.gi];
+    if (P.row !== "grid" || !x) return nowText();
+    if (x.id === "scenes") return "OK: use the built-in scenes.";
+    if (x.video) return "OK: play this video on Home." + (x.size_mb > 150 ? " Big file, first time takes a minute or two to prepare." : "");
+    return "OK: show this as a still picture. Animated scene wallpapers can't play on the TV.";
+  }
   function paintChips() {
     $("wp-chips").innerHTML = CHIPS.map(function (c, i) {
-      return '<div class="wp-chip' + (P.filter === c[0] ? " sel" : "") + (P.row === "chips" && P.ci === i ? " focus" : "") + '">' + c[1] + "</div>";
+      var n = P.loaded ? (c[0] === "video" ? P.items.filter(function (x) { return x.video; }).length : c[0] === "picture" ? P.items.filter(function (x) { return !x.video; }).length : P.items.length) : "";
+      return '<div class="wp-chip' + (P.filter === c[0] ? " sel" : "") + (P.row === "chips" && P.ci === i ? " focus" : "") + '">' + c[1] + (n !== "" ? " <i style=\"font-style:normal;opacity:.65\">" + n + "</i>" : "") + "</div>";
     }).join("");
   }
   function paintGrid() {
@@ -228,7 +250,7 @@
     list_el.style.transform = "translateY(" + (-P.top * CH) + "rem)";
     if (!list.length) list_el.innerHTML = '<div class="wp-empty">No wallpapers here.</div>';
   }
-  function paintPicker() { paintChips(); paintGrid(); $("wp-note").textContent = P.note; }
+  function paintPicker() { paintChips(); paintGrid(); $("wp-note").textContent = P.note || hintText(); }
   function scrollTo(i) {
     var r = Math.floor(i / COLS);
     if (r < P.top) P.top = r; else if (r > P.top + VISROWS - 1) P.top = r - VISROWS + 1;
@@ -237,7 +259,7 @@
   function openPicker() {
     ensurePicker();
     BASE = H.base();
-    P.open = true; P.row = "grid"; P.filter = "all"; P.top = 0; P.note = "";
+    P.open = true; P.row = "grid"; P.filter = (cur && cur.id && cur.id !== "scenes" && cur.kind !== "video") ? "picture" : "video"; P.top = 0; P.note = "";
     P.prev = { id: cur.id };
     var el = $("wpick"); el.classList.add("on");
     var sp = $("settings"); if (sp) sp.classList.add("behind");

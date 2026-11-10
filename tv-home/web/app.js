@@ -1220,7 +1220,7 @@
   function sceneOn(id) { return SCENES.some(function (x) { return x.id === id; }); }
   // Feature switches: id, label (mirrors bridge/features.py REGISTRY, so Settings works with the bridge off too)
   var FEATS = [["wallpaper", "Wallpaper Engine backgrounds"], ["messages", "TV messages"], ["devlog", "Dev log"],
-    ["startup", "Startup animation"], ["ask", "Ask Claude"], ["webapps", "Web apps"], ["streaming", "PC streaming (parked)"]];
+    ["startup", "Startup animation"], ["screensaver", "Screensaver"], ["ask", "Ask Claude"], ["webapps", "Web apps"], ["streaming", "PC streaming (parked)"]];
   function featOn(id) {
     var f = (window.COUCH_CONFIG && window.COUCH_CONFIG.features) || {};
     return id === "streaming" ? f[id] === true : f[id] !== false;
@@ -1242,6 +1242,8 @@
       { k: "secs", label: "Each scene lasts", cur: Math.round(SCENE_MS / 1000), opts: [[10, "10 seconds"], [20, "20 seconds"], [30, "30 seconds"], [60, "1 minute"], [120, "2 minutes"]] },
       { k: "startup", label: "Startup animation", cur: SET.startup || "full", opts: [["full", "Full"], ["short", "Short"], ["off", "Off"]] },
       { k: "!startplay", label: "Play the startup animation now", action: "Play" },
+      { k: "saver", label: "Screensaver", cur: SET.saver == null ? 10 : +SET.saver, opts: [[0, "Off"], [5, "After 5 minutes"], [10, "After 10 minutes"], [20, "After 20 minutes"], [30, "After 30 minutes"]] },
+      { k: "!saverplay", label: "Start the screensaver now", action: "Start" },
       { k: "dock", label: "Apps in the dock", cur: DOCK_APPS, opts: [4, 5, 6, 7, 8, 9, 10].map(function (n) { return [n, String(n)]; }) },
       { k: "arr:mode", label: "Arrange apps", cur: arrMode(), opts: Arr.MODES.map(function (m) { return [m, Arr.LABELS[m]]; }) },
       { k: "arr:group", label: "Group apps", cur: ARR.prefs.group ? 1 : 0, opts: [[1, "On"], [0, "Off"]] },
@@ -1290,7 +1292,7 @@
     }
     rows.push({ k: "#feat", head: true, label: "Features" });
     FEATS.forEach(function (f) { rows.push({ k: "feat:" + f[0], label: f[1], cur: featOn(f[0]) ? 1 : 0, opts: [[1, "On"], [0, "Off"]] }); });
-    var HIDE = { wallpaper: ["!wp"], startup: ["startup", "!startplay", "!startreplay"], devlog: ["!devlog"], messages: ["!messages"] };
+    var HIDE = { wallpaper: ["!wp"], startup: ["startup", "!startplay", "!startreplay"], screensaver: ["saver", "!saverplay"], devlog: ["!devlog"], messages: ["!messages"] };
     rows = rows.filter(function (r) {
       for (var id in HIDE) if (!featOn(id) && HIDE[id].indexOf(r.k) >= 0) return false;
       return true;
@@ -1435,7 +1437,7 @@
     var next = r.opts[(at + dir + r.opts.length) % r.opts.length][0];
     if (r.k.indexOf("dev:") === 0) { devChange(r, next); return; }
     if (r.k.indexOf("feat:") === 0) { featSet(r.k.slice(5), !!+next); return; }
-    if (r.k === "clock" || r.k === "unit" || r.k === "date" || r.k === "secs" || r.k === "dock" || r.k === "startup") { SET[r.k] = next; saveSet(); }
+    if (r.k === "clock" || r.k === "unit" || r.k === "date" || r.k === "secs" || r.k === "dock" || r.k === "startup" || r.k === "saver") { SET[r.k] = next; saveSet(); }
     else if (r.k.indexOf("arr:") === 0) { arrSet(r.k.slice(4), next); }
     else if (r.k.indexOf("scene:") === 0) {
       var id = r.k.slice(6);
@@ -1503,6 +1505,11 @@
     }
     if (r.k === "!rhome") { runRestart("home"); return; }
     if (r.k === "!wp") { if (window.TVOS_WP) TVOS_WP.open(); return; }
+    if (r.k === "!saverplay") {
+      closeSettings();
+      setTimeout(function () { if (window.TVSS) TVSS.start(); }, 450);
+      return;
+    }
     if (r.k === "!startplay" || r.k === "!startreplay") {
       if (window.TVSTART) TVSTART.play(r.k === "!startreplay" ? "full" : null);
       return;

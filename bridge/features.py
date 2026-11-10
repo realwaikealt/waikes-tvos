@@ -21,6 +21,7 @@ REGISTRY = [
     ("messages", "TV messages", "The popups when work finishes, the Messages list and the message banner.", True),
     ("devlog", "Dev log", "The history and the Status page on the TV and the phone.", True),
     ("startup", "Startup animation", "The animation when the TV starts up or wakes.", True),
+    ("screensaver", "Screensaver", "The big clock over your wallpaper when the TV is idle, and the phone's Start button.", True),
     ("ask", "Ask Claude", "The Ask button on the TV and the Ask tab on the phone.", True),
     ("webapps", "Web apps", "Websites as TV tiles, and the phone's Web apps block.", True),
     ("streaming", "PC streaming (parked)", "Vidbox streaming from the PC. Needs Sunshine and Moonlight.", False),

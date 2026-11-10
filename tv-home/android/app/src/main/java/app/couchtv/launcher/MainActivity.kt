@@ -60,6 +60,7 @@ class MainActivity : Activity() {
     private lateinit var root: FrameLayout
     private var web: WebView? = null
     private var fallback: View? = null
+    private var glowPulse: android.animation.ObjectAnimator? = null
     private var splash: View? = null   // the logo over the dark ground until the page has painted its own loader
     private var pageReady = false
     private var loadFailed = false
@@ -110,6 +111,7 @@ class MainActivity : Activity() {
             connect()
             return
         }
+        if (intent.hasExtra("screensaver")) { js("window.TVSS && TVSS.start()"); return }   // from the phone (bridge /api/screensaver)
         if (intent.hasExtra("guard")) return   // the screen guard bringing Home forward while the TV is off
         // test hook (adb): am start -n app.couchtv.launcher/.MainActivity --ei airpods_demo 3616   (model id, decimal)
         if (intent.hasExtra("airpods_demo")) { airpods?.demo(intent.getIntExtra("airpods_demo", 0x0E20)); return }
@@ -730,7 +732,13 @@ class MainActivity : Activity() {
                 setGradientCenter(0.5f, 0.5f)
             }
             alpha = 0f; scaleX = 0.6f; scaleY = 0.6f
-            animate().alpha(1f).scaleX(1f).scaleY(1f).setStartDelay(100).setDuration(1100).setInterpolator(Ui.OUT).start()
+            animate().alpha(1f).scaleX(1f).scaleY(1f).setStartDelay(100).setDuration(1100).setInterpolator(Ui.OUT).withEndAction {
+                // keep it alive while the page loads: a slow breath, stopped when the splash goes away
+                glowPulse = android.animation.ObjectAnimator.ofFloat(this, View.ALPHA, 1f, 0.55f).apply {
+                    duration = 1500; repeatMode = android.animation.ValueAnimator.REVERSE; repeatCount = android.animation.ValueAnimator.INFINITE
+                    interpolator = android.view.animation.AccelerateDecelerateInterpolator(); start()
+                }
+            }.start()
         }
         f.addView(glow, FrameLayout.LayoutParams(dp(352), dp(352), Gravity.CENTER))
         val mark = ImageView(this).apply { setImageResource(R.drawable.splash_mark_avd) }
@@ -751,6 +759,7 @@ class MainActivity : Activity() {
         val left = 900L - (android.os.SystemClock.uptimeMillis() - splashT0)   // let the drawing-on finish
         if (left > 0) { main.postDelayed({ hideSplash() }, left); return }
         splash = null
+        glowPulse?.cancel(); glowPulse = null
         v.animate().alpha(0f).setDuration(Ui.SLOW).setInterpolator(Ui.OUT).withEndAction { root.removeView(v) }.start()
     }
 
