@@ -527,6 +527,33 @@
    "type": "fixed",
    "title": "Prime Video remote button",
    "summary": "The Prime Video button now opens the app; it was being sent to an activity Android refused to start by action."
+  },
+  {
+   "id": "20261109-12",
+   "date": "2026-11-09",
+   "time": "20:59",
+   "version": "1.0.38",
+   "type": "improved",
+   "title": "Smoother focus",
+   "summary": "Dock apps, shelf cards and settings tiles move as a light layer, and the shelf card no longer animates a big shadow."
+  },
+  {
+   "id": "20261109-13",
+   "date": "2026-11-09",
+   "time": "20:59",
+   "version": "1.0.38",
+   "type": "fixed",
+   "title": "Scrolling that ran past",
+   "summary": "Holding a direction no longer overshoots and catches up after you let go; steps now come at a steady pace."
+  },
+  {
+   "id": "20261109-14",
+   "date": "2026-11-09",
+   "time": "20:59",
+   "version": "1.0.38",
+   "type": "improved",
+   "title": "Settings in categories",
+   "summary": "Settings opens on a grid of nine categories instead of one long list; pick one to see just its options."
   }
  ],
  "board": [

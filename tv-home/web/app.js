@@ -1213,6 +1213,31 @@
   // Everything here is kept on this TV (tvhome.settings) and wins over config.json. Up and down pick a row,
   // left and right (or OK) change it, Back closes. Anything that needs the page to start again does so on close.
   var setI = 0, setDirty = false, setFlash = "", setConfirm = "";
+  // Settings opens on a grid of categories; picking one shows only its rows. setCat "" = the grid.
+  var setCat = "", catI = 0;
+  var CATS = [
+    ["look", "Wallpaper & animation", "Backgrounds, startup, screensaver"],
+    ["clock", "Clock & date", "12/24-hour, temperature, date"],
+    ["apps", "Apps & dock", "Order, dock size, web apps"],
+    ["buttons", "Buttons & picture", "Top buttons, picture and game modes"],
+    ["inbox", "Messages & Dev log", "What changed, notices"],
+    ["system", "System", "PIN, restart, backup, TV settings"],
+    ["feat", "Features", "Switch parts on or off"],
+    ["dev", "Developer", "Debug tools"],
+    ["about", "About", "Version and credits"]
+  ];
+  function catOf(k) {
+    if (k === "clock" || k === "unit" || k === "date") return "clock";
+    if (k === "secs" || k === "startup" || k === "!startplay" || k === "saver" || k === "!saverplay" || k === "!wp" || k.indexOf("scene:") === 0) return "look";
+    if (k === "dock" || k.indexOf("arr:") === 0 || k.indexOf("!web") === 0 || k === "!airpods") return "apps";
+    if (k.indexOf("q:") === 0 || k === "!picpage" || k === "!game") return "buttons";
+    if (k === "!devlog" || k === "!messages") return "inbox";
+    if (k === "!about") return "about";
+    if (k.indexOf("feat:") === 0) return "feat";
+    if (k === "!debug" || k === "!startreplay" || k.indexOf("dev:") === 0 || k === "!clearcache" || k === "!offline" || k === "!mock" || k === "!reloadhome" || k === "!reset") return "dev";
+    return "system";
+  }
+  function catsShown() { return CATS.filter(function (c) { return c[0] !== "dev" || DEV; }); }
   function dateStyle() { return SET.date || ((CFG.country || "") === "US" ? "us" : "intl"); }
   function tempUnit() { return SET.unit || ((CFG.country || "") === "US" ? "F" : "C"); }
   function shownTemp(c) { return tempUnit() === "F" ? Math.round(c * 9 / 5 + 32) : c; }
@@ -1279,7 +1304,6 @@
     rows.push({ k: "!messages", label: "Messages", action: (window.TVOS_MSG && window.TVOS_MSG.unread() ? window.TVOS_MSG.unread() + " new" : "Open") });
     rows.push({ k: "!about", label: "About Asher’s tvOS", action: "Open" });
     if (DEV) {
-      rows.push({ k: "#dev", head: true, label: "Developer" });
       rows.push({ k: "!debug", label: "Debug page", action: "Open" });
       rows.push({ k: "!startreplay", label: "Replay startup animation (full)", action: "Replay" });
       rows.push({ k: "dev:fps", label: "FPS overlay", cur: DEVS.fps ? 1 : 0, opts: [[1, "On"], [0, "Off"]] });
@@ -1291,14 +1315,14 @@
       rows.push({ k: "!reloadhome", label: "Reload home (turns developer mode off)", action: "Reload" });
       rows.push({ k: "!reset", label: "Put all settings back", action: "Reset" });
     }
-    rows.push({ k: "#feat", head: true, label: "Features" });
     FEATS.forEach(function (f) { rows.push({ k: "feat:" + f[0], label: f[1], cur: featOn(f[0]) ? 1 : 0, opts: [[1, "On"], [0, "Off"]] }); });
     var HIDE = { wallpaper: ["!wp"], startup: ["startup", "!startplay", "!startreplay"], screensaver: ["saver", "!saverplay"], devlog: ["!devlog"], messages: ["!messages"] };
     rows = rows.filter(function (r) {
       for (var id in HIDE) if (!featOn(id) && HIDE[id].indexOf(r.k) >= 0) return false;
       return true;
     });
-    rows.push({ k: "!close", label: "Done", action: "Close" });
+    rows.forEach(function (r) { r.g = catOf(r.k); });
+    if (setCat) rows = rows.filter(function (r) { return r.g === setCat; });
     return rows;
   }
   function setVal(r) {
@@ -1307,10 +1331,39 @@
     var hit = r.opts.filter(function (o) { return String(o[0]) === String(r.cur); })[0];
     return '<span class="sv">\u2039&nbsp;&nbsp;' + esc(hit ? hit[1] : String(r.cur)) + '&nbsp;&nbsp;\u203a</span>';
   }
+  function renderCats() {
+    var box = $("settings-list"), cs = catsShown();
+    catI = Math.max(0, Math.min(cs.length - 1, catI));
+    if (box._sig !== "cats") {
+      box.className = "settings-list cats";
+      box.innerHTML = cs.map(function (c, i) {
+        return '<div class="scat' + (i === catI ? " focus" : "") + '"><b>' + esc(c[1]) + "</b><span>" + esc(c[2]) + "</span></div>";
+      }).join("");
+      box._sig = "cats";
+    } else {
+      var kids = box.children;
+      for (var i = 0; i < kids.length; i++) kids[i].classList.toggle("focus", i === catI);
+    }
+    $("settings-title").textContent = "Settings";
+    $("settings-help").textContent = "Arrows to choose. OK to open. Back to close.";
+    box.scrollTop = 0;
+  }
+  function catMove(dx, dy) {
+    var n = catsShown().length, cols = 3, i = catI + dx + dy * cols;
+    if (dx && Math.floor(i / cols) !== Math.floor(catI / cols)) return;
+    if (i < 0 || i >= n) return;
+    catI = i; renderSettings();
+  }
+  function openCat() { var c = catsShown()[catI]; setCat = c[0]; setI = 0; setFlash = ""; renderSettings(); }
   function renderSettings() {
-    var rows = setRows(), box = $("settings-list");
+    if (!setCat) { renderCats(); var nt0 = $("settings-note"); nt0.textContent = setFlash; return; }
+    var box = $("settings-list");
+    if (box.className !== "settings-list") { box.className = "settings-list"; box._sig = ""; }
+    $("settings-title").textContent = catsShown().filter(function (c) { return c[0] === setCat; })[0][1];
+    $("settings-help").textContent = "Up and down to choose. Left and right to change. Back for categories.";
+    var rows = setRows();
     setI = Math.max(0, Math.min(rows.length - 1, setI));
-    if (setConfirm && rows[setI].k !== setConfirm) { setConfirm = ""; rows = setRows(); }
+    if (setConfirm && rows[setI] && rows[setI].k !== setConfirm) { setConfirm = ""; rows = setRows(); }
     var sig = rows.map(function (r) { return r.k; }).join("|"), kids = box.children;
     if (box._sig !== sig || kids.length !== rows.length) {   // a different list: draw it once
       box.innerHTML = rows.map(function (r, i) {
@@ -1397,7 +1450,7 @@
     doOpenSettings();
   }
   function doOpenSettings() {
-    zone = "settings"; setI = 0; setFlash = "";
+    zone = "settings"; setI = 0; setFlash = ""; setCat = ""; catI = 0;
     enter($("settings"));
     paintFocus();
   }
@@ -2123,6 +2176,7 @@
     if (zone === "about") { if (dy) aboutMove(dy); return; }
     if (zone === "debug") { if (dy) debugMove(dy); else if (dx) $("debug-pane").scrollTop += dx * 170; return; }
     if (zone === "settings") {
+      if (!setCat) { catMove(dx, dy); return; }
       if (dy) { setStep(dy); setFlash = ""; renderSettings(); }
       else if (dx) changeSet(dx);
       return;
@@ -2199,7 +2253,7 @@
     if (zone === "debug") { closeDebug(); return; }
     if (zone === "devlog") { window.DevLog.back(); return; }
     if (zone === "about") { aboutBack(); return; }
-    if (zone === "settings") { closeSettings(); return; }
+    if (zone === "settings") { if (setCat) { setCat = ""; setFlash = ""; renderSettings(); } else closeSettings(); return; }
     if (zone === "pin") { pinCancel(); return; }
     if (zone === "ask") { closeAsk(); return; }
     if (zone === "menu") { closeMenu(); paintFocus(); return; }   // BACK just closes the sleep choices
@@ -2229,7 +2283,7 @@
     if (zone === "debug") { debugOk(); return; }
     if (zone === "devlog") { window.DevLog.ok(); return; }
     if (zone === "about") { aboutOk(); return; }
-    if (zone === "settings") { changeSet(1); return; }
+    if (zone === "settings") { if (!setCat) openCat(); else changeSet(1); return; }
     if (zone === "pin") { pinSubmit(); return; }
     if (zone === "ask") { askActivate(); return; }
     if (zone === "menu") { setSleep(SLEEP_CHOICES[menuI]); paintFocus(); return; }
@@ -2311,7 +2365,7 @@
   // OK acts when it is let go, so holding it can pick things up instead (tvOS does the same).
   // Works for remotes that repeat the key while it is held and for ones that only send the press
   // and, later, the release. One press is one action: a pick-up never also opens the app.
-  var okDown = false, okHeld = false, okTimer = null;
+  var okDown = false, okHeld = false, okTimer = null, lastStep = 0;
   function okReset() { okDown = false; okHeld = false; clearTimeout(okTimer); }
   document.addEventListener("keydown", function (e) {
     if (zone === "pin") { var dg = pinDigit(e); if (dg != null) { e.preventDefault(); pinType(dg); return; } }
@@ -2323,7 +2377,12 @@
       return;
     }
     var arrow = arrowOf(e);
-    if (arrow) move(arrow[0], arrow[1]);
+    if (arrow) {
+      var nowT = Date.now();
+      if (e.repeat && nowT - lastStep < 105) { e.preventDefault(); return; }   // a held key: steady pace, nothing queued
+      lastStep = nowT;
+      move(arrow[0], arrow[1]);
+    }
     else if (isBack(e)) goHome();
     else if (isMenu(e)) { if (!e.repeat) hold(); }   // optional: many remotes have no Menu key
     else { ensureFocus(); return; }                   // anything else is not ours: Android gets it
