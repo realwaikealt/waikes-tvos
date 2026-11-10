@@ -479,6 +479,36 @@
     "Wallpaper, TV messages, Dev log, Startup animation, Ask Claude, Web apps and PC streaming have a switch each.",
     "Nothing is deleted when a switch is off."
    ]
+  },
+  {
+   "id": "20261109-07",
+   "date": "2026-11-09",
+   "time": "20:15",
+   "version": "1.0.36",
+   "type": "improved",
+   "title": "Startup animation",
+   "summary": "Removed the small caption, the logo glow breathes while the page loads, and the wait after loading is shorter."
+  },
+  {
+   "id": "20261109-08",
+   "date": "2026-11-09",
+   "time": "20:15",
+   "version": "1.0.36",
+   "type": "improved",
+   "title": "Wallpaper picker",
+   "summary": "Videos that play come first, each choice explains itself, and a choppy video retries after 20 minutes instead of staying a still picture."
+  },
+  {
+   "id": "20261109-09",
+   "date": "2026-11-09",
+   "time": "20:15",
+   "version": "1.0.36",
+   "type": "new",
+   "title": "Screensaver",
+   "summary": "A big clock with the date and weather over your wallpaper when the TV sits idle, or when you start it from Settings or the phone.",
+   "details": [
+    "Pick the delay in Settings > Screensaver (off, 5, 10, 20, 30 minutes). Any button closes it. It can be switched off under Features."
+   ]
   }
  ],
  "board": [
@@ -497,17 +527,18 @@
    "id": "b-wallpaper",
    "status": "work",
    "title": "Wallpaper Engine videos",
-   "summary": "Works a little, but buggy. Needs a lot of work.",
+   "summary": "Better: videos that stall now retry, and the picker is clearer. Animated scene/web wallpapers still show as a still picture.",
    "details": [
-    "Videos play on the TV, muted. Other kinds show as a still picture.",
-    "A 720p option is ready if the TV runs warm."
+    "Picker shows Videos that play first, with counts and a hint for each choice.",
+    "A video marked choppy is only blocked for 20 minutes, then it retries.",
+    "Scene and web wallpapers need the PC to draw them, so the TV shows a still picture."
    ]
   },
   {
    "id": "b-startup",
    "status": "work",
    "title": "Startup animation",
-   "summary": "Works well. Some polish later.",
+   "summary": "Polished: no debug caption, breathing glow while loading, shorter waits. Wake from standby still to be seen on the TV.",
    "details": [
     "Plays when the TV starts and wakes."
    ]
@@ -616,10 +647,14 @@
   },
   {
    "id": "b-screensaver",
-   "status": "todo",
+   "status": "done",
    "title": "Screensaver",
-   "summary": "Wallpaper Engine background (or the plain one) with a big clock, the date and more. To discuss.",
-   "details": []
+   "summary": "A big clock, the date and the weather over your wallpaper when the TV is idle.",
+   "details": [
+    "Starts after 5/10/20/30 minutes with no button press (Settings > Screensaver), or on demand from Settings or the phone.",
+    "Any button closes it and does nothing else.",
+    "Uses the Wallpaper Engine video while the PC is on, otherwise the plain background."
+   ]
   },
   {
    "id": "b-picgame",
