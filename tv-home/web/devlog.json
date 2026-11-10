@@ -599,6 +599,27 @@
    "type": "new",
    "title": "Light mode",
    "summary": "Settings > Wallpaper & animation > Light mode turns video wallpapers off and shows a full HD picture instead, for the smoothest TV."
+  },
+  {
+   "id": "20261109-20",
+   "date": "2026-11-09",
+   "time": "22:12",
+   "version": "1.0.40",
+   "type": "new",
+   "title": "Black background",
+   "summary": "Settings > Wallpaper & animation > Background: a plain black screen that glows in the colour of whatever you have selected."
+  },
+  {
+   "id": "20261109-21",
+   "date": "2026-11-09",
+   "time": "22:12",
+   "version": "1.0.40",
+   "type": "new",
+   "title": "Scene wallpapers that move",
+   "summary": "Scene and web wallpapers now play with their motion at full HD: the PC records each one once (about a minute), then the TV plays it like a video.",
+   "details": [
+    "Wallpaper Engine opens the wallpaper in a small window on the PC for about 35 seconds; only that window is recorded. The 20 second loop is kept, so it is a one-time cost per wallpaper. Turn it off with wallpaper_record=false in config.json."
+   ]
   }
  ],
  "board": [

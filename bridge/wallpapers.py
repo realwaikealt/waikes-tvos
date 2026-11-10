@@ -247,6 +247,139 @@ def tv_friendly(p):
             and (p["kbps"] or 0) <= 10000 and 1.6 <= ratio <= 1.9 and p["pix"].startswith("yuv420p"))
 
 
+# ---------- recording scene and web wallpapers ----------
+# Wallpaper Engine can draw a scene or web wallpaper in its own window ("-playInWindow"). ffmpeg's gfxcapture (Windows
+# Graphics Capture) records that ONE window, nothing else on the screen. We record a short loop once per wallpaper, keep it
+# (like a converted video) and the TV plays it, so scene wallpapers move on the TV. One recording at a time, low priority.
+_rec_cache = {}
+
+
+def we_exe():
+    if "exe" not in _rec_cache:
+        found = None
+        for lib in _steam_libraries():
+            p = os.path.join(lib, "steamapps", "common", "wallpaper_engine", "wallpaper64.exe")
+            if os.path.isfile(p):
+                found = p
+                break
+        _rec_cache["exe"] = found
+    return _rec_cache["exe"]
+
+
+def _has_gfxcapture(ff):
+    k = "gfx:" + ff
+    if k not in _rec_cache:
+        try:
+            out = subprocess.run([ff, "-hide_banner", "-filters"], capture_output=True, text=True, timeout=20,
+                                 creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)).stdout
+        except (OSError, subprocess.SubprocessError):
+            out = ""
+        _rec_cache[k] = " gfxcapture " in out
+    return _rec_cache[k]
+
+
+def capturable(it):
+    """A scene or web wallpaper the PC can record (needs Wallpaper Engine and an ffmpeg with gfxcapture)."""
+    if it["type"] not in ("scene", "web") or config.CONFIG.get("wallpaper_record") is False:
+        return False
+    if not os.path.isfile(os.path.join(it["folder"], "project.json")):
+        return False
+    ff = find_ffmpeg()
+    return bool(ff and we_exe() and _has_gfxcapture(ff) and _encoder(ff))
+
+
+def playable(it):
+    return (it["type"] == "video" and bool(it["video_path"])) or capturable(it)
+
+
+def _rec_path(it):
+    try:
+        m = int(os.path.getmtime(os.path.join(it["folder"], "project.json")))
+    except OSError:
+        m = 0
+    return os.path.join(DATA_DIR, "%s-rec-1080p-%d.mp4" % (it["id"], m))
+
+
+def _find_window(title):
+    try:
+        import ctypes
+        return int(ctypes.windll.user32.FindWindowW(None, title) or 0)
+    except Exception:  # noqa: BLE001
+        return 0
+
+
+def _close_window(hwnd):
+    try:
+        import ctypes
+        ctypes.windll.user32.PostMessageW(hwnd, 0x0010, 0, 0)   # WM_CLOSE: only our own recording window
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def _looks_black(ff, path):
+    try:
+        r = subprocess.run([ff, "-hide_banner", "-loglevel", "error", "-ss", "4", "-i", path, "-frames:v", "1",
+                            "-vf", "scale=16:9", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
+                           capture_output=True, timeout=30, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        data = r.stdout
+        return bool(data) and (sum(data) / float(len(data))) < 6
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
+def _record(it):
+    global _worker_busy
+    ff = find_ffmpeg()
+    enc = _encoder(ff) if ff else None
+    exe = we_exe()
+    out = _rec_path(it)
+    title = "tvos-rec-%s" % re.sub(r"[^A-Za-z0-9]", "", it["id"])
+    hwnd = 0
+    try:
+        os.makedirs(DATA_DIR, exist_ok=True)
+        for old in glob.glob(os.path.join(DATA_DIR, it["id"] + "-rec-*.mp4")):
+            if old != out:
+                try:
+                    os.remove(old)
+                except OSError:
+                    pass
+        tmp = out + ".part.mp4"
+        flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        subprocess.Popen([exe, "-control", "openWallpaper", "-file", os.path.join(it["folder"], "project.json"),
+                          "-playInWindow", title, "-width", "1920", "-height", "1080"], creationflags=flags)
+        end = time.time() + 40
+        while time.time() < end and not hwnd:
+            time.sleep(0.5)
+            hwnd = _find_window(title)
+        if not hwnd:
+            raise RuntimeError("Wallpaper Engine did not open this wallpaper")
+        time.sleep(float(config.CONFIG.get("wallpaper_record_settle") or 10))   # let the scene load and start moving
+        secs = int(config.CONFIG.get("wallpaper_record_seconds") or 20)
+        src = "gfxcapture=window_title=%s:capture_cursor=0:max_framerate=30,hwdownload,format=bgra," % title
+        src += "scale=1920:1080:flags=bicubic,fps=30,format=yuv420p"
+        cmd = [ff, "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", src, "-t", str(secs), "-an",
+               "-c:v", enc, "-b:v", "7000k", "-maxrate", "9000k", "-bufsize", "14000k", "-g", "60",
+               "-movflags", "+faststart"]
+        if enc == "libx264":
+            cmd += ["-preset", "veryfast", "-profile:v", "high", "-level", "4.1", "-threads", "2"]
+        cmd += [tmp]
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=secs + 120, creationflags=flags | getattr(subprocess, "BELOW_NORMAL_PRIORITY_CLASS", 0),
+                           encoding="utf-8", errors="replace")
+        if r.returncode != 0 or not os.path.isfile(tmp) or os.path.getsize(tmp) < 50000:
+            raise RuntimeError((r.stderr or "the recording failed").strip().splitlines()[-1][:200] if (r.stderr or "").strip() else "the recording failed")
+        if _looks_black(ff, tmp):
+            os.remove(tmp)
+            raise RuntimeError("Wallpaper Engine drew nothing for this one")
+        os.replace(tmp, out)
+        _jobs.pop(it["id"], None)
+    except Exception as e:  # noqa: BLE001
+        _jobs[it["id"]] = {"state": "error", "detail": str(e)[:240], "started": time.time()}
+    finally:
+        if hwnd or _find_window(title):
+            _close_window(hwnd or _find_window(title))
+        _worker_busy = False
+
+
 # ---------- preparing a video ----------
 def _height():
     """1080 (default) or 720: set "wallpaper_height" in config.json if a video makes the TV warm or janky."""
@@ -266,6 +399,16 @@ def _cached_path(it):
 
 def video_state(it):
     """('ready', path) | ('preparing', None) | ('error', detail) | ('none', None)"""
+    if capturable(it):
+        job = _jobs.get(it["id"])
+        done = _rec_path(it)
+        if os.path.isfile(done):
+            return "ready", done
+        if job and job["state"] == "preparing":
+            return "preparing", None
+        if job and job["state"] == "error":
+            return "error", job["detail"]
+        return "idle", None
     if it["type"] != "video" or not it["video_path"]:
         return "none", None
     job = _jobs.get(it["id"])
@@ -336,7 +479,7 @@ async def prepare(it):
         return "preparing"
     _worker_busy = True
     _jobs[it["id"]] = {"state": "preparing", "detail": "", "started": time.time()}
-    asyncio.get_running_loop().run_in_executor(None, _transcode, it)
+    asyncio.get_running_loop().run_in_executor(None, _record if capturable(it) else _transcode, it)
     return "preparing"
 
 
@@ -352,8 +495,11 @@ def _make_image(it, kind):
     if not src:
         return None
     # a video wallpaper's still is a frame of the video itself (full HD); the preview picture is small and soft
-    from_video = kind == "still" and it["type"] == "video" and bool(it["video_path"]) and os.path.isfile(it["video_path"])
-    pick = it["video_path"] if from_video else src
+    vsrc = it["video_path"] if it["type"] == "video" and it["video_path"] else ""
+    if not vsrc and capturable(it) and os.path.isfile(_rec_path(it)):
+        vsrc = _rec_path(it)
+    from_video = kind == "still" and bool(vsrc) and os.path.isfile(vsrc)
+    pick = vsrc if from_video else src
     ff = find_ffmpeg()
     if not ff:
         return src
@@ -427,7 +573,7 @@ def write_choice(wid, t=None):
 def _public(it):
     st, detail = video_state(it)
     return {"id": it["id"], "title": it["title"], "type": it["type"], "source": it["source"], "rating": it["rating"],
-            "size_mb": it["size_mb"], "video": it["type"] == "video" and bool(it["video_path"]),
+            "size_mb": it["size_mb"], "video": playable(it), "rec": capturable(it),
             "state": st, "preview": "/api/wallpapers/%s/thumb" % it["id"]}
 
 
@@ -438,7 +584,7 @@ def _state_for(wid):
     it = items.get(wid)
     if not it:
         return {"id": wid, "kind": "missing", "state": "error", "detail": "That wallpaper isn't on the computer any more."}
-    if it["type"] == "video" and it["video_path"]:
+    if playable(it):
         st, detail = video_state(it)
         d = {"id": wid, "kind": "video", "state": st, "poster": "/api/wallpapers/%s/still" % wid}
         if st == "ready":
@@ -463,9 +609,9 @@ async def h_list(request):
         if hide_mature and it["rating"].lower() in ("mature", "questionable"):
             continue
         out.append({"id": it["id"], "title": it["title"], "type": it["type"], "source": it["source"],
-                    "rating": it["rating"], "size_mb": it["size_mb"], "video": it["type"] == "video" and bool(it["video_path"]),
+                    "rating": it["rating"], "size_mb": it["size_mb"], "video": playable(it), "rec": capturable(it),
                     "preview": "/api/wallpapers/%s/thumb" % it["id"]})
-    out.sort(key=lambda x: (0 if x["video"] else 1, x["title"].lower()))
+    out.sort(key=lambda x: (0 if x["video"] and not x["rec"] else (1 if x["video"] else 2), x["title"].lower()))
     ff = await loop.run_in_executor(None, find_ffmpeg)
     return _json({"ok": True, "engine": bool(engine), "ffmpeg": bool(ff), "count": len(out), "items": out,
                   "current": read_choice()})
@@ -509,7 +655,7 @@ async def h_choose(request):
         if wid not in items:
             return _json({"ok": False, "error": "That wallpaper isn't available."}, 404)
         it = items[wid]
-        if it["type"] == "video" and it["video_path"]:
+        if playable(it):
             await prepare(it)
     c = write_choice(wid, body.get("t"))
     loop = asyncio.get_running_loop()
@@ -521,7 +667,7 @@ async def h_video(request):
     wid = request.match_info["id"]
     items, _ = scan()
     it = items.get(wid)
-    if not it or it["type"] != "video":
+    if not it or not playable(it):
         raise web.HTTPNotFound()
     st, path = await asyncio.get_running_loop().run_in_executor(None, video_state, it)
     if st == "idle":

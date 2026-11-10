@@ -1228,7 +1228,7 @@
   ];
   function catOf(k) {
     if (k === "clock" || k === "unit" || k === "date") return "clock";
-    if (k === "secs" || k === "light" || k === "startup" || k === "!startplay" || k === "saver" || k === "!saverplay" || k === "!wp" || k.indexOf("scene:") === 0) return "look";
+    if (k === "secs" || k === "bg" || k === "light" || k === "startup" || k === "!startplay" || k === "saver" || k === "!saverplay" || k === "!wp" || k.indexOf("scene:") === 0) return "look";
     if (k === "dock" || k.indexOf("arr:") === 0 || k.indexOf("!web") === 0 || k === "!airpods") return "apps";
     if (k.indexOf("q:") === 0 || k === "!picpage" || k === "!game") return "buttons";
     if (k === "!devlog" || k === "!messages") return "inbox";
@@ -1268,6 +1268,7 @@
       { k: "secs", label: "Each scene lasts", cur: Math.round(SCENE_MS / 1000), opts: [[10, "10 seconds"], [20, "20 seconds"], [30, "30 seconds"], [60, "1 minute"], [120, "2 minutes"]] },
       { k: "startup", label: "Startup animation", cur: SET.startup || "full", opts: [["full", "Full"], ["short", "Short"], ["off", "Off"]] },
       { k: "!startplay", label: "Play the startup animation now", action: "Play" },
+      { k: "bg", label: "Background", cur: SET.bg === "black" ? "black" : "scenes", opts: [["scenes", "Scenes and wallpaper"], ["black", "Black, glows with your pick"]] },
       { k: "light", label: "Light mode (no video wallpapers)", cur: SET.light ? 1 : 0, opts: [[0, "Off"], [1, "On: full HD pictures only"]] },
       { k: "saver", label: "Screensaver", cur: SET.saver == null ? 10 : +SET.saver, opts: [[0, "Off"], [5, "After 5 minutes"], [10, "After 10 minutes"], [20, "After 20 minutes"], [30, "After 30 minutes"]] },
       { k: "!saverplay", label: "Start the screensaver now", action: "Start" },
@@ -1493,6 +1494,7 @@
     if (r.k.indexOf("dev:") === 0) { devChange(r, next); return; }
     if (r.k.indexOf("feat:") === 0) { featSet(r.k.slice(5), !!+next); return; }
     if (r.k === "clock" || r.k === "unit" || r.k === "date" || r.k === "secs" || r.k === "dock" || r.k === "startup" || r.k === "saver") { SET[r.k] = next; saveSet(); }
+    else if (r.k === "bg") { SET.bg = next === "black" ? "black" : "scenes"; saveSet(); if (window.TVBG) TVBG.apply(); }
     else if (r.k === "light") { SET.light = +next ? 1 : 0; saveSet(); if (window.TVOS_WP && TVOS_WP.refresh) TVOS_WP.refresh(); }
     else if (r.k.indexOf("arr:") === 0) { arrSet(r.k.slice(4), next); }
     else if (r.k.indexOf("scene:") === 0) {

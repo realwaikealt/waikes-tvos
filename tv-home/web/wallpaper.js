@@ -236,6 +236,7 @@
     var x = P.view[P.gi];
     if (P.row !== "grid" || !x) return nowText();
     if (x.id === "scenes") return "OK: use the built-in scenes.";
+    if (x.rec && !light()) return "OK: the PC records this scene once (about a minute), then it plays with its motion.";
     if (x.video && light()) return "OK: show a full HD picture from this video (light mode is on).";
     if (x.video) return "OK: play this video on Home." + (x.size_mb > 150 ? " Big file, first time takes a minute or two to prepare." : "");
     return "OK: show this as a still picture. Animated scene wallpapers can't play on the TV.";
