@@ -351,21 +351,24 @@ def _make_image(it, kind):
     src = it["preview_path"]
     if not src:
         return None
+    # a video wallpaper's still is a frame of the video itself (full HD); the preview picture is small and soft
+    from_video = kind == "still" and it["type"] == "video" and bool(it["video_path"]) and os.path.isfile(it["video_path"])
+    pick = it["video_path"] if from_video else src
     ff = find_ffmpeg()
     if not ff:
         return src
     try:
-        m = int(os.path.getmtime(src))
+        m = int(os.path.getmtime(pick))
     except OSError:
         return src
     out_dir = os.path.join(DATA_DIR, "img")
-    out = os.path.join(out_dir, "%s-%s-%d.jpg" % (it["id"], kind, m))
+    out = os.path.join(out_dir, "%s-%s%s-%d.jpg" % (it["id"], kind, "-hd" if from_video else "", m))
     if os.path.isfile(out):
         return out
     w, h, q = (360, 202, "5") if kind == "thumb" else (1920, 1080, "3")
     os.makedirs(out_dir, exist_ok=True)
     tmp = out + ".part.jpg"
-    cmd = [ff, "-hide_banner", "-loglevel", "error", "-y", "-i", src, "-frames:v", "1",
+    cmd = [ff, "-hide_banner", "-loglevel", "error", "-y"] + (["-ss", "2"] if from_video else []) + ["-i", pick, "-frames:v", "1",
            "-vf", "scale=%d:%d:force_original_aspect_ratio=increase:flags=bicubic,crop=%d:%d,format=yuvj420p" % (w, h, w, h),
            "-q:v", q, tmp]
     try:

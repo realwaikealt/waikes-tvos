@@ -554,6 +554,51 @@
    "type": "improved",
    "title": "Settings in categories",
    "summary": "Settings opens on a grid of nine categories instead of one long list; pick one to see just its options."
+  },
+  {
+   "id": "20261109-15",
+   "date": "2026-11-09",
+   "time": "21:56",
+   "version": "1.0.39",
+   "type": "fixed",
+   "title": "Screensaver clock centred",
+   "summary": "The big clock now sits in the middle of the screen whatever the numbers are."
+  },
+  {
+   "id": "20261109-16",
+   "date": "2026-11-09",
+   "time": "21:56",
+   "version": "1.0.39",
+   "type": "fixed",
+   "title": "Settings that did not stick",
+   "summary": "Only the real TV can save its settings to the PC now, so a test browser can no longer put old clock and dock settings back."
+  },
+  {
+   "id": "20261109-17",
+   "date": "2026-11-09",
+   "time": "21:56",
+   "version": "1.0.39",
+   "type": "improved",
+   "title": "Sharper wallpaper pictures",
+   "summary": "Still pictures for video wallpapers are now taken from the video itself in full HD, not the small preview."
+  },
+  {
+   "id": "20261109-18",
+   "date": "2026-11-09",
+   "time": "21:56",
+   "version": "1.0.39",
+   "type": "fixed",
+   "title": "Wallpaper video stopped",
+   "summary": "If the video stalls (for example while the PC restarts) it now retries in 30 seconds instead of staying a still picture."
+  },
+  {
+   "id": "20261109-19",
+   "date": "2026-11-09",
+   "time": "21:56",
+   "version": "1.0.39",
+   "type": "new",
+   "title": "Light mode",
+   "summary": "Settings > Wallpaper & animation > Light mode turns video wallpapers off and shows a full HD picture instead, for the smoothest TV."
   }
  ],
  "board": [

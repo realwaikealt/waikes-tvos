@@ -79,6 +79,7 @@
     });
   }
 
+  var retryT = null;
   function setOn(on) {
     document.documentElement.classList.toggle("wp-on", !!on);
     H.freezeScenes(!!on);
@@ -102,6 +103,14 @@
     if (cur.poster) showStill(cur.poster);
     H.flash(msg + " A still picture is shown instead.");
   }
+  function stalled() {   // the video stopped moving: show the picture and try the video again in half a minute
+    var c = cur;
+    stopVideo();
+    if (c && c.poster) showStill(c.poster);
+    clearTimeout(retryT);
+    retryT = setTimeout(function () { if (cur && c && cur.id === c.id) apply(cur); }, 30000);
+  }
+  function light() { return !!(H && H.get("light")); }
   function showStill(path) {
     still.onload = function () { still.classList.add("on"); };
     still.src = BASE + path;
@@ -110,12 +119,17 @@
   function watchQuality() {
     clearInterval(qualT);
     last = { total: 0, dropped: 0, bad: 0 };
-    var strikes = 0;
+    var strikes = 0, stalls = 0;
     qualT = setInterval(function () {
       if (!vid || vid.paused || document.hidden || !vid.getVideoPlaybackQuality) return;
       var q = vid.getVideoPlaybackQuality(), dt = q.totalVideoFrames - last.total, dd = q.droppedVideoFrames - last.dropped;
       last.total = q.totalVideoFrames; last.dropped = q.droppedVideoFrames;
-      if (dt < 20) { if (dt < 5) strikes++; return; }   // (stalled or too few frames to judge)
+      if (dt < 20) {   // stalled or too few frames to judge: usually the computer was busy or restarted, so try again later, never "choppy"
+        if (dt < 5) stalls++;
+        if (stalls >= 3) { stalls = 0; stalled(); }
+        return;
+      }
+      stalls = 0;
       strikes = dd / dt > 0.25 ? strikes + 1 : 0;
       if (strikes >= 3) fallback("The TV dropped too many frames.");
     }, 5000);
@@ -136,10 +150,11 @@
       stopVideo(); showStill(s.url);
     } else if (s.kind === "video") {
       if (s.poster) showStill(s.poster);
-      if (s.state === "ready" && !isJanky(s.id)) {
+      if (light()) { stopVideo(); }   // Light mode: the full HD picture only, no video
+      else if (s.state === "ready" && !isJanky(s.id)) {
         var src = BASE + s.url;
         if (vid.getAttribute("src") !== src) { stopVideo(); vid.setAttribute("src", src); }
-        if (!Object.keys(hold).length) { var p = vid.play(); if (p && p.catch) p.catch(function () { fallback("The video wouldn't start."); }); }
+        if (!Object.keys(hold).length) { var p = vid.play(); if (p && p.catch) p.catch(function () { stalled(); }); }
         watchQuality();
       } else if (s.state === "preparing") {
         stopVideo();
@@ -207,7 +222,7 @@
     d.innerHTML = '<div class="wp-sheet"><h2>Wallpaper</h2><div class="wp-note" id="wp-note"></div><div class="wp-chips" id="wp-chips"></div><div class="wp-view" id="wp-view"><div class="wp-list" id="wp-list"></div></div></div>';
     document.body.appendChild(d);
   }
-  function badge(x) { return x.id === "scenes" ? "" : (x.video ? "Video" : "Still only"); }
+  function badge(x) { return x.id === "scenes" ? "" : (x.video && !light() ? "Video" : (x.video ? "Picture (light mode)" : "Still only")); }
   function nowText() {   // what the current wallpaper is doing, in plain words
     if (!cur || !cur.id || cur.id === "scenes") return "Now: the built-in scenes";
     var t = (meta[cur.id] && meta[cur.id].title) || "Wallpaper Engine";
@@ -221,6 +236,7 @@
     var x = P.view[P.gi];
     if (P.row !== "grid" || !x) return nowText();
     if (x.id === "scenes") return "OK: use the built-in scenes.";
+    if (x.video && light()) return "OK: show a full HD picture from this video (light mode is on).";
     if (x.video) return "OK: play this video on Home." + (x.size_mb > 150 ? " Big file, first time takes a minute or two to prepare." : "");
     return "OK: show this as a still picture. Animated scene wallpapers can't play on the TV.";
   }
@@ -352,6 +368,7 @@
     },
     open: function () { if (H) openPicker(); },
     pause: pause, resume: resume,
+    refresh: function () { if (cur && cur.id && cur.id !== "scenes") apply(cur); },
     state: function () { return cur; }
   };
 

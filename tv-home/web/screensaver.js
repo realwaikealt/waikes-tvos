@@ -13,8 +13,9 @@
     "background:radial-gradient(ellipse at 50% 46%,rgba(0,0,0,.18) 0,rgba(0,0,0,.55) 100%)}" +
     "#ss.show{display:block}#ss.in{opacity:1}" +
     "#ss .ss-in{position:absolute;left:0;right:0;top:50%;text-align:center;transform:translateY(-52%);transition:transform 3000ms ease-in-out}" +
-    "#ss .ss-time{font-family:'Antonio','Arial Narrow',sans-serif;font-weight:300;font-size:34rem;line-height:.86;letter-spacing:-.02em;white-space:nowrap;" +
+    "#ss .ss-time{font-family:'Antonio','Arial Narrow',sans-serif;font-weight:300;font-size:34rem;line-height:.86;letter-spacing:0;white-space:nowrap;" +
     "color:rgba(255,255,255,.16);-webkit-text-stroke:.1rem rgba(255,255,255,.7);filter:drop-shadow(0 .4rem 2rem rgba(0,0,0,.25))}" +
+    "#ss .ss-time i{display:inline-block;font-style:normal;width:.44em;text-align:center}#ss .ss-time i.c{width:.2em}" +
     "#ss .ss-time small{font-size:.16em;letter-spacing:.04em;margin-left:.3em;-webkit-text-stroke:0;color:rgba(255,255,255,.7)}" +
     "#ss .ss-date{margin-top:3.4rem;font-size:var(--fs-headline,2.5rem);font-weight:500;color:rgba(255,255,255,.92);text-shadow:0 .1rem .8rem rgba(0,0,0,.45)}" +
     "#ss .ss-date .wx{margin-left:1.6rem;color:rgba(255,255,255,.8);font-weight:400}" +
@@ -37,9 +38,12 @@
   }
   function fill() {   // the same clock and date strings Home shows, read live from the page
     var t = $("time"), d = $("date");
-    $("ss-time").innerHTML = t && t.innerHTML ? t.innerHTML : (function () {
+    var raw = t && t.innerHTML ? t.innerHTML : (function () {
       var n = new Date(); return n.getHours() + ":" + (n.getMinutes() < 10 ? "0" : "") + n.getMinutes();
     })();
+    var cut = raw.indexOf("<"), head = cut < 0 ? raw : raw.slice(0, cut), tail = cut < 0 ? "" : raw.slice(cut);
+    // every digit in a cell of the same width, so the clock sits dead centre whatever the numbers are
+    $("ss-time").innerHTML = head.replace(/./g, function (c) { return c === ":" ? '<i class="c">:</i>' : "<i>" + c + "</i>"; }) + tail;
     if (d) $("ss-date").innerHTML = d.innerHTML;
   }
   function moveClock() {   // a small random drift so the picture is never fixed in one place

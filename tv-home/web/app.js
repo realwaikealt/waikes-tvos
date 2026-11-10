@@ -46,7 +46,7 @@
 
   // What this TV keeps is also copied to the bridge (/api/tv-state), so a backup holds it and a
   // restore (or a fresh install) brings it back. tvhome.rev is the version of the copy this TV has.
-  var SYNC = !(MOCK || PREVIEW || OFFLINE);
+  var SYNC = !(MOCK || PREVIEW || OFFLINE) && !!window.TVOS;   // only the real TV talks to /api/tv-state: a browser or test page must never overwrite the TV's saved settings
   var SYNC_KEYS = ["tvhome.settings", "tvhome.people.order", "tvhome.order.tv", "tvhome.apps.new", "tvhome.apps.seen"];
   var syncQueue = {}, syncTimer = null;
   function syncPush(key, j) {
@@ -1228,7 +1228,7 @@
   ];
   function catOf(k) {
     if (k === "clock" || k === "unit" || k === "date") return "clock";
-    if (k === "secs" || k === "startup" || k === "!startplay" || k === "saver" || k === "!saverplay" || k === "!wp" || k.indexOf("scene:") === 0) return "look";
+    if (k === "secs" || k === "light" || k === "startup" || k === "!startplay" || k === "saver" || k === "!saverplay" || k === "!wp" || k.indexOf("scene:") === 0) return "look";
     if (k === "dock" || k.indexOf("arr:") === 0 || k.indexOf("!web") === 0 || k === "!airpods") return "apps";
     if (k.indexOf("q:") === 0 || k === "!picpage" || k === "!game") return "buttons";
     if (k === "!devlog" || k === "!messages") return "inbox";
@@ -1268,6 +1268,7 @@
       { k: "secs", label: "Each scene lasts", cur: Math.round(SCENE_MS / 1000), opts: [[10, "10 seconds"], [20, "20 seconds"], [30, "30 seconds"], [60, "1 minute"], [120, "2 minutes"]] },
       { k: "startup", label: "Startup animation", cur: SET.startup || "full", opts: [["full", "Full"], ["short", "Short"], ["off", "Off"]] },
       { k: "!startplay", label: "Play the startup animation now", action: "Play" },
+      { k: "light", label: "Light mode (no video wallpapers)", cur: SET.light ? 1 : 0, opts: [[0, "Off"], [1, "On: full HD pictures only"]] },
       { k: "saver", label: "Screensaver", cur: SET.saver == null ? 10 : +SET.saver, opts: [[0, "Off"], [5, "After 5 minutes"], [10, "After 10 minutes"], [20, "After 20 minutes"], [30, "After 30 minutes"]] },
       { k: "!saverplay", label: "Start the screensaver now", action: "Start" },
       { k: "dock", label: "Apps in the dock", cur: DOCK_APPS, opts: [4, 5, 6, 7, 8, 9, 10].map(function (n) { return [n, String(n)]; }) },
@@ -1492,6 +1493,7 @@
     if (r.k.indexOf("dev:") === 0) { devChange(r, next); return; }
     if (r.k.indexOf("feat:") === 0) { featSet(r.k.slice(5), !!+next); return; }
     if (r.k === "clock" || r.k === "unit" || r.k === "date" || r.k === "secs" || r.k === "dock" || r.k === "startup" || r.k === "saver") { SET[r.k] = next; saveSet(); }
+    else if (r.k === "light") { SET.light = +next ? 1 : 0; saveSet(); if (window.TVOS_WP && TVOS_WP.refresh) TVOS_WP.refresh(); }
     else if (r.k.indexOf("arr:") === 0) { arrSet(r.k.slice(4), next); }
     else if (r.k.indexOf("scene:") === 0) {
       var id = r.k.slice(6);
