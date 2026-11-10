@@ -196,6 +196,8 @@
 
   function readConfig() {
     CFG = window.COUCH_CONFIG || {};
+    // Feature switches (Settings > Features, bridge/features.py). A missing entry means on.
+    window.TVOS_FEAT = { on: function (id) { var f = (window.COUCH_CONFIG && window.COUCH_CONFIG.features) || {}; return f[id] !== false; } };
     WEB = (kept("tvhome.webapps") || CFG.webapps || []).slice();
     if (CFG.weather) WXCFG = CFG.weather;
     HOME = CFG.home || {};
@@ -1209,6 +1211,22 @@
   function shownTemp(c) { return tempUnit() === "F" ? Math.round(c * 9 / 5 + 32) : c; }
   var SCENE_NAMES = { night: "Night", golden: "Golden hour", water: "Waterline", fog: "Fog", dawn: "Dawn" };
   function sceneOn(id) { return SCENES.some(function (x) { return x.id === id; }); }
+  // Feature switches: id, label (mirrors bridge/features.py REGISTRY, so Settings works with the bridge off too)
+  var FEATS = [["wallpaper", "Wallpaper Engine backgrounds"], ["messages", "TV messages"], ["devlog", "Dev log"],
+    ["startup", "Startup animation"], ["ask", "Ask Claude"], ["webapps", "Web apps"], ["streaming", "PC streaming (parked)"]];
+  function featOn(id) {
+    var f = (window.COUCH_CONFIG && window.COUCH_CONFIG.features) || {};
+    return id === "streaming" ? f[id] === true : f[id] !== false;
+  }
+  function featSet(id, on) {
+    var c = window.COUCH_CONFIG = window.COUCH_CONFIG || {};
+    c.features = c.features || {};
+    c.features[id] = !!on;
+    api("POST", "/api/features", { id: id, on: !!on }).catch(function (e) { setFlash = "Couldn't save that: " + e.message; renderSettings(); });
+    // Rows, popups and the animation read the switch when they run; tiles and the Ask button are built at start.
+    setFlash = (id === "ask" || id === "webapps" || id === "streaming") ? "Saved. Restart the home to see it on the dock (Settings > Developer, or restart from the phone)." : "";
+    renderSettings();
+  }
   function setRows() {
     var rows = [
       { k: "clock", label: "Clock", cur: CLOCK24 ? "24h" : "12h", opts: [["12h", "12-hour"], ["24h", "24-hour"]] },
@@ -1263,6 +1281,13 @@
       rows.push({ k: "!reloadhome", label: "Reload home (turns developer mode off)", action: "Reload" });
       rows.push({ k: "!reset", label: "Put all settings back", action: "Reset" });
     }
+    rows.push({ k: "#feat", head: true, label: "Features" });
+    FEATS.forEach(function (f) { rows.push({ k: "feat:" + f[0], label: f[1], cur: featOn(f[0]) ? 1 : 0, opts: [[1, "On"], [0, "Off"]] }); });
+    var HIDE = { wallpaper: ["!wp"], startup: ["startup", "!startplay", "!startreplay"], devlog: ["!devlog"], messages: ["!messages"] };
+    rows = rows.filter(function (r) {
+      for (var id in HIDE) if (!featOn(id) && HIDE[id].indexOf(r.k) >= 0) return false;
+      return true;
+    });
     rows.push({ k: "!close", label: "Done", action: "Close" });
     return rows;
   }
@@ -1402,6 +1427,7 @@
     r.opts.forEach(function (o, i) { if (String(o[0]) === String(r.cur)) at = i; });
     var next = r.opts[(at + dir + r.opts.length) % r.opts.length][0];
     if (r.k.indexOf("dev:") === 0) { devChange(r, next); return; }
+    if (r.k.indexOf("feat:") === 0) { featSet(r.k.slice(5), !!+next); return; }
     if (r.k === "clock" || r.k === "unit" || r.k === "date" || r.k === "secs" || r.k === "dock" || r.k === "startup") { SET[r.k] = next; saveSet(); }
     else if (r.k.indexOf("arr:") === 0) { arrSet(r.k.slice(4), next); }
     else if (r.k.indexOf("scene:") === 0) {

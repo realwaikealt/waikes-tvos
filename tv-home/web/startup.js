@@ -24,6 +24,7 @@
         localStorage.getItem("mock:tvhome.settings");
       m = raw ? JSON.parse(raw).startup : null;
     } catch (e) {}
+    try { if (window.COUCH_CONFIG && window.COUCH_CONFIG.features && window.COUCH_CONFIG.features.startup === false) return "off"; } catch (e) {}
     return m === "short" || m === "off" ? m : "full";
   }
   var MODE = savedMode();

@@ -48,6 +48,12 @@ def enabled():
     if os.environ.get("PC_STREAMING") == "1":
         return True
     try:
+        import features
+        if "streaming" in features._load():   # a choice made in Settings > Features wins over config.json
+            return features.is_on("streaming")
+    except Exception:  # noqa: BLE001
+        pass
+    try:
         import config
         return bool(config.CONFIG.get("pc_streaming"))
     except Exception:  # noqa: BLE001

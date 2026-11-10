@@ -8,6 +8,7 @@ import { logoFor } from './appLogos.js';
 import { WebAppsBlock } from './WebApps.jsx';
 import { WallpaperBlock } from './Wallpapers.jsx';
 import { DevLogBlock } from './DevLog.jsx';
+import { FeaturesBlock, useFeatures } from './Features.jsx';
 import { MessagesBlock } from './Messages.jsx';
 import { PcModeBlock } from './PcMode.jsx';
 
@@ -529,8 +530,11 @@ export const MoreSheet = forwardRef(function MoreSheet({ open, onClose, sleepEnd
   const endsAt = sleepEnds ? new Date(sleepEnds) : null;
   const left = endsAt ? Math.max(0, Math.round((endsAt - Date.now()) / 60000)) : 0;
   const thisTv = tvs?.find((t) => t.id === tvId);
+  const feat = useFeatures(open);
+  const fon = (id) => feat.on[id] !== false;
   return (
     <Sheet ref={setRefs} open={open} onClose={onClose} title={thisTv?.name ? `${thisTv.name} TV` : 'TV'} fromTop closeDrag={closeDrag} className="more-sheet">
+      <h4 className="more-group-title first">Controls</h4>
       {tvs?.length > 1 && (
         <section className="more-block group first">
           <h3><Ic.Screen size={16} /> Which TV</h3>
@@ -586,17 +590,23 @@ export const MoreSheet = forwardRef(function MoreSheet({ open, onClose, sleepEnd
 
       <PcModeBlock open={open} />
 
+      <h4 className="more-group-title">Home screen</h4>
       <section className="more-block group list">
         <button className="list-row" onClick={() => { tick(); onArrange(); }}><span className="row-icon"><Ic.Grid size={20} /></span><span className="row-text"><b>Arrange apps</b><small>Order the TV’s dock</small></span><Ic.Chevron className="row-chev" /></button>
         <button className="list-row" onClick={() => { tick(); onPeople(); }}><span className="row-icon"><Ic.People size={20} /></span><span className="row-text"><b>People</b><small>Who’s watching, and their order</small></span><Ic.Chevron className="row-chev" /></button>
       </section>
 
-      <MessagesBlock open={open} />
-      <WebAppsBlock open={open} />
-      <WallpaperBlock open={open} />
+      {fon('webapps') && <WebAppsBlock open={open} />}
+      {fon('wallpaper') && <WallpaperBlock open={open} />}
+
+      {(fon('messages') || fon('devlog')) && <h4 className="more-group-title">Messages and history</h4>}
+      {fon('messages') && <MessagesBlock open={open} />}
+      {fon('devlog') && <DevLogBlock />}
+
+      <h4 className="more-group-title">System</h4>
+      <FeaturesBlock features={feat} />
       <BackupBlock open={open} />
       <RestartBlock open={open} />
-      <DevLogBlock />
       <AboutBlock />
     </Sheet>
   );

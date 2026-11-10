@@ -131,6 +131,7 @@
 
   function maybeShow() {
     if (view !== "none" || Date.now() < snooze) return;
+    if (window.TVOS_FEAT && !TVOS_FEAT.on("messages")) return;   // Settings > Features
     var boot = document.getElementById("boot");
     if (boot && boot.parentNode && !boot.classList.contains("out")) { clearTimeout(showT); showT = setTimeout(maybeShow, 1500); return; }   // the boot screen is still up
     if (document.hidden) return;

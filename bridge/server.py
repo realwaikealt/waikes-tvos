@@ -977,8 +977,9 @@ async def recs_refresh_soon():
 
 
 async def h_ask(request):
-    if not config.ASK_ENABLED:
-        raise ApiError(409, "The Claude ask is switched off (ask.enabled in config.json).")
+    import features
+    if not config.ASK_ENABLED or not features.is_on("ask"):
+        raise ApiError(409, "Ask Claude is switched off (ask.enabled in config.json, or Settings > Features).")
     data = await body(request)
     text = (data.get("text") or "").strip()
     if not text:
@@ -2183,6 +2184,8 @@ def make_app():
     devlog.routes(r, _sys.modules[__name__])
     import notify  # noqa: E402  (TV messages: "work finished" popups)
     notify.routes(r, _sys.modules[__name__])
+    import features  # noqa: E402  (feature switches: /api/features)
+    features.routes(r, _sys.modules[__name__])
     pcinput.routes(r, _sys.modules[__name__])   # PC mode: /api/pc/status, /mode, /input, /stream
     r.add_route("OPTIONS", "/api/{tail:.*}", h_options)
     r.add_route("*", "/api/{tail:.*}", h_api_missing)
