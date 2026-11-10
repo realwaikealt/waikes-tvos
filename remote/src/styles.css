@@ -720,3 +720,20 @@ button, a, .poster, .app-tile { -webkit-user-select: none; user-select: none; -w
 .pc-warn .link { text-decoration: underline; color: inherit; font: inherit; padding: 0; min-height: 0; }
 .pc-note { margin: 4px 0 0; text-align: center; font-size: 14px; color: var(--ink-2); }
 .pc-block .row { display: flex; gap: 8px; margin-bottom: 10px; }
+
+/* Dev log: bullet points, the full-story popup, and the Status view */
+.dl-bul { margin: 6px 0 0 18px; padding: 0; font-size: 15px; line-height: 1.4; color: rgba(245, 245, 247, .8); }
+.dl-more { display: block; margin-top: 6px; font-size: 13px; color: rgba(245, 245, 247, .5); }
+.dl-type.s-done { background: rgba(120, 200, 140, .25); color: #aef0c1; }
+.dl-type.s-work { background: rgba(255, 190, 110, .25); color: #ffd9a3; }
+.dl-type.s-todo { background: rgba(120, 170, 255, .25); color: #bcd3ff; }
+.dl-type.s-idea { background: rgba(200, 150, 255, .25); color: #e3c9ff; }
+.dl-type.s-parked { background: rgba(255, 255, 255, .12); color: rgba(245, 245, 247, .7); }
+.dl-pop { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-end; justify-content: center; background: rgba(0, 0, 0, .55); padding: 0 12px calc(var(--sa-b, 0px) + 12px); }
+.dl-card { width: 100%; max-width: 560px; max-height: 82vh; overflow-y: auto; padding: 20px 20px 16px; border-radius: 26px; background: #1d1a22; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1); }
+.dl-card h3 { margin: 8px 0 6px; font: 700 21px/1.25 var(--font-d); }
+.dl-msum { margin: 0 0 10px; font-size: 16px; line-height: 1.45; color: rgba(245, 245, 247, .85); }
+.dl-mhead { margin: 10px 0 4px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: rgba(245, 245, 247, .5); }
+.dl-mdet { margin: 0 0 12px 18px; padding: 0; font-size: 15px; line-height: 1.45; color: rgba(245, 245, 247, .85); }
+.dl-mdet li { margin-bottom: 6px; }
+.dl-close { display: block; width: 100%; min-height: 48px; border: 0; border-radius: 24px; background: #fff; color: #111; font: 700 16px var(--font-d); }

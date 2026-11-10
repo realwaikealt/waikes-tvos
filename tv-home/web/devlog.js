@@ -7,13 +7,17 @@
     { label: "All", types: null },
     { label: "New", types: ["new"] },
     { label: "Improved", types: ["improved"] },
-    { label: "Fixed", types: ["fixed"] }
+    { label: "Fixed", types: ["fixed"] },
+    { label: "Status", board: true }
   ];
+  // The Status view: what is finished, what still needs work, what is not made yet, ideas, and what is parked.
+  var STATUS = { done: "Finished", work: "Needs work", todo: "Not made yet", idea: "Idea", parked: "Parked" };
+  var STATUS_ORDER = ["work", "todo", "idea", "parked", "done"];
   var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   var DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   var LONG = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-  var el = null, state = "idle", all = [], fi = 0, ii = 0, openId = "", inFilters = false, onClose = null;
+  var el = null, state = "idle", all = [], board = [], modal = null, fi = 0, ii = 0, openId = "", inFilters = false, onClose = null;
 
   function esc(v) { return String(v == null ? "" : v).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function parseDay(d) { var p = d.split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); }
@@ -21,10 +25,20 @@
   function clock(t) { var p = t.split(":"), h = +p[0]; return ((h + 11) % 12 + 1) + ":" + p[1] + " " + (h < 12 ? "AM" : "PM"); }
   function shortStamp(e) { var t = parseDay(e.date); return MONTHS[t.getMonth()] + " " + t.getDate() + ", " + clock(e.time); }
 
-  function matches(e, f) { return !f.types || f.types.indexOf(e.type) >= 0; }
-  function visible() {   // newest first
+  function matches(e, f) { return !f.board && (!f.types || f.types.indexOf(e.type) >= 0); }
+  function boardRows() {
+    return board.slice().sort(function (a, b) { return STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status); });
+  }
+  function visible() {   // newest first; the Status view lists the board instead
     var f = FILTERS[fi];
+    if (f.board) return boardRows();
     return all.filter(function (e) { return matches(e, f); }).reverse();
+  }
+  // Short bullet points for the list: the entry's own "bullets", else its summary split into sentences.
+  function bulletsOf(e) {
+    if (e.bullets && e.bullets.length) return e.bullets;
+    var m = String(e.summary || "").match(/[^.!?]+[.!?]*/g) || [];
+    return m.map(function (t) { return t.trim(); }).filter(Boolean).slice(0, 3);
   }
 
   function build() {
@@ -37,7 +51,8 @@
       '<div class="dl-head"><h2>Dev log</h2><div class="dl-badge" id="dl-badge"></div></div>' +
       '<div class="dl-filters" id="dl-filters"></div>' +
       '<div class="dl-list" id="dl-list"></div>' +
-      '<p class="settings-help" id="dl-help">Up and down to browse. OK for details. Back to close.</p></div>';
+      '<p class="settings-help" id="dl-help">Up and down to browse. OK for the full story. Back to close.</p>' +
+      '<div class="dl-modal" id="dl-modal"><div class="dl-card" id="dl-card"></div></div></div>';
     document.body.appendChild(el);
   }
 
@@ -50,7 +65,7 @@
 
   function paintFilters() {
     document.getElementById("dl-filters").innerHTML = FILTERS.map(function (f, i) {
-      var n = all.filter(function (e) { return matches(e, f); }).length;
+      var n = f.board ? board.length : all.filter(function (e) { return matches(e, f); }).length;
       return '<span class="dl-chip' + (i === fi ? " on" : "") + (inFilters && i === fi ? " focus" : "") + '">' + f.label +
         (state === "ready" ? " <i>" + n + "</i>" : "") + "</span>";
     }).join("");
@@ -68,15 +83,18 @@
     var rows = visible();
     if (!rows.length) { list.innerHTML = '<div class="dl-empty"><b>Nothing here yet</b>No ' + esc(FILTERS[fi].label.toLowerCase()) + " changes have been logged.</div>"; return; }
     if (ii >= rows.length) ii = rows.length - 1;
-    var out = "", day = "";
+    var out = "", day = "", board_ = FILTERS[fi].board;
     rows.forEach(function (e, n) {
-      if (e.date !== day) { day = e.date; out += '<div class="dl-day">' + esc(dayName(day)) + "</div>"; }
-      var on = !inFilters && n === ii, op = e.id === openId;
-      out += '<div class="dl-item' + (on ? " focus" : "") + (op ? " open" : "") + '">' +
-        '<div class="dl-meta"><span class="dl-type t-' + esc(e.type) + '">' + esc(TYPES[e.type] || e.type) + '</span><span class="dl-time">' + esc(clock(e.time)) + '</span><span class="dl-v">' + esc(e.version) + "</span></div>" +
+      var grp = board_ ? e.status : e.date;
+      if (grp !== day) { day = grp; out += '<div class="dl-day">' + esc(board_ ? (STATUS[grp] || grp) : dayName(day)) + "</div>"; }
+      var on = !inFilters && n === ii;
+      var tag = board_ ? '<span class="dl-type s-' + esc(e.status) + '">' + esc(STATUS[e.status] || e.status) + "</span>"
+        : '<span class="dl-type t-' + esc(e.type) + '">' + esc(TYPES[e.type] || e.type) + '</span><span class="dl-time">' + esc(clock(e.time)) + '</span><span class="dl-v">' + esc(e.version) + "</span>";
+      out += '<div class="dl-item' + (on ? " focus" : "") + '">' +
+        '<div class="dl-meta">' + tag + "</div>" +
         '<div class="dl-title">' + esc(e.title) + "</div>" +
-        '<div class="dl-sum">' + esc(e.summary) + "</div>" +
-        (op && e.details && e.details.length ? '<ul class="dl-det">' + e.details.map(function (d) { return "<li>" + esc(d) + "</li>"; }).join("") + "</ul>" : "") +
+        '<ul class="dl-bul">' + bulletsOf(e).map(function (b) { return "<li>" + esc(b) + "</li>"; }).join("") + "</ul>" +
+        ((e.details && e.details.length) ? '<div class="dl-more">OK for the full story &rsaquo;</div>' : "") +
         "</div>";
     });
     list.innerHTML = out;
@@ -123,6 +141,7 @@
         if (x.status && x.status !== 200 && x.status !== 0) throw new Error("status");
         var j = JSON.parse(x.responseText);
         all = (j.entries || []).slice().sort(function (a, b) { return (a.date + a.time + a.id) < (b.date + b.time + b.id) ? -1 : 1; });
+        board = Array.isArray(j.board) ? j.board : [];
         state = "ready";
       } catch (e) { state = "error"; }
       if (el && el.classList.contains("on")) paint(true);
@@ -131,10 +150,26 @@
     x.send();
   }
 
+  function openModal(e) {
+    modal = e;
+    var board_ = FILTERS[fi].board;
+    var meta = board_ ? '<span class="dl-type s-' + esc(e.status) + '">' + esc(STATUS[e.status] || e.status) + "</span>"
+      : '<span class="dl-type t-' + esc(e.type) + '">' + esc(TYPES[e.type] || e.type) + '</span><span class="dl-time">' + esc(shortStamp(e)) + '</span><span class="dl-v">' + esc(e.version) + "</span>";
+    document.getElementById("dl-card").innerHTML =
+      '<div class="dl-meta">' + meta + "</div>" +
+      '<div class="dl-mtitle">' + esc(e.title) + "</div>" +
+      '<p class="dl-msum">' + esc(e.summary) + "</p>" +
+      ((e.details && e.details.length) ? '<div class="dl-mhead">In depth</div><ul class="dl-mdet">' + e.details.map(function (d) { return "<li>" + esc(d) + "</li>"; }).join("") + "</ul>" : "") +
+      '<div class="dl-mclose"><span class="dl-btn focus">Close</span></div>';
+    document.getElementById("dl-card").scrollTop = 0;
+    el.classList.add("modal-on");
+  }
+  function closeModal() { modal = null; if (el) el.classList.remove("modal-on"); }
+
   var api = {
     open: function (closeCb) {
       build(); onClose = closeCb || null;
-      fi = 0; ii = 0; openId = ""; inFilters = false; listTop = 0;
+      fi = 0; ii = 0; openId = ""; inFilters = false; listTop = 0; closeModal();
       load();
       clearTimeout(el._lv); el.classList.remove("out"); el.classList.add("on");
       var s = document.getElementById("settings"); if (s) s.classList.add("behind");
@@ -148,6 +183,7 @@
     isOpen: function () { return !!el && el.classList.contains("on"); },
     move: function (dx, dy) {
       if (state !== "ready") return;
+      if (modal) { var c = document.getElementById("dl-card"); if (dy) c.scrollTop += dy * 90; return; }
       if (inFilters) {
         if (dx) { fi = Math.max(0, Math.min(FILTERS.length - 1, fi + dx)); ii = 0; openId = ""; listTop = 0; paint(true); }
         else if (dy > 0 && visible().length) { inFilters = false; refocus(); }
@@ -161,13 +197,14 @@
     ok: function () {
       if (state === "error") { load(); return; }
       if (state !== "ready") return;
+      if (modal) { closeModal(); return; }
       if (inFilters) { if (visible().length) { inFilters = false; refocus(); } return; }
+      if (modal) { closeModal(); return; }   // OK on the Close button
       var e = visible()[ii];
       if (!e) return;
-      openId = openId === e.id ? "" : e.id;
-      paint(false);
+      openModal(e);
     },
-    back: function () { if (openId) { openId = ""; paint(false); return; } api.close(); }
+    back: function () { if (modal) { closeModal(); return; } api.close(); }
   };
   window.DevLog = api;
 })();

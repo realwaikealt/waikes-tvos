@@ -1249,7 +1249,6 @@
     if (TV && TV.btStatus && window.TVOS_AP && TV.btStatus() !== "{}") rows.push({ k: "!airpods", label: "AirPods & Bluetooth audio", action: window.TVOS_AP.label() });
     rows.push({ k: "!devlog", label: "Dev log (what changed and when)", action: "Open" });
     rows.push({ k: "!messages", label: "Messages", action: (window.TVOS_MSG && window.TVOS_MSG.unread() ? window.TVOS_MSG.unread() + " new" : "Open") });
-    rows.push({ k: "!classicpeek", label: "Peek at the old Classic styles (until restart)", action: document.documentElement.classList.contains("theme-night") ? "Show" : "Hide" });
     rows.push({ k: "!about", label: "About Asher’s tvOS", action: "Open" });
     if (DEV) {
       rows.push({ k: "#dev", head: true, label: "Developer" });
@@ -1499,12 +1498,6 @@
     if (r.k === "!about") { openAbout(); return; }
     if (r.k === "!debug") { openDebug(); return; }
     if (r.k === "!reloadhome") { location.reload(); return; }
-    if (r.k === "!classicpeek") {
-      // Memory only: drops the Night class so whatever old Classic styling is still in app.css shows. A restart puts it back.
-      document.documentElement.classList.toggle("theme-night");
-      renderSettings();
-      return;
-    }
     if (r.k === "!clearcache") { devClearCaches(); return; }
     if (r.k === "!offline") { devOffline(); return; }
     if (r.k === "!mock") { devMock(); return; }

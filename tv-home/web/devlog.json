@@ -381,8 +381,13 @@
    "time": "22:58",
    "version": "1.0.34",
    "type": "improved",
-   "title": "AirPods parked, Classic peek button",
-   "summary": "AirPods is switched off and archived. Settings has a button to peek at the old Classic styles."
+   "title": "AirPods parked",
+   "summary": "AirPods is switched off and archived. Nothing was deleted.",
+   "details": [
+    "The AirPods pop-up and Bluetooth audio page did not work well enough, so they are off.",
+    "The code stays in the project; a single build switch brings it back (steps are in the archive).",
+    "The phone no longer shows the Bluetooth audio button."
+   ]
   },
   {
    "id": "20261108-02",
@@ -400,7 +405,173 @@
    "version": "1.0.34",
    "type": "fixed",
    "title": "Remote app buttons switched back on",
-   "summary": "The Netflix, Prime Video, YouTube and Apple TV buttons were dead because Android's accessibility switch was off. It now turns itself back on."
+   "summary": "The four remote app buttons were blocked twice. Both blocks are lifted.",
+   "details": [
+    "Android's accessibility master switch was off, so the key helper never ran. It now switches itself on.",
+    "TCL's own app-start control was refusing to start the helper. That permission is now allowed for our launcher.",
+    "Still needs one real press of each button to confirm."
+   ]
+  }
+ ],
+ "board": [
+  {
+   "id": "b-remote-keys",
+   "status": "work",
+   "title": "Remote app buttons (Netflix, Prime, YouTube, Apple TV)",
+   "summary": "Fixed twice, still needs one real press. Tell Asher to test.",
+   "details": [
+    "The buttons were dead because the TV's own button handler points at a Google launcher that is switched off.",
+    "A small helper now catches the four keys. It needed Android's accessibility switch AND TCL's app-start permission, both now on.",
+    "If a button still does nothing, say which one."
+   ]
+  },
+  {
+   "id": "b-wallpaper",
+   "status": "work",
+   "title": "Wallpaper Engine videos",
+   "summary": "Works a little, but buggy. Needs a lot of work.",
+   "details": [
+    "Videos play on the TV, muted. Other kinds show as a still picture.",
+    "A 720p option is ready if the TV runs warm."
+   ]
+  },
+  {
+   "id": "b-startup",
+   "status": "work",
+   "title": "Startup animation",
+   "summary": "Works well. Some polish later.",
+   "details": [
+    "Plays when the TV starts and wakes."
+   ]
+  },
+  {
+   "id": "b-phone-layout",
+   "status": "work",
+   "title": "Phone remote layout",
+   "summary": "Works. Could be tidier and better organized.",
+   "details": [
+    "A full overlap check found and fixed one real bug (Dev log over the TV menu).",
+    "Next: group and lay out the screens more cleanly."
+   ]
+  },
+  {
+   "id": "b-messages",
+   "status": "done",
+   "title": "TV messages",
+   "summary": "Popups and the Messages list on the TV. Working.",
+   "details": [
+    "Popups stay until OK is pressed.",
+    "History is in Settings > Messages and on the phone."
+   ]
+  },
+  {
+   "id": "b-devlog",
+   "status": "done",
+   "title": "Dev log",
+   "summary": "Dated history on the TV and the phone, with this Status page.",
+   "details": []
+  },
+  {
+   "id": "b-perf",
+   "status": "done",
+   "title": "Smooth TV",
+   "summary": "Home screen is smooth (median frame 6 ms).",
+   "details": [
+    "The PC prepares the pages so the TV loads less."
+   ]
+  },
+  {
+   "id": "b-wake",
+   "status": "done",
+   "title": "TV no longer wakes into Prime Video",
+   "summary": "Fixed and confirmed.",
+   "details": []
+  },
+  {
+   "id": "b-iphone",
+   "status": "done",
+   "title": "iPhone remote connection",
+   "summary": "Works. Layout polish still wanted.",
+   "details": []
+  },
+  {
+   "id": "b-offline",
+   "status": "done",
+   "title": "Offline copy of the TV app",
+   "summary": "Rebuilt and installed with every batch.",
+   "details": []
+  },
+  {
+   "id": "b-features",
+   "status": "work",
+   "title": "Feature switches",
+   "summary": "Being built: one place to turn parts of the TV and phone on or off.",
+   "details": []
+  },
+  {
+   "id": "b-toast",
+   "status": "work",
+   "title": "Message banner over apps",
+   "summary": "Being built: messages appear over any app, not only Home.",
+   "details": []
+  },
+  {
+   "id": "b-imgproxy",
+   "status": "work",
+   "title": "Faster pictures",
+   "summary": "Being wired in: the PC shrinks big pictures before the TV loads them.",
+   "details": []
+  },
+  {
+   "id": "b-profiles",
+   "status": "todo",
+   "title": "Profiles",
+   "summary": "Butlers and Asher, kid and guest flags, a home screen for each. After other things are straight.",
+   "details": []
+  },
+  {
+   "id": "b-history",
+   "status": "todo",
+   "title": "Watch history import",
+   "summary": "Bring Netflix and YouTube history into Keep watching.",
+   "details": []
+  },
+  {
+   "id": "b-screensaver",
+   "status": "todo",
+   "title": "Screensaver",
+   "summary": "Wallpaper Engine background (or the plain one) with a big clock, the date and more. To discuss.",
+   "details": []
+  },
+  {
+   "id": "b-picgame",
+   "status": "todo",
+   "title": "Picture and Game buttons in the top row",
+   "summary": "On hold.",
+   "details": []
+  },
+  {
+   "id": "b-setup",
+   "status": "todo",
+   "title": "Setup only Asher can do",
+   "summary": "Folder rename, Cox router and fixed addresses, Brave Search key, iPhone home-screen icon.",
+   "details": []
+  },
+  {
+   "id": "b-streaming",
+   "status": "parked",
+   "title": "Vidbox streaming from the PC",
+   "summary": "Works, hidden. Saved in the archive.",
+   "details": [
+    "Resume steps are in the archive README."
+   ]
+  },
+  {
+   "id": "b-airpods",
+   "status": "parked",
+   "title": "AirPods pop-up",
+   "summary": "Did not work well enough, switched off and archived.",
+   "details": []
   }
  ]
 }

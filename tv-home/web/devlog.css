@@ -40,3 +40,32 @@
 .dl-empty b { display: block; margin-bottom: 0.4rem; font-size: var(--fs-body); color: #fff; }
 @keyframes dl-rise { from { opacity: 0; transform: translateY(0.5rem); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .dl-det { animation: none; } }
+
+/* Bullet points in the list, and the bigger detail popup (OK on an entry). */
+.dl-bul { margin: 0.35rem 0 0.1rem 1.25rem; padding: 0; font-size: var(--fs-callout); line-height: 1.85rem; color: var(--ink-1); }
+.dl-bul li { margin-bottom: 0.1rem; }
+.dl-more { margin-top: 0.4rem; font-size: var(--fs-fine); color: var(--ink-3); opacity: 0; transition: opacity var(--d-fast) var(--ease); }
+.dl-item.focus .dl-more { opacity: 1; color: rgba(0, 0, 0, 0.55); }
+.dl-item.focus .dl-bul { color: rgba(0, 0, 0, 0.78); }
+.dl-type.s-done { background: rgba(120, 200, 140, 0.25); color: #aef0c1; }
+.dl-type.s-work { background: rgba(255, 190, 110, 0.25); color: #ffd9a3; }
+.dl-type.s-todo { background: rgba(120, 170, 255, 0.25); color: #bcd3ff; }
+.dl-type.s-idea { background: rgba(200, 150, 255, 0.25); color: #e3c9ff; }
+.dl-type.s-parked { background: rgba(255, 255, 255, 0.12); color: var(--ink-2); }
+.dl-modal { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.62); border-radius: inherit;
+  opacity: 0; visibility: hidden; transition: opacity var(--d-fast) var(--ease), visibility 0s linear var(--d-fast); z-index: 5; }
+.devlog.modal-on .dl-modal { opacity: 1; visibility: visible; transition-delay: 0s; }
+.dl-card { width: 54rem; max-width: 94%; max-height: 82%; overflow-y: auto; scrollbar-width: none; padding: 1.75rem 2.25rem 1.5rem; border-radius: var(--r-lg);
+  background: #1d1a22; box-shadow: 0 0 0 0.125rem rgba(255, 255, 255, 0.12), 0 2rem 4rem rgba(0, 0, 0, 0.5);
+  transform: scale(0.96); transition: transform var(--d-med) var(--spring); }
+.dl-card::-webkit-scrollbar { display: none; }
+.devlog.modal-on .dl-card { transform: none; }
+.dl-mtitle { margin: 0.4rem 0 0.6rem; font-size: calc(var(--fs-body) * 1.15); font-weight: 700; color: #fff; line-height: 2.4rem; }
+.dl-msum { margin: 0 0 0.9rem; font-size: var(--fs-callout); line-height: 2rem; color: var(--ink-1); }
+.dl-mhead { margin: 0.6rem 0 0.3rem; font-size: var(--fs-caption); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+.dl-mdet { margin: 0 0 0.6rem 1.25rem; padding: 0; font-size: var(--fs-callout); line-height: 1.95rem; color: var(--ink-1); }
+.dl-mdet li { margin-bottom: 0.4rem; }
+.dl-mclose { position: sticky; bottom: -1.5rem; display: flex; justify-content: flex-end; padding: 0.9rem 0 0.2rem; background: #1d1a22; }
+.dl-btn { padding: 0.55rem 2.2rem; border-radius: var(--r-md); background: rgba(255, 255, 255, 0.12); color: #fff; font-size: var(--fs-callout); font-weight: 700; }
+.dl-btn.focus { background: #fff; color: #111; }
+.dl-panel { position: relative; }
