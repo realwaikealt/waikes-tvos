@@ -248,6 +248,13 @@
   function mark(name) { try { performance.mark(name); } catch (e) {} }
 
   // the first burst of GETs when the home starts is answered by one /api/home call (home-prime.js)
+  // Big poster/backdrop art goes through the PC (bridge /img), which shrinks it so the TV decodes a small picture.
+  // If that fails for any reason the tag falls back to the original address, so it never looks worse.
+  function shrink(u, w) {
+    if (!/^https?:/i.test(u || "")) return u;
+    var base = API || (/^https?:/.test(location.protocol) ? location.origin : "");
+    return base ? base + "/img?u=" + encodeURIComponent(u) + "&w=" + w : u;
+  }
   function api(method, path, body, timeoutMs) {
     if (method === "GET" && !body && !MOCK && !OFFLINE && !PREVIEW && window.HomePrime) {
       var hp = window.HomePrime.get(path, function () { return apiNet("GET", "/api/home", null, 9000); });
@@ -1679,7 +1686,7 @@
       var art = it.backdrop || it.poster, pkg = it.app && it.app.package;
       var ep = it.season && it.episode ? "S" + it.season + " E" + it.episode : (it.episode_title || "");
       return '<div class="tile ncard">' +
-        (art ? '<img class="thumb" src="' + esc(art) + '" alt="" decoding="async">' : '<span class="thumb none"></span>') +
+        (art ? '<img class="thumb" src="' + esc(shrink(art, 320)) + '" data-o="' + esc(art) + '" onerror="this.onerror=null;this.src=this.getAttribute(\'data-o\')" alt="" decoding="async">' : '<span class="thumb none"></span>') +
         '<div class="t"><div class="nap">' + (pkg && iconUrl(pkg) ? '<img src="' + esc(iconUrl(pkg)) + '" alt="" onerror="this.remove()">' : "") +
         esc(it.app ? it.app.name : "") + "</div><b>" + esc(it.title) + "</b>" + (ep ? "<i>" + esc(ep) + "</i>" : "") +
         (it.progress ? '<span class="nbar"><i style="width:' + Math.round(it.progress * 100) + '%"></i></span>' : "") + "</div></div>";

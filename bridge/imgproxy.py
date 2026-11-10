@@ -51,7 +51,13 @@ async def _build(url, w, path):
         async with s.get(url, max_redirects=3) as r:
             if r.status != 200:
                 raise web.HTTPBadGateway(text=f"picture host said {r.status}")
-            raw = await r.content.read(12_000_000)
+            parts, got = [], 0
+            async for chunk in r.content.iter_chunked(65536):   # read() alone returns just the first chunk
+                parts.append(chunk)
+                got += len(chunk)
+                if got > 12_000_000:
+                    raise web.HTTPRequestEntityTooLarge(max_size=12_000_000, actual_size=got)
+            raw = b"".join(parts)
     data = await loop.run_in_executor(None, _shrink, raw, w)
     os.makedirs(_DIR, exist_ok=True)
     tmp = path + ".tmp"

@@ -14,7 +14,7 @@ function episode(s) {
 function Poster({ show, sub, onPlay, dim }) {
   return (
     <button className={`poster ${dim ? 'dim' : ''}`} onClick={() => { tick(); onPlay(show); }}>
-      <div className="poster-art">{show.poster ? <img src={show.poster} alt="" loading="lazy" /> : <span>{show.title}</span>}</div>
+      <div className="poster-art">{show.poster ? <img src={/^https?:/i.test(show.poster) ? `/img?u=${encodeURIComponent(show.poster)}&w=320` : show.poster} alt="" loading="lazy" onError={(e) => { if (e.currentTarget.src !== show.poster) e.currentTarget.src = show.poster; }} /> : <span>{show.title}</span>}</div>
       <b>{show.title}</b>
       <small>{sub}</small>
     </button>
