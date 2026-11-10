@@ -411,6 +411,74 @@
     "TCL's own app-start control was refusing to start the helper. That permission is now allowed for our launcher.",
     "Still needs one real press of each button to confirm."
    ]
+  },
+  {
+   "id": "20261109-01",
+   "date": "2026-11-09",
+   "time": "19:50",
+   "version": "1.0.35",
+   "type": "fixed",
+   "title": "Remote buttons: app-start permission",
+   "summary": "TCL was refusing to start the key helper. That is now allowed for our launcher."
+  },
+  {
+   "id": "20261109-02",
+   "date": "2026-11-09",
+   "time": "19:50",
+   "version": "1.0.35",
+   "type": "improved",
+   "title": "Phone TV menu organized",
+   "summary": "The TV menu on the phone is grouped: Controls, Home screen, Messages and history, System."
+  },
+  {
+   "id": "20261109-03",
+   "date": "2026-11-09",
+   "time": "19:50",
+   "version": "1.0.35",
+   "type": "improved",
+   "title": "Faster pictures",
+   "summary": "Keep watching art is shrunk by the PC before the TV loads it.",
+   "details": [
+    "One test picture went from 229 KB to 11 KB.",
+    "If the PC cannot shrink one, the TV loads the original."
+   ]
+  },
+  {
+   "id": "20261109-04",
+   "date": "2026-11-09",
+   "time": "19:50",
+   "version": "1.0.35",
+   "type": "improved",
+   "title": "Dev log: bullets, full story and Status",
+   "summary": "Entries are short bullet points. OK opens a bigger popup with the full story and a Close button. A new Status tab lists what is finished, needs work, not made yet, ideas and parked.",
+   "details": [
+    "Works on the TV and the phone."
+   ]
+  },
+  {
+   "id": "20261109-05",
+   "date": "2026-11-09",
+   "time": "19:50",
+   "version": "1.0.35",
+   "type": "new",
+   "title": "Message banner over apps",
+   "summary": "New TV messages now float over whatever app is open for about 9 seconds.",
+   "details": [
+    "The full popup still waits on Home. It needs the draw-over-apps permission, which is granted."
+   ]
+  },
+  {
+   "id": "20261109-06",
+   "date": "2026-11-09",
+   "time": "19:50",
+   "version": "1.0.35",
+   "type": "new",
+   "title": "Feature switches",
+   "summary": "Settings > Features on the TV and the phone turn parts of Asher's tvOS on or off.",
+   "details": [
+    "Wallpaper, TV messages, Dev log, Startup animation, Ask Claude, Web apps and PC streaming have a switch each.",
+    "Nothing is deleted when a switch is off."
+   ]
   }
  ],
  "board": [
@@ -448,7 +516,7 @@
    "id": "b-phone-layout",
    "status": "work",
    "title": "Phone remote layout",
-   "summary": "Works. Could be tidier and better organized.",
+   "summary": "Grouped into Controls, Home screen, Messages and history, and System. Could still be tidier.",
    "details": [
     "A full overlap check found and fixed one real bug (Dev log over the TV menu).",
     "Next: group and lay out the screens more cleanly."
@@ -468,7 +536,7 @@
    "id": "b-devlog",
    "status": "done",
    "title": "Dev log",
-   "summary": "Dated history on the TV and the phone, with this Status page.",
+   "summary": "Dated history on the TV and the phone: bullet points, tap or press OK for the full story, and this Status page.",
    "details": []
   },
   {
@@ -503,24 +571,34 @@
   },
   {
    "id": "b-features",
-   "status": "work",
+   "status": "done",
    "title": "Feature switches",
-   "summary": "Being built: one place to turn parts of the TV and phone on or off.",
-   "details": []
+   "summary": "Settings > Features on the TV and the phone. Each switch hides a feature without deleting it.",
+   "details": [
+    "Wallpaper, TV messages, Dev log, Startup animation, Ask Claude, Web apps and PC streaming.",
+    "Ask Claude and Web apps tiles change after the home restarts. The rest change right away.",
+    "To add a new switch later: one row in the bridge list, then hide its screen when it is off."
+   ]
   },
   {
    "id": "b-toast",
-   "status": "work",
+   "status": "done",
    "title": "Message banner over apps",
-   "summary": "Being built: messages appear over any app, not only Home.",
-   "details": []
+   "summary": "New TV messages float over any app for about 9 seconds. The full popup still waits on Home.",
+   "details": [
+    "Needs the \"draw over other apps\" permission (already granted).",
+    "Turned off by switching TV messages off in Features."
+   ]
   },
   {
    "id": "b-imgproxy",
-   "status": "work",
+   "status": "done",
    "title": "Faster pictures",
-   "summary": "Being wired in: the PC shrinks big pictures before the TV loads them.",
-   "details": []
+   "summary": "Keep watching art goes through the PC, which shrinks it. One test picture went from 229 KB to 11 KB.",
+   "details": [
+    "If the PC cannot shrink a picture, the TV loads the original, so it never looks worse.",
+    "The shrinker had a bug that cut big pictures short. Fixed."
+   ]
   },
   {
    "id": "b-profiles",
@@ -571,6 +649,20 @@
    "status": "parked",
    "title": "AirPods pop-up",
    "summary": "Did not work well enough, switched off and archived.",
+   "details": []
+  },
+  {
+   "id": "b-remote-keys2",
+   "status": "work",
+   "title": "Check the four buttons again",
+   "summary": "The helper is now running. Press each button once and report.",
+   "details": []
+  },
+  {
+   "id": "b-classic",
+   "status": "done",
+   "title": "Old Classic look",
+   "summary": "Gone from Settings. Its base styles stay because Night is built on them.",
    "details": []
   }
  ]
