@@ -638,6 +638,15 @@
    "type": "fixed",
    "title": "Two TVs, nothing shared",
    "summary": "Each TV now keeps its own watch history, picks, wallpaper choice and saved settings, so changing one never changes the other."
+  },
+  {
+   "id": "20261111-03",
+   "date": "2026-11-11",
+   "time": "04:35",
+   "version": "1.0.41",
+   "type": "internal",
+   "title": "Pairing a TV works on Windows",
+   "summary": "The pairing helper used a process check that killed the waiting pairing on Windows. Fixed."
   }
  ],
  "board": [

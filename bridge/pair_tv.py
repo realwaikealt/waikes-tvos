@@ -84,6 +84,16 @@ def _remove(*paths):
 
 
 def _alive(pid):
+    if os.name == "nt":
+        # os.kill(pid, 0) on Windows would TERMINATE the process, so ask Windows instead
+        import ctypes
+        h = ctypes.windll.kernel32.OpenProcess(0x1000, False, int(pid))   # PROCESS_QUERY_LIMITED_INFORMATION
+        if not h:
+            return False
+        code = ctypes.c_ulong()
+        ok = ctypes.windll.kernel32.GetExitCodeProcess(h, ctypes.byref(code))
+        ctypes.windll.kernel32.CloseHandle(h)
+        return bool(ok) and code.value == 259   # STILL_ACTIVE
     try:
         os.kill(pid, 0)
         return True
