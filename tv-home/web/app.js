@@ -23,7 +23,7 @@
 
   // Settings from the bridge's config.json (served as config.js, and saved with the offline copy),
   // read in readConfig() once the page starts (mock.js fills them in for previews). See docs/CONFIG.md.
-  var CFG = {}, HOME = {}, TVCFG = {}, QUICK = [], SET = {}, SCENES_ALL = [];
+  var CFG = {}, HOME = {}, TVCFG = {}, QUICK = [], SET = {}, SCENES_ALL = [], NOSCENES = false;
   var WXCFG = { lat: -33.8688, lon: 151.2093, place: "Sydney", timezone: "Australia/Sydney" };
   var QUICK_ALL = ["sleep", "picture", "input", "picpage", "game", "ask", "settings"];
   var CLOCK24 = false;
@@ -222,7 +222,11 @@
     var ids = SCENES.map(function (x) { return x.id; });
     SCENES_ALL = SCENES.slice();
     var pick = (SET.scenes || HOME.scenes || []).filter(function (id, i, a) { return ids.indexOf(id) >= 0 && a.indexOf(id) === i; });
-    if (pick.length) SCENES = pick.map(function (id) { return SCENES[ids.indexOf(id)]; });
+    // every scene switched off on purpose (SET.scenes is an empty list): no scene pictures, just the plain dark screen
+    NOSCENES = Array.isArray(SET.scenes) && SET.scenes.length === 0;
+    document.documentElement.classList.toggle("noscenes", NOSCENES);
+    if (NOSCENES) SCENES = [SCENES[0]];   // kept only so the clock keeps its look
+    else if (pick.length) SCENES = pick.map(function (id) { return SCENES[ids.indexOf(id)]; });
     SCENE_MS = Math.max(5, parseInt(SET.secs || HOME.scene_seconds, 10) || 20) * 1000;
     var people = CFG.people || [{ id: "person1", name: "Person 1" }, { id: "person2", name: "Person 2" }];
     setPeople(localPeopleOrder(people, OFFLINE));
@@ -1242,7 +1246,7 @@
   function tempUnit() { return SET.unit || ((CFG.country || "") === "US" ? "F" : "C"); }
   function shownTemp(c) { return tempUnit() === "F" ? Math.round(c * 9 / 5 + 32) : c; }
   var SCENE_NAMES = { night: "Night", golden: "Golden hour", water: "Waterline", fog: "Fog", dawn: "Dawn" };
-  function sceneOn(id) { return SCENES.some(function (x) { return x.id === id; }); }
+  function sceneOn(id) { return !NOSCENES && SCENES.some(function (x) { return x.id === id; }); }
   // Feature switches: id, label (mirrors bridge/features.py REGISTRY, so Settings works with the bridge off too)
   var FEATS = [["wallpaper", "Wallpaper Engine backgrounds"], ["messages", "TV messages"], ["devlog", "Dev log"],
     ["startup", "Startup animation"], ["screensaver", "Screensaver"], ["ask", "Ask Claude"], ["webapps", "Web apps"], ["streaming", "PC streaming (parked)"]];
@@ -1499,13 +1503,14 @@
     else if (r.k.indexOf("arr:") === 0) { arrSet(r.k.slice(4), next); }
     else if (r.k.indexOf("scene:") === 0) {
       var id = r.k.slice(6);
-      var on = SCENES.map(function (x) { return x.id; });
+      var on = NOSCENES ? [] : SCENES.map(function (x) { return x.id; });
       if (next) { if (on.indexOf(id) < 0) on.push(id); }
       else on = on.filter(function (x) { return x !== id; });
-      if (!on.length) { setFlash = "At least one scene has to stay on."; renderSettings(); return; }
       var order = SCENES_ALL.map(function (x) { return x.id; });
       SET.scenes = order.filter(function (x) { return on.indexOf(x) >= 0; });
-      SCENES = SCENES_ALL.filter(function (x) { return SET.scenes.indexOf(x.id) >= 0; });
+      NOSCENES = SET.scenes.length === 0;   // all off is allowed: a plain dark screen with the clock
+      document.documentElement.classList.toggle("noscenes", NOSCENES);
+      SCENES = NOSCENES ? [SCENES_ALL[0]] : SCENES_ALL.filter(function (x) { return SET.scenes.indexOf(x.id) >= 0; });
       saveSet();
     } else if (r.k.indexOf("q:") === 0) {
       var q = r.k.slice(2), hide = (SET.hide || []).filter(function (x) { return x !== q; });

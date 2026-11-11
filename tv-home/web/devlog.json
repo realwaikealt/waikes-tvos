@@ -647,6 +647,15 @@
    "type": "internal",
    "title": "Pairing a TV works on Windows",
    "summary": "The pairing helper used a process check that killed the waiting pairing on Windows. Fixed."
+  },
+  {
+   "id": "20261111-04",
+   "date": "2026-11-11",
+   "time": "04:50",
+   "version": "1.0.41",
+   "type": "improved",
+   "title": "Scenes can all be switched off",
+   "summary": "In Settings, Wallpaper and animation, you can now turn every scene off. The home then shows a plain dark screen with the clock."
   }
  ],
  "board": [
