@@ -656,6 +656,15 @@
    "type": "improved",
    "title": "Scenes can all be switched off",
    "summary": "In Settings, Wallpaper and animation, you can now turn every scene off. The home then shows a plain dark screen with the clock."
+  },
+  {
+   "id": "20261111-05",
+   "date": "2026-11-11",
+   "time": "04:58",
+   "version": "1.0.41",
+   "type": "improved",
+   "title": "Each TV fully on its own",
+   "summary": "Feature switches, messages, web apps and people are now separate for each TV. Only the wallpaper library and the bridge are shared."
   }
  ],
  "board": [

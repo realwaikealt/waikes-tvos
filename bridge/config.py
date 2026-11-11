@@ -150,16 +150,49 @@ if _saved is not None and os.path.exists(PEOPLE_FILE):
     PEOPLE = _saved
 # These two lists are changed in place by set_people, so every module that holds them sees edits.
 PEOPLE_IDS = [p["id"] for p in PEOPLE]
+_SEED_DEFAULT = [dict(p) for p in PEOPLE]
+
+
+_SEED_PEOPLE = clean_people(CONFIG["people"]) if isinstance(CONFIG.get("people"), list) else [{"id": "person1", "name": "Person 1"}]
+_PEOPLE_BY_TV = {}
+
+
+def _people_file(tv):
+    if not tv or tv == DEFAULT_TV or not all(c.isalnum() or c == "-" for c in tv):
+        return PEOPLE_FILE
+    return os.path.join(DATA, "people.%s.json" % tv)
+
+
+def use_tv(tv):
+    """Make PEOPLE / PEOPLE_IDS the list of this TV (each TV has its own people)."""
+    tv = tv or DEFAULT_TV
+    lst = _PEOPLE_BY_TV.get(tv)
+    if lst is None:
+        if tv != DEFAULT_TV:
+            try:
+                with open(_people_file(tv)) as f:
+                    data = json.load(f)
+                lst = clean_people(data.get("people") if isinstance(data, dict) else data)
+            except (OSError, ValueError, AttributeError):
+                lst = [dict(p) for p in _SEED_PEOPLE]   # a new TV starts from the config's list
+        else:
+            lst = [dict(p) for p in _SEED_DEFAULT]
+        _PEOPLE_BY_TV[tv] = lst
+    PEOPLE[:] = lst
+    PEOPLE_IDS[:] = [p["id"] for p in lst]
 
 
 def set_people(items):
-    """Replace the people list (order and edits) and keep it in data/people.json."""
+    """Replace this TV's people list (order and edits) and keep it in data/people[.tv].json."""
     cleaned = clean_people(items)
+    tv = CURRENT_TV.get()
+    path = _people_file(tv)
     os.makedirs(DATA, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=DATA, suffix=".tmp")
     with os.fdopen(fd, "w") as f:
         json.dump({"people": cleaned}, f, indent=1)
-    os.replace(tmp, PEOPLE_FILE)
+    os.replace(tmp, path)
+    _PEOPLE_BY_TV[tv or DEFAULT_TV] = [dict(p) for p in cleaned]
     PEOPLE[:] = cleaned
     PEOPLE_IDS[:] = [p["id"] for p in cleaned]
     return PEOPLE

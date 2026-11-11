@@ -22,7 +22,10 @@ def _path(S):
     import config
     d = config.DATA
     os.makedirs(d, exist_ok=True)
-    return os.path.join(d, "inbox.json")
+    tv = config.CURRENT_TV.get()
+    if not tv or tv == config.DEFAULT_TV or not all(c.isalnum() or c == "-" for c in tv):
+        return os.path.join(d, "inbox.json")
+    return os.path.join(d, "inbox.%s.json" % tv)
 
 
 def _load(S):
@@ -57,8 +60,10 @@ def routes(r, S):
         view = _view(_load(S))
         payload = "event: inbox\ndata: " + json.dumps({"ok": True, "unread": view["unread"],
                   "latest": view["messages"][0]["id"] if view["messages"] else None}) + "\n\n"
+        import config
+        mine = config.CURRENT_TV.get()
         for q, _tv in list(S.events_clients):
-            if q.qsize() < 20:
+            if (_tv or config.DEFAULT_TV) == mine and q.qsize() < 20:
                 q.put_nowait(payload)
 
     async def h_notify(request):

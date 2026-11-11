@@ -80,6 +80,7 @@ class _StateProxy(MutableMapping):
 
 def with_tv(tv_id, fn, *args):
     token = _current.set(tv_id)
+    config.use_tv(tv_id)
     try:
         return fn(*args)
     finally:
@@ -90,6 +91,7 @@ def for_tv(tv_id, coro_fn):
     """A task that runs coro_fn() for one TV."""
     async def runner():
         _current.set(tv_id)
+        config.use_tv(tv_id)
         await coro_fn()
     return asyncio.create_task(runner())
 
@@ -162,6 +164,7 @@ async def middleware(request, handler):
             if tv_id not in TVS:
                 raise ApiError(400, f"unknown tv: {tv_id} (try {', '.join(TVS)})")
             _current.set(tv_id)
+            config.use_tv(tv_id)
             resp = await handler(request)
         except ApiError as e:
             resp = web.json_response({"ok": False, "error": e.message}, status=e.status)

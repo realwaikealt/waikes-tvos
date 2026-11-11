@@ -29,9 +29,21 @@ REGISTRY = [
 _IDS = [r[0] for r in REGISTRY]
 
 
+def _file():
+    """Each TV has its own switches (the default TV keeps features.json)."""
+    try:
+        import config
+        tv = config.CURRENT_TV.get()
+        if tv and tv != config.DEFAULT_TV and all(c.isalnum() or c == "-" for c in tv):
+            return os.path.join(os.path.dirname(DATA), "features.%s.json" % tv)
+    except Exception:  # noqa: BLE001
+        pass
+    return DATA
+
+
 def _load():
     try:
-        with open(DATA, encoding="utf-8") as f:
+        with open(_file(), encoding="utf-8") as f:
             d = json.load(f)
         return d if isinstance(d, dict) else {}
     except (OSError, ValueError):
@@ -61,11 +73,12 @@ def set_on(fid, on):
         raise KeyError(fid)
     d = _load()
     d[fid] = bool(on)
-    os.makedirs(os.path.dirname(DATA), exist_ok=True)
-    tmp = DATA + ".tmp"
+    path = _file()
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(d, f, indent=1)
-    os.replace(tmp, DATA)
+    os.replace(tmp, path)
 
 
 def apply(pub):

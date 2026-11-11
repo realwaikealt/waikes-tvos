@@ -18,7 +18,7 @@ FILE = "webapps.json"
 
 
 def _path():
-    return os.path.join(store.DATA, FILE)
+    return store.per_tv(os.path.join(store.DATA, FILE))
 
 
 def _slug(text):
