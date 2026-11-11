@@ -620,6 +620,15 @@
    "details": [
     "Wallpaper Engine opens the wallpaper in a small window on the PC for about 35 seconds; only that window is recorded. The 20 second loop is kept, so it is a one-time cost per wallpaper. Turn it off with wallpaper_record=false in config.json."
    ]
+  },
+  {
+   "id": "20261111-01",
+   "date": "2026-11-11",
+   "time": "04:19",
+   "version": "1.0.41",
+   "type": "fixed",
+   "title": "Each TV keeps its own settings",
+   "summary": "With two TVs, one could overwrite the other's saved settings. The bridge now keeps a separate copy per TV."
   }
  ],
  "board": [

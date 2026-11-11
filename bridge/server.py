@@ -1158,7 +1158,7 @@ async def h_restore(request):
 
 async def h_tv_state_get(request):
     """What the TV keeps for itself, so a backup holds it and a new APK or TV gets it back."""
-    return ok(**backup.tv_state())
+    return ok(**backup.tv_state(_current.get()))
 
 
 def _from_this_computer(request):
@@ -1183,14 +1183,14 @@ async def h_pin_reset(request):
     Only from the computer the bridge runs on. run reset-pin.cmd, or POST http://127.0.0.1:5400/api/pin/reset"""
     if not _from_this_computer(request):
         raise ApiError(403, "Reset the PIN on the computer the bridge runs on.")
-    raw = backup.tv_state()["values"].get("tvhome.settings")
+    raw = backup.tv_state(_current.get())["values"].get("tvhome.settings")
     try:
         saved = json.loads(raw) if raw else {}
     except ValueError:
         saved = {}
     had = isinstance(saved, dict) and saved.pop("pin", None) is not None
     if had:
-        backup.set_tv_state({"tvhome.settings": json.dumps(saved)})
+        backup.set_tv_state({"tvhome.settings": json.dumps(saved)}, tv=_current.get())
     return ok(reset=had)
 
 
@@ -1198,7 +1198,7 @@ async def h_tv_state_set(request):
     data = await body(request)
     if not isinstance(data.get("values"), dict):
         raise ApiError(400, "values (an object) is required")
-    return ok(**backup.set_tv_state(data["values"]))
+    return ok(**backup.set_tv_state(data["values"], tv=_current.get()))
 
 
 async def h_config(request):

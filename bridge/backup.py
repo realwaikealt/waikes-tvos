@@ -55,18 +55,25 @@ def _write_text(path, text):
 
 
 # ---------- what the TV keeps ----------
-def tv_state():
+def _state_file(tv):
+    """Each TV keeps its own copy: the first (default) TV uses tv-state.json, others tv-state.<id>.json."""
+    if not tv or tv == config.DEFAULT_TV or not all(c.isalnum() or c == "-" for c in tv):
+        return TV_STATE_FILE
+    return os.path.join(config.DATA, "tv-state.%s.json" % tv)
+
+
+def tv_state(tv=None):
     try:
-        d = json.loads(_read_text(TV_STATE_FILE) or "{}")
+        d = json.loads(_read_text(_state_file(tv)) or "{}")
     except ValueError:
         d = {}
     values = d.get("values") if isinstance(d.get("values"), dict) else {}
     return {"rev": int(d.get("rev") or 0), "values": {k: v for k, v in values.items() if k in TV_KEYS}}
 
 
-def set_tv_state(values, replace=False):
+def set_tv_state(values, replace=False, tv=None):
     """values: {key: JSON text, or None to forget it}. Bumps the revision so every TV notices."""
-    cur = tv_state()
+    cur = tv_state(tv)
     merged = {} if replace else dict(cur["values"])
     for k, v in (values or {}).items():
         if k not in TV_KEYS:
@@ -76,7 +83,7 @@ def set_tv_state(values, replace=False):
         elif isinstance(v, str) and len(v) < 200_000:
             merged[k] = v
     rev = max(int(time.time() * 1000), cur["rev"] + 1)
-    _write_text(TV_STATE_FILE, json.dumps({"rev": rev, "values": merged}))
+    _write_text(_state_file(tv), json.dumps({"rev": rev, "values": merged}))
     return {"rev": rev, "values": merged}
 
 
