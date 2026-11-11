@@ -687,6 +687,23 @@ async def h_people_set(request):
     return ok(people=config.PEOPLE)
 
 
+async def h_homebtn_get(request):
+    """Which home the Home button opens on this TV (only for a TV with a home_switch setting)."""
+    import homebutton
+    return ok(**await homebutton.state(_current.get()))
+
+
+async def h_homebtn_set(request):
+    import homebutton
+    data = await body(request)
+    try:
+        mode = await homebutton.switch(_current.get(), data.get("mode"))
+    except ValueError as e:
+        raise ApiError(400, str(e))
+    record_action(request, "home-button", {"mode": mode}, True)
+    return ok(mode=mode)
+
+
 async def h_history(request):
     return ok(items=store.history()[:200])
 
@@ -2144,6 +2161,8 @@ def make_app():
     r.add_get("/api/now", h_now)
     r.add_get("/api/events", h_events)
     r.add_post("/api/key", h_key)
+    r.add_get("/api/home-button", h_homebtn_get)
+    r.add_post("/api/home-button", h_homebtn_set)
     r.add_post("/api/text", h_text)
     r.add_post("/api/webapp", h_webapp)
     r.add_get("/api/apps", h_apps)

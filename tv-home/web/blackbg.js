@@ -18,7 +18,7 @@
 
   function css() { var s = document.createElement("style"); s.textContent = CSS; document.head.appendChild(s); }
   function hash(str) { var h = 0; for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0; return Math.abs(h); }
-  function keyOf(el) { return el.getAttribute("data-pkg") || el.getAttribute("data-id") || (el.textContent || "").trim().slice(0, 40) || "x"; }
+  function keyOf(el) { return el.getAttribute("data-k") || el.getAttribute("data-pkg") || el.getAttribute("data-id") || (el.textContent || "").trim().slice(0, 40) || "x"; }
 
   function fromImage(img) {   // average the lively pixels of the picture; fails (cross-origin) on some icons
     if (!img || !img.complete || !img.naturalWidth) return null;
@@ -55,13 +55,15 @@
     n.onload = function () { var c = fromImage(n); if (c) { cache[k] = boost(c); if (lastEl && keyOf(lastEl) === k) schedule(); } };
     n.src = img.src;
   }
+  function dull(c) { return Math.max(c[0], c[1], c[2]) - Math.min(c[0], c[1], c[2]) < 24; }   // grey or near grey: no brand colour in it
   function colorFor(el) {
     var k = keyOf(el);
     if (cache[k]) return cache[k];
     var img = el.querySelector("img");
-    var c = fromImage(img) || fromFace(el);
-    if (c && !(c[0] === c[1] && c[1] === c[2] && c[0] < 80)) { cache[k] = boost(c); return cache[k]; }
-    corsCopy(img, k, el);
+    // the picture comes first: a tile's own backdrop is dark grey and would make every glow white
+    var c = img ? fromImage(img) : fromFace(el);
+    if (c && !dull(c)) { cache[k] = boost(c); return cache[k]; }
+    if (img) corsCopy(img, k, el);
     return "hsl(" + (hash(k) % 360) + ",70%,50%)";   // until the real colour is known
   }
 

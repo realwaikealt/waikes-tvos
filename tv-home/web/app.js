@@ -753,7 +753,7 @@
   // Forgot it: on the computer, POST /api/pin/reset (run reset-pin.cmd next to run-bridge.cmd).
   var PIN_OPEN_MS = 120000, PIN_TRIES = 5, PIN_LOCK_MS = 30000;
   var pinS = null, pinUnlockedAt = 0, pinTick = null;
-  var PIN_GUARDED = ["!rhome", "!reboot", "!backup", "!restore", "!reset", "!android"];
+  var PIN_GUARDED = ["!homebtn", "!rhome", "!reboot", "!backup", "!restore", "!reset", "!android"];
   function sha256(ascii) {
     function rr(v, a) { return (v >>> a) | (v << (32 - a)); }
     var mp = Math.pow, mw = mp(2, 32), i, j, result = "", words = [], abl = ascii.length * 8;
@@ -1296,6 +1296,11 @@
       rows.push({ k: "!pinchg", label: "Change the PIN", action: "Change" });
       rows.push({ k: "!pinoff", label: "Remove the PIN", action: "Remove" });
     } else rows.push({ k: "!pinset", label: "Lock Settings with a PIN", action: "Set up" });
+    if (HOMEBTN && HOMEBTN.available && HOMEBTN.mode) {
+      rows.push({ k: "!homebtn", label: homeAsk ? "Press OK again to switch the Home button" :
+        "Home button opens: " + (HOMEBTN.mode === "ours" ? "this home (Google TV home is switched off)" : "Google TV home"),
+        action: homeAsk ? "Confirm" : (HOMEBTN.mode === "ours" ? "Use Google TV home" : "Use this home") });
+    }
     rows.push({ k: "!rhome", label: "Restart this home screen", action: "Restart" });
     rows.push({ k: "!reboot", label: rebootAsk ? "Press OK again to reboot the TV" : "Reboot the TV (fixes most glitches)", action: rebootAsk ? "Confirm" : "Reboot" });
     rows.push({ k: "!backup", label: "Back up everything", action: "Back up now" });
@@ -1455,8 +1460,18 @@
     if (pinNeeded()) { openPin("check", doOpenSettings); return; }
     doOpenSettings();
   }
+  // Home button choice (only on a TV the bridge can switch): asked when Settings opens
+  var HOMEBTN = null, homeAsk = false, homeTimer = null;
+  function loadHomeBtn() {
+    if (OFFLINE || MOCK || PREVIEW) return;
+    api("GET", "/api/home-button", null, 12000).then(function (j) {
+      HOMEBTN = j && j.available ? j : null;
+      if (zone === "settings") renderSettings();
+    }, function () { HOMEBTN = null; });
+  }
   function doOpenSettings() {
     zone = "settings"; setI = 0; setFlash = ""; setCat = ""; catI = 0;
+    loadHomeBtn();
     enter($("settings"));
     paintFocus();
   }
@@ -1564,6 +1579,21 @@
     }
     if (r.k === "!pinoff") {
       openPin("check", function () { delete SET.pin; keep("tvhome.settings", SET); setFlash = "PIN removed."; renderSettings(); });
+      return;
+    }
+    if (r.k === "!homebtn") {
+      if (!homeAsk) {
+        homeAsk = true; setFlash = "Press OK again within 6 seconds. The screen may change for a moment."; renderSettings();
+        clearTimeout(homeTimer);
+        homeTimer = setTimeout(function () { homeAsk = false; setFlash = ""; if (zone === "settings") renderSettings(); }, 6000);
+      } else {
+        homeAsk = false; clearTimeout(homeTimer);
+        var want = HOMEBTN.mode === "ours" ? "google" : "ours";
+        setFlash = "Switching the Home button…"; renderSettings();
+        api("POST", "/api/home-button", { mode: want }, 60000).then(function (j) {
+          HOMEBTN.mode = j.mode; setFlash = "Home button now opens " + (j.mode === "ours" ? "this home." : "Google TV home."); if (zone === "settings") renderSettings();
+        }, function (e) { setFlash = "Couldn't switch it: " + e.message; if (zone === "settings") renderSettings(); });
+      }
       return;
     }
     if (r.k === "!rhome") { runRestart("home"); return; }
