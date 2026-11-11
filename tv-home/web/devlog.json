@@ -683,14 +683,64 @@
    "type": "fixed",
    "title": "Black glow uses the item's colour",
    "summary": "The black background now glows in the colour of the app you select instead of white."
+  },
+  {
+   "id": "20261111-08",
+   "date": "2026-11-11",
+   "time": "16:13",
+   "version": "1.0.42",
+   "type": "new",
+   "title": "Dev log sections",
+   "summary": "The Status view now groups everything: needs testing, unfinished, not started, just an idea, saved for later and completed.",
+   "details": [
+    "Add to it with: python tools/devlog.py board add --id ... --status test|work|todo|idea|parked|done"
+   ]
+  },
+  {
+   "id": "20261111-09",
+   "date": "2026-11-11",
+   "time": "16:13",
+   "version": "1.0.42",
+   "type": "improved",
+   "title": "Simpler phone remote",
+   "summary": "The main screen is now just the pad, back, home, play and volume. Input, Subtitles and Settings moved into the TV menu, and the title switches TVs.",
+   "details": [
+    "Rarely used tools sit under Advanced in the TV menu."
+   ]
+  },
+  {
+   "id": "20261111-10",
+   "date": "2026-11-11",
+   "time": "16:13",
+   "version": "1.0.42",
+   "type": "improved",
+   "title": "Ask Claude: steadier and more capable",
+   "summary": "It remembers the whole chat, does one job at a time per TV, shows what it is doing, and stops if it goes in circles.",
+   "details": [
+    "Long multi-step asks use a stronger model.",
+    "It retries once after a hiccup, and knows which TV it is on."
+   ]
+  },
+  {
+   "id": "20261111-11",
+   "date": "2026-11-11",
+   "time": "16:13",
+   "version": "1.0.42",
+   "type": "new",
+   "title": "Health page for both TVs",
+   "summary": "See each TV's connection, speed and which home screen is the default. Open it from the phone remote's title, or at the bridge address followed by /health.",
+   "details": [
+    "Speed is the round trip from the PC to the TV, shown as fast, fine or slow.",
+    "Ask Claude can also check it when you say a TV feels slow."
+   ]
   }
  ],
  "board": [
   {
    "id": "b-remote-keys",
-   "status": "work",
+   "status": "test",
    "title": "Remote app buttons (Netflix, Prime, YouTube, Apple TV)",
-   "summary": "Fixed twice, still needs one real press. Tell Asher to test.",
+   "summary": "Fixed twice, still needs one real press on each TV.",
    "details": [
     "The buttons were dead because the TV's own button handler points at a Google launcher that is switched off.",
     "A small helper now catches the four keys. It needed Android's accessibility switch AND TCL's app-start permission, both now on.",
@@ -698,10 +748,102 @@
    ]
   },
   {
+   "id": "b-phone-layout",
+   "status": "test",
+   "title": "Phone remote layout",
+   "summary": "The phone remote was redesigned and simplified. Try it on your phone.",
+   "details": [
+    "A full overlap check found and fixed one real bug (Dev log over the TV menu).",
+    "Next: group and lay out the screens more cleanly."
+   ]
+  },
+  {
+   "id": "t-home-switch",
+   "status": "test",
+   "title": "Home button switch on Asher's TV",
+   "summary": "Settings > System > \"Home button opens\". Flip it to Google TV home and back.",
+   "details": [
+    "It was built and checked from the PC, but the switch itself was never pressed on the TV.",
+    "It needs the TV page to reload before the row shows up."
+   ]
+  },
+  {
+   "id": "t-phone-remote-ashers",
+   "status": "test",
+   "title": "Phone remote on Asher's TV",
+   "summary": "Pick Asher's TV in the phone remote and press a few buttons."
+  },
+  {
+   "id": "t-voice-buttons",
+   "status": "test",
+   "title": "Voice and assistant buttons on Asher's TV",
+   "summary": "Press the mic button on the Google TV remote. Google's own home is switched off, so check it still does something."
+  },
+  {
+   "id": "t-glow-butler",
+   "status": "test",
+   "title": "Black background glow colour (Butler TV)",
+   "summary": "Set Background to black. The glow behind a selected app should now be that app's colour, not white."
+  },
+  {
+   "id": "t-noscenes",
+   "status": "test",
+   "title": "All scenes switched off",
+   "summary": "In Settings, switch every scene off. You should get a plain dark screen with no error."
+  },
+  {
+   "id": "t-screensaver-inapp",
+   "status": "test",
+   "title": "Screensaver while idle inside an app",
+   "summary": "Leave an app paused for a few minutes and see if the screensaver comes on."
+  },
+  {
+   "id": "t-offline-copy",
+   "status": "test",
+   "title": "Home screen with the bridge switched off",
+   "summary": "The built-in copy is rebuilt on the Butler TV today. Turn the bridge off and open the home screen."
+  },
+  {
+   "id": "t-butler-settings",
+   "status": "test",
+   "title": "Butler TV settings after the restore",
+   "summary": "Check the 12 hour clock, 7 apps in the dock, the hidden list and your app order."
+  },
+  {
+   "id": "t-ashers-perf",
+   "status": "test",
+   "title": "Speed on Asher's TV in video wallpaper mode",
+   "summary": "Use it for a while and tell me if it stutters."
+  },
+  {
+   "id": "t-wake-anim",
+   "status": "test",
+   "title": "Wake animation on Asher's TV",
+   "summary": "Only the \"close and reopen the launcher\" case has been seen. Try waking it from standby."
+  },
+  {
+   "id": "t-glow-speed",
+   "status": "test",
+   "title": "How heavy the black glow is",
+   "summary": "Nobody has measured how much it costs the TV's graphics chip."
+  },
+  {
+   "id": "t-health",
+   "status": "test",
+   "title": "Health page",
+   "summary": "Open it on your phone at the bridge address followed by /health, or from the TV menu in the phone remote."
+  },
+  {
+   "id": "t-ask-better",
+   "status": "test",
+   "title": "Ask Claude, the new version",
+   "summary": "Remembers the whole chat, one job at a time per TV, shows what it is doing, stops if it gets stuck. Try some long asks."
+  },
+  {
    "id": "b-wallpaper",
    "status": "work",
    "title": "Wallpaper Engine videos",
-   "summary": "Better: videos that stall now retry, and the picker is clearer. Animated scene/web wallpapers still show as a still picture.",
+   "summary": "Videos work and retry when they stall. Animated scene and web wallpapers are recorded on the PC as loops.",
    "details": [
     "Picker shows Videos that play first, with counts and a hint for each choice.",
     "A video marked choppy is only blocked for 20 minutes, then it retries.",
@@ -718,14 +860,186 @@
    ]
   },
   {
-   "id": "b-phone-layout",
+   "id": "w-bridge-adb-ashers",
    "status": "work",
-   "title": "Phone remote layout",
-   "summary": "Grouped into Controls, Home screen, Messages and history, and System. Could still be tidier.",
+   "title": "Bridge tools for Asher's TV",
+   "summary": "Screenshots, volume level, now-playing detail and deep links need the bridge's own ADB link, which Asher's TV (wireless debugging) does not allow yet."
+  },
+  {
+   "id": "w-keep-disabled",
+   "status": "work",
+   "title": "Keep Google's home switched off (Asher's TV)",
+   "summary": "A daily re-check in case an update turns Google's home back on. Only done by hand so far."
+  },
+  {
+   "id": "w-people-race",
+   "status": "work",
+   "title": "People list swap",
+   "summary": "Two TVs asking at the same moment can very rarely show the other TV's names for a second."
+  },
+  {
+   "id": "w-ashers-extras",
+   "status": "work",
+   "title": "Asher's TV extras",
+   "summary": "No debloating, and no wake from fully off because no MAC address is saved."
+  },
+  {
+   "id": "b-profiles",
+   "status": "todo",
+   "title": "Profiles",
+   "summary": "Butlers and Asher, kid and guest flags, a home screen for each. After other things are straight.",
+   "details": []
+  },
+  {
+   "id": "b-history",
+   "status": "todo",
+   "title": "Watch history import",
+   "summary": "Bring Netflix and YouTube history into Keep watching.",
+   "details": []
+  },
+  {
+   "id": "b-picgame",
+   "status": "todo",
+   "title": "Picture and Game buttons in the top row",
+   "summary": "On hold.",
+   "details": []
+  },
+  {
+   "id": "b-setup",
+   "status": "todo",
+   "title": "Setup only Asher can do",
+   "summary": "Folder rename, Cox router and fixed addresses, Brave Search key, iPhone home-screen icon.",
+   "details": []
+  },
+  {
+   "id": "p-crossfade",
+   "status": "todo",
+   "title": "Crossfade the scene wallpaper loop",
+   "summary": "The 20 second recorded loop jumps when it restarts. Fade the end into the start. Do not forget."
+  },
+  {
+   "id": "p-rename",
+   "status": "todo",
+   "title": "Rename the folder to ashers-tvOS",
+   "summary": "Only the name on the PC. Not started."
+  },
+  {
+   "id": "p-router",
+   "status": "todo",
+   "title": "Fixed addresses on the router",
+   "summary": "Cox router login, then reserve .9 for the Butler TV, .35 for Asher's TV and .61 for the PC."
+  },
+  {
+   "id": "p-brave",
+   "status": "todo",
+   "title": "Brave Search key",
+   "summary": "Add BRAVE_API_KEY to run-bridge.cmd so Ask Claude can search the web better."
+  },
+  {
+   "id": "p-icon",
+   "status": "todo",
+   "title": "iPhone home-screen icon",
+   "summary": "Re-add the phone remote to the iPhone home screen after the redesign."
+  },
+  {
+   "id": "p-offline",
+   "status": "todo",
+   "title": "Offline rebuild of the TV app",
+   "summary": "You said you would tell me when the bridge is off."
+  },
+  {
+   "id": "p-security",
+   "status": "todo",
+   "title": "Bridge security",
+   "summary": "Today anyone on the home Wi-Fi can use the bridge. Add a wrong-key limit and Host name checks (ideas from the upstream project)."
+  },
+  {
+   "id": "i-startup-video",
+   "status": "idea",
+   "title": "Pre-rendered startup animation",
+   "summary": "The PC makes the wake and startup animation as a video, the TV draws its own when the bridge is off."
+  },
+  {
+   "id": "i-pc-offload",
+   "status": "idea",
+   "title": "More work on the PC",
+   "summary": "Lighter pre-made videos, PC-made previews, anything the TV is slow at."
+  },
+  {
+   "id": "i-stremio",
+   "status": "idea",
+   "title": "Stremio Continue Watching",
+   "summary": "From the upstream project. Stored, not used yet."
+  },
+  {
+   "id": "i-nowplaying",
+   "status": "idea",
+   "title": "Full-screen music view",
+   "summary": "A Now playing screen for music with soundwaves. From the upstream project."
+  },
+  {
+   "id": "i-weather",
+   "status": "idea",
+   "title": "Weather overlays on Home",
+   "summary": "Rain, snow and so on over the home screen, off by default. From the upstream project."
+  },
+  {
+   "id": "i-tcl-fixes",
+   "status": "idea",
+   "title": "TV fixes from upstream",
+   "summary": "TCL boot fixes, old WebView fixes, a screensaver button on Android 11 and up, and key pass-through."
+  },
+  {
+   "id": "i-newtv",
+   "status": "idea",
+   "title": "One-click new TV setup",
+   "summary": "We set up Asher's TV by hand. Make it a guided flow."
+  },
+  {
+   "id": "i-glow-saver",
+   "status": "idea",
+   "title": "Glow on the screensaver",
+   "summary": "The same colour glow, behind the screensaver clock."
+  },
+  {
+   "id": "i-health-tv",
+   "status": "idea",
+   "title": "Health on the TV",
+   "summary": "Show the same health view in the TV's own Settings."
+  },
+  {
+   "id": "i-profiles-watch",
+   "status": "idea",
+   "title": "Per-person home screens",
+   "summary": "People lists are already per TV. Next would be a separate home layout per person."
+  },
+  {
+   "id": "b-streaming",
+   "status": "parked",
+   "title": "Vidbox streaming from the PC",
+   "summary": "Works, hidden. Saved in the archive.",
    "details": [
-    "A full overlap check found and fixed one real bug (Dev log over the TV menu).",
-    "Next: group and lay out the screens more cleanly."
+    "Resume steps are in the archive README."
    ]
+  },
+  {
+   "id": "b-airpods",
+   "status": "parked",
+   "title": "AirPods pop-up",
+   "summary": "Did not work well enough, switched off and archived.",
+   "details": []
+  },
+  {
+   "id": "s-adb-close",
+   "status": "parked",
+   "title": "Closing ADB",
+   "summary": "Left open until you say. Do not touch."
+  },
+  {
+   "id": "s-archived",
+   "status": "parked",
+   "title": "Archived on purpose",
+   "summary": "Vidbox streaming, Sunshine, Moonlight and AirPods stay hidden."
   },
   {
    "id": "b-messages",
@@ -806,20 +1120,6 @@
    ]
   },
   {
-   "id": "b-profiles",
-   "status": "todo",
-   "title": "Profiles",
-   "summary": "Butlers and Asher, kid and guest flags, a home screen for each. After other things are straight.",
-   "details": []
-  },
-  {
-   "id": "b-history",
-   "status": "todo",
-   "title": "Watch history import",
-   "summary": "Bring Netflix and YouTube history into Keep watching.",
-   "details": []
-  },
-  {
    "id": "b-screensaver",
    "status": "done",
    "title": "Screensaver",
@@ -831,48 +1131,47 @@
    ]
   },
   {
-   "id": "b-picgame",
-   "status": "todo",
-   "title": "Picture and Game buttons in the top row",
-   "summary": "On hold.",
-   "details": []
-  },
-  {
-   "id": "b-setup",
-   "status": "todo",
-   "title": "Setup only Asher can do",
-   "summary": "Folder rename, Cox router and fixed addresses, Brave Search key, iPhone home-screen icon.",
-   "details": []
-  },
-  {
-   "id": "b-streaming",
-   "status": "parked",
-   "title": "Vidbox streaming from the PC",
-   "summary": "Works, hidden. Saved in the archive.",
-   "details": [
-    "Resume steps are in the archive README."
-   ]
-  },
-  {
-   "id": "b-airpods",
-   "status": "parked",
-   "title": "AirPods pop-up",
-   "summary": "Did not work well enough, switched off and archived.",
-   "details": []
-  },
-  {
-   "id": "b-remote-keys2",
-   "status": "work",
-   "title": "Check the four buttons again",
-   "summary": "The helper is now running. Press each button once and report.",
-   "details": []
-  },
-  {
    "id": "b-classic",
    "status": "done",
    "title": "Old Classic look",
    "summary": "Gone from Settings. Its base styles stay because Night is built on them.",
    "details": []
+  },
+  {
+   "id": "c-two-tvs",
+   "status": "done",
+   "title": "Two TVs, nothing shared",
+   "summary": "History, picks, settings, messages, web apps, people and the wallpaper choice are separate for each TV. Only the wallpaper library and the bridge are shared."
+  },
+  {
+   "id": "c-ashers-tv",
+   "status": "done",
+   "title": "Asher's TV connected",
+   "summary": "Paired, remote working, launcher installed, Google TV home switched off by default."
+  },
+  {
+   "id": "c-home-switch",
+   "status": "done",
+   "title": "Home button takeover",
+   "summary": "This home is the default on Asher's TV, with a restore path and a Settings switch."
+  },
+  {
+   "id": "c-glow",
+   "status": "done",
+   "title": "Glow colour fix",
+   "summary": "The black background glow takes the colour of the selected item."
+  },
+  {
+   "id": "c-backups",
+   "status": "done",
+   "title": "Backups",
+   "summary": "Full backup on the PC (a bundle and a zip) and a bundle in the private repo."
+  },
+  {
+   "id": "c-upstream",
+   "status": "done",
+   "title": "Upstream stored",
+   "summary": "The original couch-tv project is kept in its own folder for ideas. Nothing merged."
   }
  ]
 }

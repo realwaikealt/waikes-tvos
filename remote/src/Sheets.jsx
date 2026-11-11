@@ -521,8 +521,10 @@ function RestartBlock({ open }) {
   );
 }
 
-export const MoreSheet = forwardRef(function MoreSheet({ open, onClose, sleepEnds, onSleep, onKey, onText, sleepError, tvs, tvId, onTv, picture, pictureInfo, onPicture, onTvPage, onArrange, onPeople }, ref) {
+export const MoreSheet = forwardRef(function MoreSheet({ open, onClose, sleepEnds, onSleep, onKey, onText, sleepError, tvs, tvId, onTv, picture, pictureInfo, onPicture, onTvPage, onArrange, onPeople, onHealth }, ref) {
   const [typed, setTyped] = useState('');
+  const [adv, setAdv] = useState(false);
+  useEffect(() => { if (!open) setAdv(false); }, [open]);
   const liveTimer = useRef(null);
   const sheetEl = useRef(null);
   const setRefs = (el) => { sheetEl.current = el; if (typeof ref === 'function') ref(el); else if (ref) ref.current = el; };
@@ -535,20 +537,14 @@ export const MoreSheet = forwardRef(function MoreSheet({ open, onClose, sleepEnd
   return (
     <Sheet ref={setRefs} open={open} onClose={onClose} title={thisTv?.name ? `${thisTv.name} TV` : 'TV'} fromTop closeDrag={closeDrag} className="more-sheet">
       <h4 className="more-group-title first">Controls</h4>
-      {tvs?.length > 1 && (
-        <section className="more-block group first">
-          <h3><Ic.Screen size={16} /> Which TV</h3>
-          <div className="chips-row" role="radiogroup" aria-label="Which TV">
-            {tvs.map((t) => (
-              <button key={t.id} role="radio" aria-checked={t.id === tvId} className={`chip glass ${t.id === tvId ? 'on' : ''}`} onClick={() => onTv(t.id)}>
-                {t.name}{t.paired === false ? ' (not set up)' : ''}
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
-
-      <section className={`more-block group ${tvs?.length > 1 ? '' : 'first'}`}>
+      <section className="more-block group first">
+        <div className="tile-row" role="group" aria-label="TV buttons">
+          {[['input', 'Input', <Ic.Input key="i" size={22} />], ['captions', 'Subtitles', <Ic.Captions key="c" size={22} />], ['settings', 'Settings', <Ic.Gear key="g" size={22} />]].map(([k, label, icon]) => (
+            <button key={k} className="tile-btn glass" onClick={() => { tick(); onKey(k); onClose(); }}>{icon}<span>{label}</span></button>
+          ))}
+        </div>
+      </section>
+      <section className="more-block group">
         <h3><Ic.Moon size={16} /> Sleep timer</h3>
         <div className="chips-row wrap">
           {SLEEP.map((m) => (
@@ -578,6 +574,10 @@ export const MoreSheet = forwardRef(function MoreSheet({ open, onClose, sleepEnd
         <p className="note">Opens the TV’s own picture page (Movie, Game, Sports…), or its game bar.</p>
       </section>
 
+      <section className="more-block group list">
+        <button className="list-row" onClick={() => { tick(); onHealth(); }}><span className="row-icon"><Ic.Pulse size={20} /></span><span className="row-text"><b>Health</b><small>Connection, speed and home screen for every TV</small></span><Ic.Chevron className="row-chev" /></button>
+      </section>
+
       <section className="more-block group">
         <h3><Ic.Keyboard size={16} /> Type on the TV</h3>
         <form className="ask-field glass" onSubmit={(e) => { e.preventDefault(); if (typed.trim()) { tick(); onText(typed.trim(), { submit: true }); setTyped(''); } }}>
@@ -585,10 +585,6 @@ export const MoreSheet = forwardRef(function MoreSheet({ open, onClose, sleepEnd
           <button type="submit" className="round solid small" aria-label="Send to TV" disabled={!typed.trim()}><Ic.Send size={18} /></button>
         </form>
       </section>
-
-      <WebAppControls />
-
-      <PcModeBlock open={open} />
 
       <h4 className="more-group-title">Home screen</h4>
       <section className="more-block group list">
@@ -609,10 +605,19 @@ export const MoreSheet = forwardRef(function MoreSheet({ open, onClose, sleepEnd
       {fon('devlog') && <DevLogBlock />}
 
       <h4 className="more-group-title">System</h4>
-      <FeaturesBlock features={feat} />
-      <BackupBlock open={open} />
-      <RestartBlock open={open} />
-      <AboutBlock />
+      <section className="more-block group list">
+        <button className="list-row" aria-expanded={adv} onClick={() => { tick(); setAdv((v) => !v); }}><span className="row-icon"><Ic.Gear size={20} /></span><span className="row-text"><b>Advanced</b><small>Features, backups, restart, web app controls, PC mode</small></span><Ic.Chevron className={`row-chev adv-chev ${adv ? 'open' : ''}`} /></button>
+      </section>
+      {adv && (
+        <>
+          <FeaturesBlock features={feat} />
+          <WebAppControls />
+          <PcModeBlock open={open} />
+          <BackupBlock open={open} />
+          <RestartBlock open={open} />
+          <AboutBlock />
+        </>
+      )}
     </Sheet>
   );
 });

@@ -7,8 +7,8 @@ import { tick } from './haptics.js';
 // the plain page at /devlog shows the same thing without the app.
 const TYPES = { new: 'New', improved: 'Improved', fixed: 'Fixed', security: 'Security', internal: 'Behind the scenes' };
 const FILTERS = [['All', null], ['New', 'new'], ['Improved', 'improved'], ['Fixed', 'fixed'], ['Status', 'status']];
-const STATUS = { done: 'Finished', work: 'Needs work', todo: 'Not made yet', idea: 'Idea', parked: 'Parked' };
-const STATUS_ORDER = ['work', 'todo', 'idea', 'parked', 'done'];
+const STATUS = { test: 'Needs testing', work: 'Unfinished', todo: 'Not started', idea: 'Just an idea', parked: 'Saved for later', done: 'Completed' };
+const STATUS_ORDER = ['test', 'work', 'todo', 'idea', 'parked', 'done'];
 // Short bullet points for the list: the entry's own bullets, else its summary split into sentences.
 const bulletsOf = (e) => (e.bullets && e.bullets.length ? e.bullets : (String(e.summary || '').match(/[^.!?]+[.!?]*/g) || []).map((t) => t.trim()).filter(Boolean).slice(0, 3));
 const parse = (d) => { const p = d.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); };

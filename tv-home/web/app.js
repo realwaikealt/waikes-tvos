@@ -651,12 +651,12 @@
     $("ask-q").textContent = v !== "menu" && s && s.text ? "“" + s.text + "”" : "";
     a.style.display = v === "menu" ? "none" : "";
     a.classList.toggle("wait", v === "wait");
-    var paint = v === "wait" ? "w|" + (s && s.reply || "") : v === "answer" ? "a|" + (s.reply || "No answer came back.") : "";
+    var paint = v === "wait" ? "w|" + (s && s.reply || "") + "|" + (s && s.doing || "") : v === "answer" ? "a|" + (s.reply || "No answer came back.") : "";
     if (paint !== askPaint) {
       var fadeIn = v === "answer" && /^w\|/.test(askPaint);
       askPaint = paint;
       if (v === "wait") {   // the answer grows here while Claude is still working; dots only fade (opacity)
-        a.innerHTML = (s && s.reply ? esc(s.reply) + " " : '<span class="sk-lines"><i class="skel"></i><i class="skel"></i><i class="skel"></i></span>') + '<span class="tdots"><i></i><i></i><i></i></span>';
+        a.innerHTML = (s && s.reply ? esc(s.reply) + " " : s && s.doing ? '<span class="ask-doing">' + esc(s.doing) + "</span> " : '<span class="sk-lines"><i class="skel"></i><i class="skel"></i><i class="skel"></i></span>') + '<span class="tdots"><i></i><i></i><i></i></span>';
       } else if (v === "answer") { a.textContent = s.reply || "No answer came back."; if (fadeIn) pulse(a, "fadein"); }
     }
     a.classList.toggle("focus", !!rows[askI] && rows[askI].k === "answer" && askScrollable());

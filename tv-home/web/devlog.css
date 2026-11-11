@@ -47,6 +47,7 @@
 .dl-more { margin-top: 0.4rem; font-size: var(--fs-fine); color: var(--ink-3); opacity: 0; transition: opacity var(--d-fast) var(--ease); }
 .dl-item.focus .dl-more { opacity: 1; color: rgba(0, 0, 0, 0.55); }
 .dl-item.focus .dl-bul { color: rgba(0, 0, 0, 0.78); }
+.dl-type.s-test { background: rgba(255, 110, 110, 0.25); color: #ffc2c2; }
 .dl-type.s-done { background: rgba(120, 200, 140, 0.25); color: #aef0c1; }
 .dl-type.s-work { background: rgba(255, 190, 110, 0.25); color: #ffd9a3; }
 .dl-type.s-todo { background: rgba(120, 170, 255, 0.25); color: #bcd3ff; }

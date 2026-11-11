@@ -26,7 +26,10 @@ log = logging.getLogger("claude")
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CLAUDE = os.environ.get("CLAUDE_BIN") or shutil.which("claude") or "/opt/homebrew/bin/claude"
-MODEL = "sonnet"
+_ASKCFG = config._ask if isinstance(getattr(config, "_ask", None), dict) else {}
+MODEL = _ASKCFG.get("model") or "sonnet"
+SMART_MODEL = _ASKCFG.get("smart_model") or "opus"   # used for long, multi step asks; "" turns it off
+SMART_MODEL = SMART_MODEL if _ASKCFG.get("smart_model") != "" else ""
 WORKDIR = os.path.join(config.DATA, "claude-workdir")
 BRIDGE_URL = f"http://127.0.0.1:{os.environ.get('PORT', '5400')}"
 ASK_TIMEOUT = 240  # hard cap; the phone gets an answer by ASK_SOFT
@@ -39,7 +42,7 @@ RECS_MIN_GAP = 15 * 60  # after a play, refresh picks at most this often
 
 _recs_lock = asyncio.Lock()
 
-ASK_SYSTEM = """You are the assistant on the living room TV in a home (a Google TV). You control the TV with the tv tools, and you
+ASK_SYSTEM = """You are the assistant on the TV called {tvname} in a home (a Google TV){othertvs}. You control that TV with the tv tools, and you
 can also answer anything else: general knowledge, maths, sport, news, recipes, the weather and
 forecast, and anything on the web. The people asking are on the couch, using the TV or a phone
 remote. You act on your own: never ask them to clarify, make the best guess, do the whole job,
@@ -93,6 +96,12 @@ or tap a label from ui. After each step check with ui or now that it worked.
   episode.
 - Anything else: work it out with the tools you have.
 
+How to work: decide the whole job first, then do it in as few calls as possible. After any change check
+it worked (now or ui) before you say it did. Never repeat a call that already gave you the answer. If
+a tool fails, try one different way, and if that fails too say plainly what stopped you instead of
+trying again. If a request has two readings, take the likelier one and say which you chose. Keep
+earlier questions and answers in mind: "it", "that one", "the second one" and "yes" refer to them.
+
 Hard lines: never pay, buy, rent, subscribe, sign up or type a password. If a sign in, account
 or payment screen shows (ui stop_screen true), stop and tell them to finish it on the TV. Never
 uninstall unless they asked to remove that app. Never turn the TV off unless they asked (the off
@@ -114,8 +123,6 @@ Leave the OPTIONS line out when nothing is offered. Never mention the options in
 
 MAX_TURNS = 30        # the step cap for one ask
 ASK_SOFT = 80         # the phone waits 90 s; answer by then and let the job finish in the background
-LAST_FOR = 15 * 60    # the last answer on a TV is given to the next ask for 15 minutes
-_last = {}            # tv id -> {"text", "reply", "ts", "pending"}
 
 RECS_PROMPT = """{taste}
 
@@ -131,6 +138,18 @@ Prefer things on the apps listed. Mix in a couple of recent releases.
 Answer with ONLY a JSON array, no prose, each item:
 {{"title": "...", "year": 2024, "type": "tv" or "movie", "reason": "Because you watched X"}}
 The reason is at most eight words."""
+
+
+def _tv_name(tv_id):
+    for t in config.TVS:
+        if t["id"] == (tv_id or config.DEFAULT_TV):
+            return t.get("name") or "living room"
+    return "living room"
+
+
+def _other_tvs(tv_id):
+    others = [t.get("name") for t in config.TVS if t["id"] != (tv_id or config.DEFAULT_TV) and t.get("name")]
+    return (" (the home also has " + " and ".join(others) + ", reachable with the tv tools' tv option)") if others else ""
 
 
 def available():
@@ -196,11 +215,35 @@ def _strip_tool_talk(reply):
 _STOP_AT_OPTIONS = re.compile(r"\n?\s*OPTIONS:.*$", re.S)
 
 
-async def run_claude_stream(prompt, system, mcp_config, on_text, timeout=ASK_TIMEOUT):
-    """Like run_claude for asks, but streams: on_text(text_so_far) is called as the current message grows.
-    Only read only web tools and the tv tools are allowed, never files or a shell."""
+STATUS = {"now": "Checking what is on", "ui": "Reading the screen", "screenshot": "Looking at the screen",
+          "key": "Pressing a button", "tap": "Pressing a button", "play": "Starting it", "launch": "Opening the app",
+          "find": "Looking it up", "install_app": "Installing the app", "history": "Checking what you watched",
+          "weather": "Checking the weather", "volume": "Changing the volume", "input": "Switching input",
+          "restart_app": "Restarting the app", "both_like": "Thinking about what you both like",
+          "latest_episode": "Checking for new episodes", "off_after_episode": "Setting the timer",
+          "health": "Checking the TVs", "WebSearch": "Searching the web", "WebFetch": "Reading a web page", "brave_search": "Searching the web"}
+# The same call this many times in a row means it is going round in circles. Key presses are allowed more.
+REPEAT_LIMIT = {"key": 14, "volume": 12}
+REPEAT_DEFAULT = 4
+MAX_CALLS = 28
+
+
+class Stuck(RuntimeError):
+    pass
+
+
+def _status_for(tool):
+    short = (tool or "").replace("mcp__tv__", "")
+    return STATUS.get(short)
+
+
+async def run_claude_stream(prompt, system, mcp_config, on_text, timeout=ASK_TIMEOUT, model=None, on_status=None):
+    """Like run_claude for asks, but streams. Only the final message of a turn is shown (text that comes before
+    a tool call is the model thinking aloud and would flash and change), while a short status line says what it
+    is doing. Stops a run that repeats the same call or makes too many. Only read only web tools and the tv
+    tools are allowed, never files or a shell."""
     os.makedirs(WORKDIR, exist_ok=True)
-    args = [CLAUDE, "-p", prompt, "--model", MODEL, "--output-format", "stream-json", "--verbose",
+    args = [CLAUDE, "-p", prompt, "--model", model or MODEL, "--output-format", "stream-json", "--verbose",
             "--include-partial-messages", "--no-session-persistence", "--setting-sources", "project",
             "--tools", WEB_TOOLS, "--system-prompt", system,
             "--strict-mcp-config", "--mcp-config", mcp_config,
@@ -210,7 +253,23 @@ async def run_claude_stream(prompt, system, mcp_config, on_text, timeout=ASK_TIM
     proc = await asyncio.create_subprocess_exec(
         *args, cwd=WORKDIR, env=_env(), stdin=asyncio.subprocess.DEVNULL, limit=32 * 1024 * 1024,
         stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
-    state = {"buf": "", "final": None}
+    state = {"buf": "", "tool": False, "final": None, "calls": 0, "last": None, "run": 0, "stuck": None}
+
+    def note_call(name, inp):
+        sig = (name, json.dumps(inp, sort_keys=True, default=str))
+        state["calls"] += 1
+        state["run"] = state["run"] + 1 if sig == state["last"] else 1
+        state["last"] = sig
+        limit = REPEAT_LIMIT.get((name or "").replace("mcp__tv__", ""), REPEAT_DEFAULT)
+        if state["run"] > limit:
+            state["stuck"] = "I kept repeating the same step, so I stopped."
+        elif state["calls"] > MAX_CALLS:
+            state["stuck"] = "That took too many steps, so I stopped."
+        if state["stuck"]:
+            try:
+                proc.kill()
+            except ProcessLookupError:
+                pass
 
     async def read():
         async for raw in proc.stdout:
@@ -221,13 +280,29 @@ async def run_claude_stream(prompt, system, mcp_config, on_text, timeout=ASK_TIM
             t = ev.get("type")
             if t == "stream_event":
                 e = ev.get("event") or {}
-                if e.get("type") == "message_start":
-                    state["buf"] = ""
-                elif e.get("type") == "content_block_delta" and (e.get("delta") or {}).get("type") == "text_delta":
+                et = e.get("type")
+                if et == "message_start":
+                    state["buf"], state["tool"] = "", False
+                elif et == "content_block_start" and (e.get("content_block") or {}).get("type") in ("tool_use", "server_tool_use"):
+                    state["tool"] = True
+                    label = _status_for((e["content_block"]).get("name"))
+                    if on_status and label:
+                        on_status(label)
+                elif et == "content_block_delta" and (e.get("delta") or {}).get("type") == "text_delta":
                     state["buf"] += e["delta"].get("text", "")
+                    if not state["tool"]:
+                        shown = _TOOL_TALK.sub("", _STOP_AT_OPTIONS.sub("", state["buf"])).strip()
+                        # Hold the first few words back: a message that turns into a tool call starts with narration.
+                        if len(shown) > 60 or (shown and shown[-1] in ".!?"):
+                            on_text(shown)
+                elif et == "message_stop" and not state["tool"]:
                     shown = _TOOL_TALK.sub("", _STOP_AT_OPTIONS.sub("", state["buf"])).strip()
                     if shown:
                         on_text(shown)
+            elif t == "assistant":
+                for blk in ((ev.get("message") or {}).get("content") or []):
+                    if isinstance(blk, dict) and blk.get("type") in ("tool_use", "server_tool_use"):
+                        note_call(blk.get("name"), blk.get("input"))
             elif t == "result":
                 state["final"] = ev
 
@@ -237,12 +312,17 @@ async def run_claude_stream(prompt, system, mcp_config, on_text, timeout=ASK_TIM
     except asyncio.TimeoutError:
         proc.kill()
         raise RuntimeError("Claude took too long")
+    except asyncio.CancelledError:
+        proc.kill()
+        raise
+    if state["stuck"]:
+        raise Stuck(state["stuck"])
     data = state["final"]
     if not data:
         err = (await proc.stderr.read()).decode(errors="replace").strip()
         raise RuntimeError(err[:200] or "Claude failed")
     if data.get("subtype") == "error_max_turns":
-        raise RuntimeError("I ran out of steps before finishing")
+        raise Stuck("I ran out of steps before finishing")
     if data.get("is_error"):
         raise RuntimeError(str(data.get("result") or data.get("subtype") or "Claude error")[:200])
     return data.get("result") or ""
@@ -305,27 +385,6 @@ def _doing(actions):
     return None
 
 
-def _ago(seconds):
-    mins = int(seconds // 60)
-    return "just now" if mins < 1 else f"{mins} min ago"
-
-
-DOING = {"install_app": "installing {name}", "play": "putting on {title}",
-         "restart_app": "restarting the app", "input": "switching input", "tap": "pressing {label}",
-         "launch": "opening {app}", "off_after_episode": "setting the TV to go off"}
-
-
-def _doing(actions):
-    for a in reversed(actions):
-        words = DOING.get(a.get("tool"))
-        if words:
-            try:
-                return words.format(**{k: v for k, v in (a.get("args") or {}).items()})
-            except (KeyError, IndexError):
-                return words.split(" {")[0]
-    return None
-
-
 def _memory(reply):
     say, opts = split_options(reply)
     return say + (" (offered: " + "; ".join(o["text"] for o in opts) + ")" if opts else "")
@@ -336,7 +395,32 @@ def _ago(seconds):
     return "just now" if mins < 1 else f"{mins} min ago"
 
 
-async def ask(text, who, asks, tv_id=None, on_partial=None):
+_chat = {}      # tv id -> list of {"text", "reply", "ts", "pending"}: the conversation on that TV
+_locks = {}     # tv id -> a lock: one job at a time drives a TV, so two asks never fight over the remote
+CHAT_FOR = 30 * 60
+CHAT_TURNS = 6
+MULTI_STEP = re.compile(r"\band then\b|\bafter that\b|\binstall\b|\bget \w+( \w+)? on here\b|\bboth\b|\bset up\b|\bfigure out\b", re.I)
+NO_RETRY = ("too long", "ran out of steps", "repeating", "too many steps")
+
+
+def _remember(key, text, reply, pending=False):
+    turns = [t for t in _chat.get(key, []) if time.time() - t["ts"] < CHAT_FOR and not t.get("pending")]
+    turns.append({"text": text, "reply": reply, "ts": time.time(), "pending": pending})
+    _chat[key] = turns[-CHAT_TURNS:]
+
+
+def _history_block(key):
+    turns = [t for t in _chat.get(key, []) if time.time() - t["ts"] < CHAT_FOR]
+    if not turns:
+        return ""
+    lines = []
+    for t in turns:
+        lines.append(f'They ({_ago(time.time() - t["ts"])}): "{t["text"]}"')
+        lines.append(f'You: "{t["reply"]}"' + (" (that job was still running when you answered)" if t.get("pending") else ""))
+    return "\n[Conversation so far on this TV, oldest first]\n" + "\n".join(lines)
+
+
+async def ask(text, who, asks, tv_id=None, on_partial=None, on_status=None):
     from datetime import datetime
     from zoneinfo import ZoneInfo
     ask_id = uuid.uuid4().hex[:12]
@@ -350,43 +434,69 @@ async def ask(text, who, asks, tv_id=None, on_partial=None):
         say, options = split_options(hit[1])
         if on_partial:
             on_partial(say)
-        _last[key] = {"text": text, "reply": _memory(hit[1]), "ts": time.time()}
+        _remember(key, text, _memory(hit[1]))
         return {"reply": say, "say": say, "options": options, "actions": [], "seconds": 0.0, "cached": True}
-    cfg = _mcp_config(ask_id, tv_id)
-    names = [p["name"] for p in config.PEOPLE]
-    asker = {p["id"]: p["name"] + " is asking" for p in config.PEOPLE}
-    asker["both"] = " and ".join(names) + " are watching together"
-    asker = asker.get(who)
-    prompt = f"({asker}) {text}" if asker else text
-    now = datetime.now(ZoneInfo(config.TIMEZONE))
-    prompt += f"\n\n[Now: {now.strftime('%A %d %B %Y, %I:%M %p').replace(' 0', ' ')} local time]"
-    fahrenheit = config.COUNTRY == "US"
+    # One job at a time per TV. A second ask waits a moment for the first, then says it is still busy.
+    lock = _locks.setdefault(key, asyncio.Lock())
+    if lock.locked() and on_status:
+        on_status("Finishing your last ask first")
     try:
-        report = await asyncio.wait_for(asyncio.to_thread(
-            weather_ctx.summary, float(config.WEATHER["lat"]), float(config.WEATHER["lon"]),
-            config.WEATHER.get("place") or "home", config.TIMEZONE, fahrenheit), 8)
-        prompt += f"\n\n[Weather]\n{report}"
-    except Exception as e:
-        log.info("weather context unavailable: %s", e)
-    last = _last.get(key)
-    if last and time.time() - last["ts"] < LAST_FOR:
-        # So "yes", "play the second one" and "keep watching" follow on from the last answer.
-        prompt += (f"\n[Last ask on this TV, {_ago(time.time() - last['ts'])}: \"{last['text']}\". "
-                   f"Your answer then: \"{last['reply']}\""
-                   + (" (that job was still running when you answered)" if last.get("pending") else "")
-                   + "]")
-    likes = taste.summary(who)
-    if likes:
-        # So "recommend something" and "put on something good" use the real taste.
-        prompt = f"{prompt}\n\n[Background, use only if relevant]\n{likes}"
+        await asyncio.wait_for(lock.acquire(), 25)
+    except asyncio.TimeoutError:
+        asks.pop(ask_id, None)
+        msg = "I am still busy with your last ask. Give it a moment, then try again."
+        return {"reply": msg, "say": msg, "options": [], "actions": [], "seconds": 25.0, "busy": True}
+    try:
+        cfg = _mcp_config(ask_id, tv_id)
+        names = [p["name"] for p in config.PEOPLE]
+        asker = {p["id"]: p["name"] + " is asking" for p in config.PEOPLE}
+        asker["both"] = " and ".join(names) + " are watching together"
+        asker = asker.get(who)
+        prompt = f"({asker}) {text}" if asker else text
+        now = datetime.now(ZoneInfo(config.TIMEZONE))
+        prompt += f"\n\n[Now: {now.strftime('%A %d %B %Y, %I:%M %p').replace(' 0', ' ')} local time]"
+        fahrenheit = config.COUNTRY == "US"
+        try:
+            report = await asyncio.wait_for(asyncio.to_thread(
+                weather_ctx.summary, float(config.WEATHER["lat"]), float(config.WEATHER["lon"]),
+                config.WEATHER.get("place") or "home", config.TIMEZONE, fahrenheit), 8)
+            prompt += f"\n\n[Weather]\n{report}"
+        except Exception as e:
+            log.info("weather context unavailable: %s", e)
+        # So "yes", "play the second one" and "keep watching" follow on from the conversation.
+        prompt += _history_block(key)
+        likes = taste.summary(who)
+        if likes:
+            # So "recommend something" and "put on something good" use the real taste.
+            prompt = f"{prompt}\n\n[Background, use only if relevant]\n{likes}"
+    except BaseException:
+        lock.release()
+        raise
+    smart = SMART_MODEL if (SMART_MODEL and (len(text) > 140 or MULTI_STEP.search(text))) else None
 
     async def job():
         try:
             system = ASK_SYSTEM.format(
+                tvname=_tv_name(tv_id), othertvs=_other_tvs(tv_id),
                 country=config.COUNTRY_NAME, where=f"{config.WEATHER.get('place') or 'home'}, {config.COUNTRY_NAME}",
                 now=now.strftime("%A %d %B %Y, %I:%M %p").replace(" 0", " "),
                 tvstate="ask the now tool for what is on", units="Fahrenheit" if fahrenheit else "Celsius")
-            reply = (await run_claude_stream(prompt, system, cfg, on_partial or (lambda t: None))).strip()
+            reply, last_err = "", None
+            for attempt in (1, 2):
+                try:
+                    reply = (await run_claude_stream(prompt, system, cfg, on_partial or (lambda t: None),
+                                                     model=smart if attempt == 1 else None, on_status=on_status)).strip()
+                    break
+                except Stuck as e:
+                    return f"Sorry, that did not work: {e} Try asking it another way."
+                except RuntimeError as e:
+                    last_err = e
+                    if attempt == 2 or any(w in str(e) for w in NO_RETRY):
+                        raise
+                    log.info("ask attempt 1 failed (%s), trying once more", e)
+                    if on_status:
+                        on_status("Trying again")
+                    await asyncio.sleep(1.5)
             reply = _strip_tool_talk(reply)
             if reply and not asks.get(ask_id) and WEATHER_WORDS.search(text):
                 _answers[cache_key] = (time.time(), reply)   # only answers that touched no TV tool
@@ -397,6 +507,7 @@ async def ask(text, who, asks, tv_id=None, on_partial=None):
                 e = "the claude command could not be run on the computer"
             return f"Sorry, that did not work: {e}"
         finally:
+            lock.release()
             try:
                 os.remove(cfg)
             except OSError:
@@ -406,19 +517,19 @@ async def ask(text, who, asks, tv_id=None, on_partial=None):
     try:
         reply = await asyncio.wait_for(asyncio.shield(task), ASK_SOFT)
         actions = asks.pop(ask_id, [])
-        _last[key] = {"text": text, "reply": _memory(reply), "ts": time.time()}
+        _remember(key, text, _memory(reply))
     except asyncio.TimeoutError:
         # The phone gives up at 90 s. Answer now and let the job finish on its own.
         actions = list(asks.get(ask_id, []))
         doing = _doing(actions)
         reply = ("Still working on it" + (f", {doing}" if doing else "")
                  + ". Give it a minute and watch the TV.")
-        _last[key] = {"text": text, "reply": reply, "ts": time.time(), "pending": True}
+        _remember(key, text, reply, pending=True)
 
         def finished(t):
             asks.pop(ask_id, None)
             r = t.result() if not t.cancelled() and not t.exception() else "That job did not finish."
-            _last[key] = {"text": text, "reply": _memory(r), "ts": time.time()}
+            _remember(key, text, _memory(r))
             log.info("ask finished in the background after %.0f s: %s", time.monotonic() - start, r)
             _background.discard(t)
         _background.add(task)

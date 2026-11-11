@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#000000">
+<title>TV Health</title>
+<style>
+:root {
+  --bg: #f2f2f7; --card: #ffffff; --ink: #1c1c1e; --ink2: #6c6c70; --line: rgba(60,60,67,.14);
+  --good: #1fa64a; --warn: #d98200; --bad: #d93025; --none: #8e8e93; --accent: #0a84ff;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #000000; --card: #1c1c1e; --ink: #f5f5f7; --ink2: #98989f; --line: rgba(255,255,255,.12);
+    --good: #32d74b; --warn: #ff9f0a; --bad: #ff453a; --none: #8e8e93; --accent: #0a84ff; }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.35 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased; padding: max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+main { max-width: 640px; margin: 0 auto; display: grid; gap: 16px; }
+header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 4px 4px 0; }
+h1 { font-size: 34px; letter-spacing: -.022em; margin: 0; font-weight: 700; }
+.stamp { color: var(--ink2); font-size: 13px; font-variant-numeric: tabular-nums; }
+.card { background: var(--card); border-radius: 20px; padding: 18px 18px 6px; display: grid; gap: 2px; }
+.head { display: flex; align-items: center; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.dot { width: 14px; height: 14px; border-radius: 50%; background: var(--none); flex: none; box-shadow: 0 0 0 4px color-mix(in srgb, var(--none) 22%, transparent); }
+.dot.good { background: var(--good); box-shadow: 0 0 0 4px color-mix(in srgb, var(--good) 24%, transparent); }
+.dot.warn { background: var(--warn); box-shadow: 0 0 0 4px color-mix(in srgb, var(--warn) 24%, transparent); }
+.dot.bad { background: var(--bad); box-shadow: 0 0 0 4px color-mix(in srgb, var(--bad) 24%, transparent); }
+.head b { font-size: 22px; letter-spacing: -.015em; display: block; line-height: 1.15; }
+.head span { color: var(--ink2); font-size: 15px; }
+.row { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.row:last-child { border-bottom: 0; }
+.row .k { color: var(--ink2); }
+.row .v { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 0; overflow-wrap: anywhere; }
+.v small { display: block; color: var(--ink2); font-weight: 400; font-size: 13px; }
+.v.good { color: var(--good); } .v.warn { color: var(--warn); } .v.bad { color: var(--bad); } .v.none { color: var(--none); }
+.bridge { background: transparent; padding: 0 4px; color: var(--ink2); font-size: 14px; display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.err { background: var(--card); border-radius: 16px; padding: 16px; color: var(--bad); }
+button { font: inherit; color: var(--accent); background: none; border: 0; padding: 10px 4px; cursor: pointer; }
+@media (prefers-reduced-motion: no-preference) { .dot { transition: background .25s, box-shadow .25s; } }
+</style>
+</head>
+<body>
+<main>
+  <header><h1>TV Health</h1><span class="stamp" id="stamp">Checking…</span></header>
+  <div id="cards" aria-live="polite"></div>
+  <div class="bridge" id="bridge"></div>
+</main>
+<script>
+(function () {
+  var cards = document.getElementById("cards"), bridge = document.getElementById("bridge"), stamp = document.getElementById("stamp");
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function dur(s) { var h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60); return h ? h + " h " + m + " min" : m + " min"; }
+  function row(k, v, tone, sub) { return '<div class="row"><span class="k">' + esc(k) + '</span><span class="v ' + (tone || "") + '">' + esc(v) + (sub ? "<small>" + esc(sub) + "</small>" : "") + "</span></div>"; }
+  function card(t) {
+    var up = t.connected, link = t.link || {};
+    var tone = !t.paired ? "none" : up ? "good" : "bad";
+    var state = !t.paired ? "Not set up yet" : up ? (t.power === "off" ? "Connected, screen off" : "Connected") : "Not connected";
+    var speed, st = "none", sub = "";
+    if (link.ok) {
+      speed = link.avg_ms + " ms";
+      st = { fast: "good", ok: "warn", slow: "bad" }[link.rating] || "none";
+      sub = ({ fast: "Fast", ok: "Fine", slow: "Slow" })[link.rating] + (link.lost ? " · " + link.lost + " of 3 dropped" : "");
+    } else speed = "No answer";
+    var home = t.home || {}, htone = "none", htext = "Not known", hsub = "";
+    if (home.known) { htext = home.name; htone = home.id === "ours" ? "good" : ""; hsub = home.can_switch ? "Change it in the TV's Settings > System" : ""; }
+    else if (!t.adb && !t.connected) hsub = "Needs the TV on and reachable";
+    return '<section class="card"><div class="head"><i class="dot ' + tone + '"></i><div><b>' + esc(t.name) + "</b><span>" + esc(state) + "</span></div></div>" +
+      row("Remote link", up ? "Connected" : "Not connected", up ? "good" : "bad") +
+      row("Speed to the TV", speed, st, sub) +
+      row("Default home", htext, htone, hsub) +
+      row("Home screen open", t.screen_open ? "Yes" : "No", t.screen_open ? "good" : "none", t.screen_open ? "" : "Not talking to the bridge right now") +
+      row("Address", t.ip || "Unknown") + "</section>";
+  }
+  function paint(d) {
+    cards.innerHTML = d.tvs.map(card).join("");
+    bridge.innerHTML = "<span>Bridge up " + esc(dur(d.bridge.uptime_s)) + "</span><span>Ask Claude " + (d.bridge.claude ? "ready" : "not available") + "</span>";
+    stamp.textContent = "Updated " + new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" });
+  }
+  var busy = false;
+  function load() {
+    if (busy || document.hidden) return; busy = true;
+    var c = new AbortController(), t = setTimeout(function () { c.abort(); }, 20000);
+    fetch("/api/health/all", { signal: c.signal, cache: "no-store" }).then(function (r) { return r.json(); }).then(paint).catch(function () {
+      cards.innerHTML = '<div class="err">Can’t reach the bridge. Is this phone on the home Wi-Fi?</div>'; stamp.textContent = "Offline";
+    }).then(function () { clearTimeout(t); busy = false; });
+  }
+  load(); setInterval(load, 6000);
+  document.addEventListener("visibilitychange", load);
+})();
+</script>
+</body>
+</html>

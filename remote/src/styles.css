@@ -724,6 +724,7 @@ button, a, .poster, .app-tile { -webkit-user-select: none; user-select: none; -w
 /* Dev log: bullet points, the full-story popup, and the Status view */
 .dl-bul { margin: 6px 0 0 18px; padding: 0; font-size: 15px; line-height: 1.4; color: rgba(245, 245, 247, .8); }
 .dl-more { display: block; margin-top: 6px; font-size: 13px; color: rgba(245, 245, 247, .5); }
+.dl-type.s-test { background: rgba(255, 110, 110, .25); color: #ffc2c2; }
 .dl-type.s-done { background: rgba(120, 200, 140, .25); color: #aef0c1; }
 .dl-type.s-work { background: rgba(255, 190, 110, .25); color: #ffd9a3; }
 .dl-type.s-todo { background: rgba(120, 170, 255, .25); color: #bcd3ff; }
@@ -751,3 +752,29 @@ button, a, .poster, .app-tile { -webkit-user-select: none; user-select: none; -w
 .feat-sw.on { background: #34c759; }
 .feat-sw.on i { transform: translateX(20px); }
 @media (prefers-reduced-motion: reduce) { .feat-sw, .feat-sw i { transition: none; } }
+
+
+/* ---- Remote page, simplified: the title is the TV switcher, the extra row of buttons moved into the TV menu ---- */
+.title-btn { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; text-align: left; min-height: 44px; padding: 0; background: none; border: 0; color: inherit; font: inherit; }
+.title-btn .status-text b { display: flex; align-items: center; gap: 4px; }
+.title-chev { transform: rotate(180deg); opacity: 0.6; flex: none; }
+.tile-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.tile-btn { min-height: 64px; border-radius: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-size: 13px; font-weight: 600; }
+.tv-dot { width: 12px; height: 12px; border-radius: 50%; background: rgba(255, 255, 255, 0.4); flex: none; box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.1); }
+.tv-dot.ok { background: #32d74b; box-shadow: 0 0 0 4px rgba(50, 215, 75, 0.22); }
+.tv-dot.warn { background: #ff9f0a; box-shadow: 0 0 0 4px rgba(255, 159, 10, 0.22); }
+.tv-dot.bad { background: #ff453a; box-shadow: 0 0 0 4px rgba(255, 69, 58, 0.22); }
+.tv-row .row-text { margin-left: 4px; }
+.adv-chev { transform: rotate(90deg); transition: transform 0.25s var(--ease); }
+.adv-chev.open { transform: rotate(180deg); }
+.health-card dl { margin: 0; display: grid; }
+.health-card dl > div { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; padding: 11px 0; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+.health-card dt { color: var(--ink-2); }
+.health-card dd { margin: 0; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 0; overflow-wrap: anywhere; }
+.health-card dd small, .hc-head small { display: block; font-weight: 400; font-size: 13px; color: var(--ink-2); }
+.health-card dd.ok { color: #32d74b; } .health-card dd.warn { color: #ff9f0a; } .health-card dd.bad { color: #ff453a; } .health-card dd.off { color: var(--ink-3); }
+.hc-head { display: flex; align-items: center; gap: 12px; padding-bottom: 10px; }
+.hc-head b { display: block; font-size: 19px; letter-spacing: -0.01em; }
+
+.fine-link, .as-chip, .chip.small { min-height: 44px; }
+.about-block .fine-link, .dl-open { min-height: 44px; display: flex; align-items: center; justify-content: center; }

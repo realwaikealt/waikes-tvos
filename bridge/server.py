@@ -1020,19 +1020,22 @@ async def h_ask(request):
     tv_key = _current.get()
     # The TV shows what was asked and the answer, whether it was typed on a phone or picked on the TV.
     state = ask_state[tv_key] = {"id": uuid.uuid4().hex[:8], "text": text, "status": "pending",
-                                 "reply": "", "options": [], "ts": time.time()}
+                                 "reply": "", "options": [], "doing": "", "ts": time.time()}
     try:
         def partial(t):   # the TV shows the answer growing while Claude is still working
-            state.update(status="pending", reply=t, partial=True, ts=time.time())
+            state.update(status="pending", reply=t, partial=True, doing="", ts=time.time())
+
+        def doing(label):   # and a short line about what it is doing right now
+            state.update(status="pending", doing=label, ts=time.time())
         result = await claude.ask(text, store.norm_who(data.get("who")) or store.current_who(), asks,
-                                  tv_key, on_partial=partial)
+                                  tv_key, on_partial=partial, on_status=doing)
     except Exception as e:
         log.warning("ask crashed: %r", e)
         state.update(status="error", reply=f"Claude could not be reached: {e}", ts=time.time())
         raise ApiError(502, "Claude could not be reached. Is Claude signed in on this computer?")
     failed = result["reply"].startswith("Sorry, that did not work")
     state.update(status="error" if failed else "done", reply=result["reply"],
-                 options=result["options"], partial=False, ts=time.time())
+                 options=result["options"], partial=False, doing="", ts=time.time())
     return ok(**result)
 
 
@@ -2218,6 +2221,8 @@ def make_app():
     diag.routes(r, _sys.modules[__name__])
     import devlog  # noqa: E402  (the Dev log list: /api/devlog and /devlog)
     devlog.routes(r, _sys.modules[__name__])
+    import health  # noqa: E402  (all TVs at a glance: /api/health/all and /health)
+    health.routes(r, _sys.modules[__name__])
     import notify  # noqa: E402  (TV messages: "work finished" popups)
     notify.routes(r, _sys.modules[__name__])
     import features  # noqa: E402  (feature switches: /api/features)

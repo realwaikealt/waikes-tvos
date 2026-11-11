@@ -3,7 +3,8 @@ import { flushSync } from 'react-dom';
 import { api, subscribeNow, setTvId } from './api.js';
 import { tick } from './haptics.js';
 import * as Ic from './icons.jsx';
-import { TopBar, QuickActions, NowPlaying, Pad, Controls, AskButton } from './Remote.jsx';
+import { TopBar, NowPlaying, Pad, Controls, AskButton } from './Remote.jsx';
+import { TvPicker, HealthSheet } from './TvSheets.jsx';
 import { Watch } from './Watch.jsx';
 import { AskSheet, MoreSheet, ArrangeSheet, PeopleSheet, Onboarding } from './Sheets.jsx';
 import { usePullDown, usePageDrag } from './gestures.js';
@@ -321,13 +322,12 @@ export default function App() {
   const remote = (
     <div className="remote-col">
       <div className="pull-zone" {...pull}>
-      <TopBar people={people} tvName={thisTv?.name} who={who} setWho={pickWho} tv={tv} appInfo={appById[tv?.app?.id]} reach={reach} sleepLeft={sleepLeft} onPower={onPower} onMore={() => setSheet('more')} />
-      {tvId && <button className="tv-chip glass" onClick={() => { tick(); setSheet('more'); }}><Ic.Screen size={15} /> {thisTv?.name || 'This'} TV</button>}
+      <TopBar people={people} tvName={thisTv?.name} who={who} setWho={pickWho} tv={tv} appInfo={appById[tv?.app?.id]} reach={reach} sleepLeft={sleepLeft} onPower={onPower}
+        manyTvs={tvs.length > 1} onTitle={() => setSheet('tvs')} />
       <NowPlaying tv={tv} appInfo={appById[tv?.app?.id]} onKey={onKey} roomy={h >= 760} />
       </div>
       <Pad onKey={onKey} offState={offState} wakeError={wakeError} onWake={onWake} onRetry={onRetry}
         tvName={thisTv?.name} onLivingRoom={() => { tick(); chooseTv(null); }} />
-      <QuickActions sleepLeft={sleepLeft} onSleep={cycleSleep} onKey={onKey} onPicture={() => onTvPage('picture')} disabled={Boolean(offState)} />
       <Controls tv={tv} onKey={onKey} onVolume={onVolume} />
       {wide && askOn && <AskButton onAsk={openAsk} quiet={Boolean(offState)} />}
     </div>
@@ -359,7 +359,9 @@ export default function App() {
       <AskSheet ref={askInput} open={sheet === 'ask'} onClose={() => setSheet(null)} who={who} recs={recs} onAsk={onAsk} onDone={(reply) => say(reply)} />
       <MoreSheet ref={moreSheet} open={sheet === 'more'} tvs={tvs} tvId={tvId || 'living-room'} onTv={(id) => { tick(); chooseTv(id); }}
         picture={tv?.picture} pictureInfo={pictureInfo} onPicture={onPicture} onTvPage={onTvPage} onClose={() => setSheet(null)} sleepEnds={sleepEnds} sleepError={sleepError} onSleep={onSleep}
-        onKey={onKey} onText={(t, extra) => run(api.text(t, extra), 'Sent to the TV')} onArrange={() => setSheet('arrange')} onPeople={() => setSheet('people')} />
+        onKey={onKey} onText={(t, extra) => run(api.text(t, extra), 'Sent to the TV')} onArrange={() => setSheet('arrange')} onPeople={() => setSheet('people')} onHealth={() => setSheet('health')} />
+      <TvPicker open={sheet === 'tvs'} onClose={() => setSheet(null)} tvs={tvs} tvId={tvId || 'living-room'} onTv={(id) => { tick(); chooseTv(id); }} onHealth={() => setSheet('health')} />
+      <HealthSheet open={sheet === 'health'} onClose={() => setSheet(null)} />
       <ArrangeSheet open={sheet === 'arrange'} onClose={() => setSheet(null)} tvName={thisTv?.name} />
       <PeopleSheet open={sheet === 'people'} onClose={() => setSheet(null)} onSaved={(list) => { setPeople(list); if (who && who !== 'both' && !list.some((p) => p.id === who)) setWho(list[0]?.id || 'both'); }} />
       {!who && people.length > 0 && <Onboarding people={people} standalone={standalone} onPick={pickWho} />}

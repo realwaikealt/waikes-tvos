@@ -55,6 +55,7 @@ export const api = {
   setSleep: (minutes) => call('POST', '/api/sleep', { minutes }),
   openScreen: (id) => call('POST', '/api/screens/open', { id }),
   tvs: () => call('GET', '/api/tvs'),
+  healthAll: () => call('GET', '/api/health/all', null, 30000),
   picture: (mode) => call('POST', '/api/picture', { mode }, 20000),   // a picture switch can take several seconds
   appOrder: () => call('GET', '/api/app-order'),
   saveAppOrder: (order, line) => call('POST', '/api/app-order', { order, line, manual: true }),

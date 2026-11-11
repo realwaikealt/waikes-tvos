@@ -11,8 +11,8 @@
     { label: "Status", board: true }
   ];
   // The Status view: what is finished, what still needs work, what is not made yet, ideas, and what is parked.
-  var STATUS = { done: "Finished", work: "Needs work", todo: "Not made yet", idea: "Idea", parked: "Parked" };
-  var STATUS_ORDER = ["work", "todo", "idea", "parked", "done"];
+  var STATUS = { test: "Needs testing", work: "Unfinished", todo: "Not started", idea: "Just an idea", parked: "Saved for later", done: "Completed" };
+  var STATUS_ORDER = ["test", "work", "todo", "idea", "parked", "done"];
   var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   var DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   var LONG = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];

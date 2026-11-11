@@ -50,7 +50,7 @@ function WhoSwitch({ people, who, setWho }) {
 // The status header: which TV, whether it is reachable and what it is doing, then the two controls
 // you reach for most (more, power). Who is watching sits on its own row, and only when there is
 // more than one person to choose from.
-export function TopBar({ people, tvName, who, setWho, tv, appInfo, reach, sleepLeft, onPower, onMore }) {
+export function TopBar({ people, tvName, who, setWho, tv, appInfo, reach, sleepLeft, onPower, onTitle, manyTvs }) {
   let tone = 'ok';
   let line;
   if (reach === false) { tone = 'bad'; line = 'Can’t reach the bridge'; }
@@ -69,12 +69,12 @@ export function TopBar({ people, tvName, who, setWho, tv, appInfo, reach, sleepL
     <>
       <header className="topbar status">
         {avatar && <WhoSwitch people={people} who={who} setWho={setWho} />}
-        <div className="status-main" role="status" aria-live="polite">
+        <button className="status-main title-btn" onClick={() => { tick(); onTitle(); }} aria-haspopup="dialog"
+          aria-label={`${tvName || 'TV'}, ${line}. ${manyTvs ? 'Change TV or see health' : 'Open TV health'}`}>
           <span className={`dot ${tone}`} aria-hidden="true" />
-          <span className="status-text"><b>{tvName || 'TV'}</b><span>{line}</span></span>
-        </div>
+          <span className="status-text" role="status" aria-live="polite"><b>{tvName || 'TV'}<Ic.Chevron className="title-chev" size={16} /></b><span>{line}</span></span>
+        </button>
         {sleepLeft && <span className="sleep-chip glass" aria-label={`Sleep timer, ${sleepLeft} left`}><Ic.Moon size={14} /> {sleepLeft}</span>}
-        <button className="round glass" aria-label="More controls" onClick={() => { tick(); onMore(); }}><Ic.More /></button>
         <button className={`round glass power ${tv?.power === 'on' ? 'is-on' : ''}`} aria-label={tv?.power === 'on' ? 'Turn TV off' : 'Turn TV on'}
           onClick={() => { tick(); onPower(); }}><Ic.Power /></button>
       </header>

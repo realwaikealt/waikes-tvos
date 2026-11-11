@@ -301,5 +301,11 @@ def brave_search(query: str) -> dict:
         return {"ok": False, "error": f"search failed: {e}"}
 
 
+@mcp.tool()
+def health() -> dict:
+    """Is each TV connected, how fast is the link to it, and which home screen is its default. Use it when the person says a TV is slow, not responding, or asks whether it is working."""
+    return call("GET", "/api/health/all", timeout=40)
+
+
 if __name__ == "__main__":
     mcp.run()
