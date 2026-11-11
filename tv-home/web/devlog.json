@@ -629,6 +629,15 @@
    "type": "fixed",
    "title": "Each TV keeps its own settings",
    "summary": "With two TVs, one could overwrite the other's saved settings. The bridge now keeps a separate copy per TV."
+  },
+  {
+   "id": "20261111-02",
+   "date": "2026-11-11",
+   "time": "04:30",
+   "version": "1.0.41",
+   "type": "fixed",
+   "title": "Two TVs, nothing shared",
+   "summary": "Each TV now keeps its own watch history, picks, wallpaper choice and saved settings, so changing one never changes the other."
   }
  ],
  "board": [

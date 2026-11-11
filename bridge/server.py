@@ -47,7 +47,7 @@ log = logging.getLogger("bridge")
 TV_CONFIG = {"default": config.DEFAULT_TV, "tvs": config.TVS}
 TVS = {c["id"]: TV(c) for c in TV_CONFIG["tvs"]}
 DEFAULT_TV = TV_CONFIG["default"]
-_current = contextvars.ContextVar("tv", default=DEFAULT_TV)
+_current = config.CURRENT_TV
 
 
 class _TVProxy:

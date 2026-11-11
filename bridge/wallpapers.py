@@ -549,9 +549,17 @@ async def h_still(request):
 
 
 # ---------- the choice ----------
+def _choice_file():
+    """Each TV has its own wallpaper choice (the default TV keeps wallpaper.json)."""
+    tv = config.CURRENT_TV.get()
+    if not tv or tv == config.DEFAULT_TV or not all(c.isalnum() or c == "-" for c in tv):
+        return CHOICE_FILE
+    return os.path.join(config.DATA, "wallpaper.%s.json" % tv)
+
+
 def read_choice():
     try:
-        with open(CHOICE_FILE, encoding="utf-8") as f:
+        with open(_choice_file(), encoding="utf-8") as f:
             d = json.load(f)
         if isinstance(d, dict) and isinstance(d.get("id"), str):
             return {"id": d["id"], "t": int(d.get("t") or 0)}
@@ -566,7 +574,7 @@ def write_choice(wid, t=None):
     fd, tmp = tempfile.mkstemp(dir=config.DATA, suffix=".tmp")
     with os.fdopen(fd, "w", encoding="utf-8") as f:
         json.dump(d, f)
-    os.replace(tmp, CHOICE_FILE)
+    os.replace(tmp, _choice_file())
     return d
 
 

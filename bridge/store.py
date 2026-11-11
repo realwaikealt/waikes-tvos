@@ -80,20 +80,30 @@ def _append(path, items):
         os.fsync(f.fileno())
 
 
+def per_tv(path):
+    """The file for the TV this request is about: the default TV keeps the original name, another TV gets
+    name.<tv id>.ext, so two TVs never share watch history, imports or picks."""
+    tv = config.CURRENT_TV.get()
+    if not tv or tv == config.DEFAULT_TV or not all(c.isalnum() or c == "-" for c in tv):
+        return path
+    base, ext = os.path.splitext(path)
+    return "%s.%s%s" % (base, tv, ext)
+
+
 def history():
-    """Plays on our TVs, newest first. Kept forever."""
+    """Plays on this TV, newest first. Kept forever."""
     _migrate()
-    return list(reversed(_lines(HISTORY)))
+    return list(reversed(_lines(per_tv(HISTORY))))
 
 
 def add_history(item):
     _migrate()
-    _append(HISTORY, [item])
+    _append(per_tv(HISTORY), [item])
 
 
 def imported():
     """Imported history (Netflix, YouTube, ...), oldest first."""
-    return _lines(IMPORTED)
+    return _lines(per_tv(IMPORTED))
 
 
 def add_imported(items):
@@ -105,7 +115,7 @@ def add_imported(items):
             seen.add(item["key"])
             new.append(item)
     if new:
-        _append(IMPORTED, new)
+        _append(per_tv(IMPORTED), new)
     return len(new)
 
 
@@ -180,8 +190,8 @@ def save_sleep(ends, tv_id):
 
 
 def recs():
-    return _read(RECS, {})
+    return _read(per_tv(RECS), {})
 
 
 def save_recs(data):
-    _write(RECS, data)
+    _write(per_tv(RECS), data)

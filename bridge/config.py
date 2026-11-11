@@ -51,6 +51,8 @@ CONFIG, LOADED_FROM = _load()
 
 TVS = CONFIG["tvs"]
 DEFAULT_TV = CONFIG.get("default_tv") or TVS[0]["id"]
+import contextvars  # noqa: E402
+CURRENT_TV = contextvars.ContextVar("tv", default=DEFAULT_TV)   # set per request by the server
 WEATHER = {"lat": -33.8688, "lon": 151.2093, "place": "Sydney", "timezone": "Australia/Sydney",
            **(CONFIG.get("weather") or {})}
 SCREENS = CONFIG.get("screens") or []

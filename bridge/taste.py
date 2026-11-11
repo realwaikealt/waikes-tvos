@@ -204,12 +204,12 @@ async def build():
         os.makedirs(store.DATA, exist_ok=True)
         with open(DETAILS_CACHE, "w") as f:
             json.dump(cache, f)
-        store._write(TASTE, out)
+        store._write(store.per_tv(TASTE), out)
         return out
 
 
 def load():
-    return store._read(TASTE, {})
+    return store._read(store.per_tv(TASTE), {})
 
 
 def summary(who=None, limit=1800):
